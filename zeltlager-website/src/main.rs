@@ -21,8 +21,16 @@ mod email;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 
-struct AppState {
+#[derive(Deserialize, Debug, Clone)]
+struct Config {
+    email_username: String,
+    email_password: String,
+}
+
+#[derive(Clone)]
+pub struct AppState {
     basics: basic::SiteDescriptions,
+    config: Config,
 }
 
 fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
@@ -43,13 +51,14 @@ fn not_found(_: HttpRequest<AppState>) -> Result<HttpResponse> {
        .body(content)?)
 }
 
-fn send_confirmation_mail(_: HttpRequest) -> Result<HttpResponse> {
+fn send_confirmation_mail(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     let maildata = email::MailData {
         parent_mail: "c.eltern@flakebi.de".to_string(),
         parent_name: "Sebastian Neubauer".to_string(),
         child_first_name: "Antonia".to_string(),
         child_last_name: "Neubauer".to_string() };
-    email::send_mail(maildata);
+    let result = email::send_mail(maildata, req.state());
+    println!("{:?}", result);
     let mut content = String::new();
     File::open("static/Home.html")?.read_to_string(&mut content)?;
     Ok(httpcodes::HttpAccepted.build()
@@ -58,10 +67,14 @@ fn send_confirmation_mail(_: HttpRequest) -> Result<HttpResponse> {
 }
 
 fn main() {
-    HttpServer::new(|| {
-        let basics = basic::SiteDescriptions::parse().expect("Failed to parse basic.toml");
+    let basics = basic::SiteDescriptions::parse().expect("Failed to parse basic.toml");
+    let mut content = String::new();
+    File::open("config.toml").unwrap().read_to_string(&mut content).unwrap();
+    let config = toml::from_str(&content).expect("Failed to parse config.toml");
 
-        Application::with_state(AppState { basics })
+    let state = AppState { basics, config };
+    HttpServer::new(move || {
+        Application::with_state(state.clone())
             .middleware(middleware::Logger::default())
             .handler("/static", fs::StaticFiles::new("static", false)
                 .default_handler(not_found))
