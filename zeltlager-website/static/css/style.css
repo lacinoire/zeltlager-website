@@ -1,0 +1,16 @@
+.container {
+    padding-top: 30px;
+    width: 750px;
+}
+
+h1 {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    color: navy;
+}
+
+.custom-control-input {
+    position: relative;
+    z-index: -1;
+    opacity: 1;
+}
