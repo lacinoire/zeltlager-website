@@ -1,0 +1,11 @@
+# The list of all sites which get rendered with the basic template
+
+[[sites]]
+name = "Home.html"
+title = "Startseite"
+description = "Startseite des Zeltlagers"
+
+[[sites]]
+name = "Anmeldung.html"
+title = "Anmeldung"
+description = "Anmeldung für’s Zeltlager"
