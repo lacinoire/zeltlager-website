@@ -25,6 +25,12 @@ type Result<T> = std::result::Result<T, failure::Error>;
 struct Config {
     email_username: String,
     email_password: String,
+    /// Address to bind to.
+    ///
+    /// # Default
+    ///
+    /// 127.0.0.0:8080
+    bind_address: Option<String>,
 }
 
 #[derive(Clone)]
@@ -70,9 +76,12 @@ fn main() {
     let basics = basic::SiteDescriptions::parse().expect("Failed to parse basic.toml");
     let mut content = String::new();
     File::open("config.toml").unwrap().read_to_string(&mut content).unwrap();
-    let config = toml::from_str(&content).expect("Failed to parse config.toml");
+    let config: Config = toml::from_str(&content).expect("Failed to parse config.toml");
 
+    let address = config.bind_address.as_ref().map(|s| s.as_str())
+        .unwrap_or("127.0.0.1:8080").to_string();
     let state = AppState { basics, config };
+
     HttpServer::new(move || {
         Application::with_state(state.clone())
             .middleware(middleware::Logger::default())
@@ -81,6 +90,6 @@ fn main() {
             .resource("/mail", |r| r.f(send_confirmation_mail))
             .resource("/{name}", |r| r.f(index))
             .default_resource(|r| r.f(not_found))
-    }).bind("127.0.0.1:8080").unwrap()
+    }).bind(address).unwrap()
         .run();
 }
