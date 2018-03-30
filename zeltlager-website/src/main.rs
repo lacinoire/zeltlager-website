@@ -1,12 +1,18 @@
 extern crate actix_web;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate t4rust_derive;
 
 use std::fs::File;
 use std::io::Read;
-use std::path::{Path, PathBuf};
 
 use actix_web::*;
 
-fn index(req: HttpRequest) -> &'static str {
+mod basic;
+
+fn index(_req: HttpRequest) -> &'static str {
     ""
 }
 
