@@ -9,3 +9,18 @@ description = "Startseite des Zeltlagers"
 name = "Anmeldung.html"
 title = "Anmeldung"
 description = "Anmeldung für’s Zeltlager"
+
+[[sites]]
+name = "Programm.html"
+title = "Programm"
+description = "Programm des Zeltlagers"
+
+[[sites]]
+name = "Team.html"
+title = "Team"
+description = "Team des Zeltlagers"
+
+[[sites]]
+name = "Ausstattung.html"
+title = "Ausstattung"
+description = "Ausstattung des Zeltlagers"

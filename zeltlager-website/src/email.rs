@@ -1,7 +1,5 @@
 use lettre::{EmailTransport, SmtpTransport};
 use lettre_email::EmailBuilder;
-use std::path::Path;
-use mime;
 use Result;
 use lettre::smtp::authentication::Credentials;
 use AppState;
