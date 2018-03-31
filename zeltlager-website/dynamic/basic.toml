@@ -55,3 +55,10 @@ file_name = "Impressum.html"
 title = "Impressum"
 description = "Impressum der Zeltlagerwebsite"
 navbar_visible = true
+
+[[sites]]
+name = "404"
+file_name = "404.html"
+title = "404 - Not Found"
+description = "404 - Not Found"
+navbar_visible = false

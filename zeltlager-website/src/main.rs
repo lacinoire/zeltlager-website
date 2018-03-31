@@ -58,7 +58,10 @@ pub struct AppState {
 
 fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     let name: String = req.match_info().query("name")?;
-    let site = req.state().basics.get_site(&name)?;
+    let site = match req.state().basics.get_site(&name) {
+        Ok(site) => site,
+        Err(_) => req.state().basics.get_site("404")?,
+    };
     let content = format!("{}", site);
 
     Ok(httpcodes::HttpNotFound.build()

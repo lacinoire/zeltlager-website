@@ -11,13 +11,15 @@
 	<meta name="description" content="<#= self.description.description #>">
 	<link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css"/>
 	<link rel="stylesheet" href="/static/css/style.css"/>
-	<script src="/static/boostrap/js/jquery-2.2.4.min.js"></script>
-	<script src="/static/boostrap/js/boostrap.min.js"></script>
+	<script src="/static/bootstrap/js/jquery-3.3.1.slim.min.js"></script>
+	<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+
+	<link rel="icon" type="image/svg+xml" href="static/img/icon.svg" sizes="any">
 </head>
 
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-light">
-		<a class="navbar-brand" href="#">Zeltlager</a>
+		<a class="navbar-brand" href="startseite"><img src="static/img/icon.svg" width="26" height="26" alt=""></a>
 		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
 			aria-expanded="false" aria-label="Toggle navigation">
 		<span class="navbar-toggler-icon"></span>
