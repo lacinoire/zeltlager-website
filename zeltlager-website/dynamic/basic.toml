@@ -1,26 +1,31 @@
 # The list of all sites which get rendered with the basic template
 
 [[sites]]
-name = "Home.html"
+name = "startseite"
+file_name = "Home.html"
 title = "Startseite"
 description = "Startseite des Zeltlagers"
 
 [[sites]]
-name = "Anmeldung.html"
+name = "anmeldung"
+file_name = "Anmeldung.html"
 title = "Anmeldung"
 description = "Anmeldung für’s Zeltlager"
 
 [[sites]]
-name = "Programm.html"
+name = "programm"
+file_name = "Programm.html"
 title = "Programm"
 description = "Programm des Zeltlagers"
 
 [[sites]]
-name = "Team.html"
+name = "team"
+file_name = "Team.html"
 title = "Team"
 description = "Team des Zeltlagers"
 
 [[sites]]
-name = "Ausstattung.html"
+name = "ausstattung"
+file_name = "Ausstattung.md"
 title = "Ausstattung"
 description = "Ausstattung des Zeltlagers"

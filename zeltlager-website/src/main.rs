@@ -4,6 +4,7 @@ extern crate failure;
 extern crate lettre;
 extern crate lettre_email;
 extern crate mime;
+extern crate pulldown_cmark;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -41,6 +42,16 @@ pub struct AppState {
 
 fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     let name: String = req.match_info().query("name")?;
+    let site = req.state().basics.get_site(&name)?;
+    let content = format!("{}", site);
+
+    Ok(httpcodes::HttpNotFound.build()
+       .content_type("text/html; charset=utf-8")
+       .body(content)?)
+}
+
+fn startpage(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+    let name: String = "startseite".to_string();
     let site = req.state().basics.get_site(&name)?;
     let content = format!("{}", site);
 
@@ -89,6 +100,7 @@ fn main() {
                 .default_handler(not_found))
             .resource("/mail", |r| r.f(send_confirmation_mail))
             .resource("/{name}", |r| r.f(index))
+            .resource("", |r| r.f(startpage))
             .default_resource(|r| r.f(not_found))
     }).bind(address).unwrap()
         .run();

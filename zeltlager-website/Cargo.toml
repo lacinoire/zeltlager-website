@@ -9,6 +9,7 @@ failure = "0.1"
 lettre = "0.7"
 lettre_email = "0.7"
 mime = "0.3"
+pulldown-cmark = { version = "0.0", default-features = false }
 serde = "1"
 serde_derive = "1"
 t4rust-derive = { git = "https://github.com/ReSpeak/t4rust.git" }

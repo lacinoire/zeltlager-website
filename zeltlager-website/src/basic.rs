@@ -1,12 +1,14 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use pulldown_cmark::{html, Parser};
 
 use {Result, toml};
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct SiteDescription {
     pub name: String,
+    pub file_name: String,
     pub title: String,
     pub description: String,
 }
@@ -38,7 +40,13 @@ impl SiteDescriptions {
             if site.name == name {
                 // Read file
                 let mut content = String::new();
-                File::open(Path::new("dynamic").join(&site.name))?.read_to_string(&mut content)?;
+                File::open(Path::new("dynamic").join(&site.file_name))?.read_to_string(&mut content)?;
+                if site.file_name.ends_with(".md") {
+                    let old_content = content.clone();
+                    let parser = Parser::new(&old_content);
+                    content.clear();
+                    html::push_html(&mut content, parser);
+                }
 
                 return Ok(Basic {
                     all_sites: self,

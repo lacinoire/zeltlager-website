@@ -23,11 +23,11 @@
 		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
 			<div class="navbar-nav">
 			<# /* TODO Autogenerate and set active class/sr-only */ #>
-				<a class="nav-item nav-link" href="Home.html">Startseite<span class="sr-only">(current)</span></a>
-				<a class="nav-item nav-link" href="Anmeldung.html">Anmeldung</a>
-				<a class="nav-item nav-link" href="Programm.html">Programm</a>
-				<a class="nav-item nav-link" href="Team.html">Team</a>
-				<a class="nav-item nav-link" href="Ausstattung.html">Ausstattung</a>
+				<a class="nav-item nav-link" href="startseite">Startseite<span class="sr-only">(current)</span></a>
+				<a class="nav-item nav-link" href="anmeldung">Anmeldung</a>
+				<a class="nav-item nav-link" href="programm">Programm</a>
+				<a class="nav-item nav-link" href="team">Team</a>
+				<a class="nav-item nav-link" href="ausstattung">Ausstattung</a>
 			</div>
 		</div>
 	</nav>
