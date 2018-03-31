@@ -5,14 +5,12 @@ name = "startseite"
 file_name = "Home.md"
 title = "Startseite"
 description = "Startseite der Zeltlagerwebseite"
-navbar_visible = true
 
 [[sites]]
 name = "anmeldung"
 file_name = "Anmeldung.html"
 title = "Anmeldung"
 description = "Anmeldung für’s Zeltlager"
-navbar_visible = true
 
 [[sites]]
 name = "anmeldungErfolgreich"
@@ -26,46 +24,40 @@ name = "programm"
 file_name = "Programm.md"
 title = "Programm"
 description = "Programm des Zeltlagers"
-navbar_visible = true
 
 [[sites]]
 name = "team"
 file_name = "Team.md"
 title = "Team"
 description = "Team des Zeltlagers"
-navbar_visible = true
 
 [[sites]]
 name = "ausstattung"
 file_name = "Ausstattung.md"
 title = "Ausstattung"
 description = "Ausstattung des Zeltlagers"
-navbar_visible = true
 
 [[sites]]
 name = "agb"
 file_name = "Agb.html"
 title = "Allgemeine Geschäftsbedingungen"
 description = "Allgemeine Geschäftsbedingungen des Zeltlagers"
-navbar_visible = true
 
 [[sites]]
 name = "datenschutz"
 file_name = "Datenschutz.html"
 title = "Datenschutz"
 description = "Datenschutzerklärung der Zeltlagerwebsite"
-navbar_visible = true
 
 [[sites]]
 name = "impressum"
 file_name = "Impressum.html"
 title = "Impressum"
 description = "Impressum der Zeltlagerwebsite"
-navbar_visible = true
 
 [[sites]]
 name = "404"
-file_name = "404.html"
+file_name = "404.md"
 title = "404 - Not Found"
 description = "404 - Not Found"
 navbar_visible = false

@@ -15,6 +15,7 @@ failure = "0.1"
 futures = "0.1"
 lettre = "0.7"
 lettre_email = "0.7"
+log = "0.4"
 mime = "0.3"
 pulldown-cmark = { version = "0.0", default-features = false }
 serde = "1"

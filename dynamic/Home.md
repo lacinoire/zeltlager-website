@@ -29,7 +29,7 @@ aus. Der Wettbewerb an sich steht aber im Hintergrund, da wir in erster
 Linie gemeinsam Spaß haben wollen.
 
 Natürlich geht es in dieser Zeit auch mal besinnlich und ruhig zu.
-Schließlich wollen wir vorallem eine wundervolle Zeitzusammen verbringen
+Schließlich wollen wir vorallem eine wundervolle Zeit zusammen verbringen
 und nebenbei allerlei Interessantes und Spannendes entdecken. Dabei sind
 wir Gäste bei befreundeten Sportvereinen und dürfen ihre Sportplätze
 nutzen. Abkühlung suchen wir in den naheliegenden Freibädern oder bei
@@ -38,10 +38,10 @@ auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei
 Gruppenspielen wie „Das Perfekte Zelt“ euren Teamgeist beweisen oder ihr
 kämpft gegen die Betreuer bei „Schlag den Supervisor“. Natürlich lehren
 wir Euch während der Nachtwanderung/Gruselnacht ordentlich das
-"Fürchten" und Lagerwachen am Lagerfeuer gehören ebenso dazu.
+„Fürchten“ und Lagerwachen am Lagerfeuer gehören ebenso dazu.
 
-Unser [Betreuerteam](Team.html) plant im Vorfeld eure 11 Tage, damit das
-[Programm](Programm.html) so abwechslungsreich, spannend, unterhaltsam
+Unser [Betreuerteam](team) plant im Vorfeld eure 11 Tage, damit das
+[Programm](programm) so abwechslungsreich, spannend, unterhaltsam
 und aufregend wie nur möglich wird.
 
 Klickt euch durch und meldet euch an!

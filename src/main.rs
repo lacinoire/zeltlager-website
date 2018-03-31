@@ -11,6 +11,8 @@ extern crate failure;
 extern crate futures;
 extern crate lettre;
 extern crate lettre_email;
+#[macro_use]
+extern crate log;
 extern crate mime;
 extern crate pulldown_cmark;
 extern crate serde;
@@ -64,23 +66,21 @@ pub struct AppState {
 
 fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     let name: String = req.match_info().query("name")?;
-    let site = match req.state().basics.get_site(&name) {
-        Ok(site) => site,
-        Err(_) => req.state().basics.get_site("404")?,
-    };
-    let content = format!("{}", site);
+    if let Ok(site) = req.state().basics.get_site(&name) {
+        let content = format!("{}", site);
 
-    Ok(httpcodes::HttpNotFound.build()
-       .content_type("text/html; charset=utf-8")
-       .body(content)?)
+        return Ok(httpcodes::HttpOk.build()
+           .content_type("text/html; charset=utf-8")
+           .body(content)?);
+    }
+    not_found(req)
 }
 
 fn startpage(req: HttpRequest<AppState>) -> Result<HttpResponse> {
-    let name: String = "startseite".to_string();
-    let site = req.state().basics.get_site(&name)?;
+    let site = req.state().basics.get_site("startseite")?;
     let content = format!("{}", site);
 
-    Ok(httpcodes::HttpNotFound.build()
+    Ok(httpcodes::HttpOk.build()
        .content_type("text/html; charset=utf-8")
        .body(content)?)
 }
@@ -102,9 +102,10 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
         .responder()
 }
 
-fn not_found(_: HttpRequest<AppState>) -> Result<HttpResponse> {
-    let mut content = String::new();
-    File::open("static/404.html")?.read_to_string(&mut content)?;
+fn not_found(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+    warn!("File not found '{}'", req.path());
+    let site = req.state().basics.get_site("404")?;
+    let content = format!("{}", site);
     Ok(httpcodes::HttpNotFound.build()
        .content_type("text/html; charset=utf-8")
        .body(content)?)
@@ -120,7 +121,7 @@ fn send_confirmation_mail(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     println!("{:?}", result);
     let mut content = String::new();
     File::open("static/Home.html")?.read_to_string(&mut content)?;
-    Ok(httpcodes::HttpAccepted.build()
+    Ok(httpcodes::HttpOk.build()
         .content_type("text/html; charset=utf-8")
         .body(content)?)
 }

@@ -5,12 +5,15 @@ use pulldown_cmark::{html, Parser};
 
 use {Result, toml};
 
+fn get_true() -> bool { true }
+
 #[derive(Clone, Deserialize, Debug)]
 pub struct SiteDescription {
     pub name: String,
     pub file_name: String,
     pub title: String,
     pub description: String,
+    #[serde(default = "get_true")]
     pub navbar_visible: bool,
 }
 
