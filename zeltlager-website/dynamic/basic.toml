@@ -15,6 +15,13 @@ description = "Anmeldung für’s Zeltlager"
 navbar_visible = true
 
 [[sites]]
+name = "anmeldungErfolgreich"
+file_name = "AnmeldungErfolgreich.md"
+title = "Anmeldung erfolgreich"
+description = "Anmeldung für’s Zeltlager war erfolgreich"
+navbar_visible = false
+
+[[sites]]
 name = "programm"
 file_name = "Programm.md"
 title = "Programm"
