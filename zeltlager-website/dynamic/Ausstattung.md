@@ -1,0 +1,7 @@
+# Ausstattung
+
+### Aufenthaltszelte
+
+### Teilnehmerzelte
+
+### Lagerplatz
