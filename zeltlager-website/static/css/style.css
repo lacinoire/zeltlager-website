@@ -1,6 +1,12 @@
 .container {
     padding-top: 30px;
-    width: 750px;
+    max-width: 80em;
+    min-height: calc(100vh - 56px);
+}
+
+img {
+    max-width: 36em;
+    padding: 5px;
 }
 
 h1 {
@@ -13,4 +19,16 @@ h1 {
     position: relative;
     z-index: -1;
     opacity: 1;
+}
+
+html {
+    margin: 0px;
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    margin: 0px;
+    min-height: 100%;
+    width: 100%;
 }

@@ -11,6 +11,7 @@ pub struct SiteDescription {
     pub file_name: String,
     pub title: String,
     pub description: String,
+    pub navbar_visible: bool,
 }
 
 #[derive(Clone, Deserialize, Debug)]

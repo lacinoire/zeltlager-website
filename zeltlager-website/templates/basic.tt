@@ -9,8 +9,10 @@
 	<title><#= self.description.title #> - Zeltlager</title>
 
 	<meta name="description" content="<#= self.description.description #>">
-	<link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css">
-	<link rel="stylesheet" href="/static/css/style.css">
+	<link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css"/>
+	<link rel="stylesheet" href="/static/css/style.css"/>
+	<script src="/static/boostrap/js/jquery-2.2.4.min.js"></script>
+	<script src="/static/boostrap/js/boostrap.min.js"></script>
 </head>
 
 <body>
@@ -23,11 +25,16 @@
 		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
 			<div class="navbar-nav">
 			<# /* TODO Autogenerate and set active class/sr-only */ #>
-				<a class="nav-item nav-link" href="startseite">Startseite<span class="sr-only">(current)</span></a>
-				<a class="nav-item nav-link" href="anmeldung">Anmeldung</a>
-				<a class="nav-item nav-link" href="programm">Programm</a>
-				<a class="nav-item nav-link" href="team">Team</a>
-				<a class="nav-item nav-link" href="ausstattung">Ausstattung</a>
+				<# for site in &self.all_sites.sites {
+					if !site.navbar_visible {
+						continue;
+					}
+					if site.name == self.description.name { #>
+					<a class="nav-item nav-link active" href="<#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
+					<# } else { #>
+					<a class="nav-item nav-link" href="<#= site.name #>"><#= site.title #></a>
+					<# } #>
+				<# } #>
 			</div>
 		</div>
 	</nav>
