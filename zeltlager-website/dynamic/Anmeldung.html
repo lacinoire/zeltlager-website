@@ -1,130 +1,130 @@
 <h1 class="headline">
       Anmeldung für das Zeltlager 2018
     </h1>
-      
-      <form style="padding-top: 10px">
+
+      <form style="padding-top: 10px" method="post" action="signup-send">
         <div class="form-group row">
-          <label for="vorname" class="col-4 col-form-label">Vorname</label> 
+          <label for="vorname" class="col-4 col-form-label">Vorname</label>
           <div class="col-8">
             <input id="vorname" name="vorname" placeholder="Vorname des Kindes" required="required" class="form-control here" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="nachname" class="col-4 col-form-label">Nachname</label> 
+          <label for="nachname" class="col-4 col-form-label">Nachname</label>
           <div class="col-8">
             <input id="nachname" name="nachname" placeholder="Nachname des Kindes" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="geburtsdatum" class="col-4 col-form-label">Geburtsdatum</label> 
+          <label for="geburtsdatum" class="col-4 col-form-label">Geburtsdatum</label>
           <div class="col-8">
             <input id="geburtsdatum" name="geburtsdatum" placeholder="TT.MM.JJJJ" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-4">Schwimmer</label> 
+          <label class="col-4">Schwimmer</label>
           <div class="col-8">
             <label class="custom-control custom-radio">
-              <input name="schwimmer" class="custom-control-input" value="schwimmer" required="required" type="radio"> 
-              <span class="custom-control-indicator"></span> 
+              <input name="schwimmer" class="custom-control-input" value="true" required="required" type="radio">
+              <span class="custom-control-indicator"></span>
               <span class="custom-control-description">Schwimmer</span>
             </label>
             <label class="custom-control custom-radio">
-              <input name="schwimmer" class="custom-control-input" value="nichtschwimmer" required="required" type="radio"> 
-              <span class="custom-control-indicator"></span> 
+              <input name="schwimmer" class="custom-control-input" value="false" required="required" type="radio">
+              <span class="custom-control-indicator"></span>
               <span class="custom-control-description">Nichtschwimmer</span>
             </label>
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-4">Vegetarier</label> 
+          <label class="col-4">Vegetarier</label>
           <div class="col-8">
             <label class="custom-control custom-radio">
-              <input name="vegetarier" class="custom-control-input" value="ja" required="required" type="radio"> 
-              <span class="custom-control-indicator"></span> 
+              <input name="vegetarier" class="custom-control-input" value="true" required="required" type="radio">
+              <span class="custom-control-indicator"></span>
               <span class="custom-control-description">Ja</span>
             </label>
             <label class="custom-control custom-radio">
-              <input name="vegetarier" class="custom-control-input" value="nein" required="required" type="radio"> 
-              <span class="custom-control-indicator"></span> 
+              <input name="vegetarier" class="custom-control-input" value="false" required="required" type="radio">
+              <span class="custom-control-indicator"></span>
               <span class="custom-control-description">Nein</span>
             </label>
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-4">Tetanusimpfung</label> 
+          <label class="col-4">Tetanusimpfung</label>
           <div class="col-8">
             <label class="custom-control custom-radio">
-              <input name="tetanus" class="custom-control-input" value="ja" required="required" type="radio"> 
-              <span class="custom-control-indicator"></span> 
+              <input name="tetanus_impfung" class="custom-control-input" value="true" required="required" type="radio">
+              <span class="custom-control-indicator"></span>
               <span class="custom-control-description">Ja</span>
             </label>
             <label class="custom-control custom-radio">
-              <input name="tetanus" class="custom-control-input" value="nein" required="required" type="radio"> 
-              <span class="custom-control-indicator"></span> 
+              <input name="tetanus_impfung" class="custom-control-input" value="false" required="required" type="radio">
+              <span class="custom-control-indicator"></span>
               <span class="custom-control-description">Nein</span>
             </label>
           </div>
         </div>
         <div class="form-group row">
-          <label for="eltern_name" class="col-4 col-form-label">Name eines Erziehungsberechtigten</label> 
+          <label for="eltern_name" class="col-4 col-form-label">Name eines Erziehungsberechtigten</label>
           <div class="col-8">
             <input id="eltern_name" name="eltern_name" placeholder="Name eines Erziehungsberechtigten des Kindes" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="eltern_mail" class="col-4 col-form-label">E-Mailadresse des Erziehungsberechtigten</label> 
+          <label for="eltern_mail" class="col-4 col-form-label">E-Mailadresse des Erziehungsberechtigten</label>
           <div class="col-8">
             <input id="eltern_mail" name="eltern_mail" placeholder="E-Mail des Erziehungsberechtigten" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="eltern_handynummer" class="col-4 col-form-label">Handynummer des Erziehungsberechtigten (für Notfälle)</label> 
+          <label for="eltern_handynummer" class="col-4 col-form-label">Handynummer des Erziehungsberechtigten (für Notfälle)</label>
           <div class="col-8">
             <input id="eltern_handynummer" name="eltern_handynummer" placeholder="Handynummer des Erziehungsberechtigten" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="strasse" class="col-4 col-form-label">Straße</label> 
+          <label for="strasse" class="col-4 col-form-label">Straße</label>
           <div class="col-8">
             <input id="strasse" name="strasse" placeholder="Straße" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="hausnummer" class="col-4 col-form-label">Hausnummer</label> 
+          <label for="hausnummer" class="col-4 col-form-label">Hausnummer</label>
           <div class="col-8">
             <input id="hausnummer" name="hausnummer" placeholder="Hausnummer" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="ort" class="col-4 col-form-label">Ort</label> 
+          <label for="ort" class="col-4 col-form-label">Ort</label>
           <div class="col-8">
             <input id="ort" name="ort" placeholder="Ort" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="plz" class="col-4 col-form-label">Postleitzahl</label> 
+          <label for="plz" class="col-4 col-form-label">Postleitzahl</label>
           <div class="col-8">
             <input id="plz" name="plz" placeholder="PLZ" class="form-control here" required="required" type="text">
           </div>
         </div>
         <div class="form-group row">
-          <label for="besonderheiten" class="col-4 col-form-label">Besonderheiten</label> 
+          <label for="besonderheiten" class="col-4 col-form-label">Besonderheiten</label>
           <div class="col-8">
-            <textarea id="besonderheiten" name="besonderheiten" cols="40" rows="5" class="form-control" aria-describedby="besonderheitenHelpBlock"></textarea> 
+            <textarea id="besonderheiten" name="besonderheiten" cols="40" rows="5" class="form-control" aria-describedby="besonderheitenHelpBlock"></textarea>
             <span id="besonderheitenHelpBlock" class="form-text text-muted">Allergien, Krankheiten, Medikamente, Eigenheiten, etc.</span>
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-4">Allgemeine Geschäftsbedingungen</label> 
+          <label class="col-4">Allgemeine Geschäftsbedingungen</label>
           <div class="col-8">
             <label class="custom-control custom-checkbox">
-              <input name="agb" class="custom-control-input" value="agb_akzeptiert" required="required" type="checkbox"> 
-              <span class="custom-control-indicator"></span> 
+              <input name="agb" class="custom-control-input" value="true" required="required" type="checkbox">
+              <span class="custom-control-indicator"></span>
               <span class="custom-control-description">Ich habe die AGB gelesen und akzeptiere sie.</span>
             </label>
           </div>
-        </div> 
+        </div>
         <div class="form-group row">
           <div class="offset-4 col-8">
             <button name="submit" type="submit" class="btn btn-primary">Anmelden</button>

@@ -4,8 +4,11 @@ version = "0.1.0"
 authors = ["Flakebi <flakebi@t-online.de>"]
 
 [dependencies]
+actix = "0.5"
 actix-web = "0.4"
+bytes = "0.4"
 failure = "0.1"
+futures = "0.1"
 lettre = "0.7"
 lettre_email = "0.7"
 mime = "0.3"

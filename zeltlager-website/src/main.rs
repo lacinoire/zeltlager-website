@@ -1,6 +1,9 @@
+extern crate actix;
 extern crate actix_web;
+extern crate bytes;
 #[macro_use]
 extern crate failure;
+extern crate futures;
 extern crate lettre;
 extern crate lettre_email;
 extern crate mime;
@@ -16,11 +19,24 @@ use std::fs::File;
 use std::io::Read;
 
 use actix_web::*;
+use futures::Future;
 
 mod basic;
+mod db;
 mod email;
+mod signup;
 
 type Result<T> = std::result::Result<T, failure::Error>;
+type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
+
+/*macro_rules! tryf {
+    ($e:expr) => {
+        match $e {
+            Ok(e) => e,
+            Err(error) => return Box::new(future::err(error.into())),
+        }
+    };
+}*/
 
 #[derive(Deserialize, Debug, Clone)]
 struct Config {
@@ -58,6 +74,18 @@ fn startpage(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     Ok(httpcodes::HttpNotFound.build()
        .content_type("text/html; charset=utf-8")
        .body(content)?)
+}
+
+fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+    // Get the body of the request
+    req.urlencoded()
+       .limit(1024 * 5) // 5 kiB
+       .from_err()
+       .and_then(|body| {
+           let form = signup::Form::from_hashmap(body)?;
+           println!("Get form {:?}", form);
+           Ok(HttpResponse::Ok().into())
+       }).responder()
 }
 
 fn not_found(_: HttpRequest<AppState>) -> Result<HttpResponse> {
@@ -99,6 +127,7 @@ fn main() {
             .handler("/static", fs::StaticFiles::new("static", false)
                 .default_handler(not_found))
             .resource("/mail", |r| r.f(send_confirmation_mail))
+            .resource("/signup-send", |r| r.method(Method::POST).f(signup_send))
             .resource("/{name}", |r| r.f(index))
             .resource("", |r| r.f(startpage))
             .default_resource(|r| r.f(not_found))
