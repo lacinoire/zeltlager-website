@@ -64,7 +64,7 @@ pub struct AppState {
     db_addr: actix::Addr<actix::Syn, db::DbExecutor>,
 }
 
-fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+fn basic_sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     let name: String = req.match_info().query("name")?;
     if let Ok(site) = req.state().basics.get_site(&name) {
         let content = format!("{}", site);
@@ -76,7 +76,7 @@ fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     not_found(req)
 }
 
-fn startpage(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
     let site = req.state().basics.get_site("startseite")?;
     let content = format!("{}", site);
 
@@ -97,7 +97,9 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
         })
         .and_then(|_| {
             // TODO Show success site
-            Ok(HttpResponse::Ok().into())
+            Ok(httpcodes::HttpTemporaryRedirect.build()
+                .header(header::http::LOCATION, "anmeldungErfolgreich")
+                .finish()?)
         })
         .responder()
 }
@@ -156,8 +158,8 @@ fn main() {
                 .default_handler(not_found))
             .resource("/mail", |r| r.f(send_confirmation_mail))
             .resource("/signup-send", |r| r.method(Method::POST).a(signup_send))
-            .resource("/{name}", |r| r.f(index))
-            .resource("", |r| r.f(startpage))
+            .resource("/{name}", |r| r.f(basic_sites))
+            .resource("", |r| r.f(index))
             .default_resource(|r| r.f(not_found))
     }).bind(address).unwrap()
         .start();
