@@ -1,3 +1,6 @@
 Cargo.lock
 target/
+
+# Config files
 config.toml
+.env

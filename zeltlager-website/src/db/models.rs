@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use Result;
+use chrono::{Datelike, NaiveDate, Utc};
+
+use {chrono, Result};
+use super::schema::teilnehmer;
 
 macro_rules! get_str {
     ($map:ident, $key:expr) => {
@@ -10,7 +13,8 @@ macro_rules! get_str {
 
 macro_rules! get_bool {
     ($map:ident, $key:expr) => {
-        $map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key)).and_then(|s|
+        $map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key))
+            .and_then(|s|
             if s == "true" {
                 Ok(true)
             } else if s == "false" {
@@ -31,11 +35,44 @@ macro_rules! check_empty {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Form {
+pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
+    const FORMATS: &[&str] = &["%Y-%m-%d", "%d.%m.%Y"];
+    let mut res = None;
+    for f in FORMATS {
+        if let Ok(date) = NaiveDate::parse_from_str(s, f) {
+            res = Some(date);
+            break;
+        }
+    }
+
+    if let Some(mut date) = res {
+        if date.year() <= 1900 {
+            // Only the last digits of the year where written so correct it.
+            // Like 10 for 2010
+            let cur_year = Utc::now().year();
+            if date.year() <= cur_year % 100 {
+                date = NaiveDate::from_ymd(date.year()
+                    + cur_year / 100 * 100,
+                    date.month(), date.day());
+            } else {
+                date = NaiveDate::from_ymd(date.year()
+                    + cur_year / 100 * 100 - 100,
+                    date.month(), date.day());
+            }
+        }
+        Ok(date)
+    } else {
+        bail!("Bitte geben Sie das Geburtsdatum ({}) im Format dd.mm.yyyy an.",
+            s);
+    }
+}
+
+#[derive(Clone, Debug, Insertable, Queryable)]
+#[table_name = "teilnehmer"]
+pub struct Teilnehmer {
     vorname: String,
     nachname: String,
-    geburtsdatum: String, // TODO Date
+    geburtsdatum: chrono::NaiveDate,
     schwimmer: bool,
     vegetarier: bool,
     tetanus_impfung: bool,
@@ -50,12 +87,15 @@ pub struct Form {
     agb: bool,
 }
 
-impl Form {
+impl Teilnehmer {
     pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
+        let date = get_str!(map, "geburtsdatum")?;
+        let geburtsdatum = try_parse_date(&date)?;
+
         let res = Self {
             vorname: get_str!(map, "vorname")?,
             nachname: get_str!(map, "nachname")?,
-            geburtsdatum: get_str!(map, "geburtsdatum")?,
+            geburtsdatum,
 
             schwimmer: get_bool!(map, "schwimmer")?,
             vegetarier: get_bool!(map, "vegetarier")?,
@@ -76,11 +116,15 @@ impl Form {
         if !res.agb {
             bail!("Die AGB müssen akzeptiert werden");
         }
-        check_empty!(res, vorname, nachname, geburtsdatum, eltern_name,
-            eltern_mail, eltern_handynummer, strasse, hausnummer, ort, plz);
+        check_empty!(res, vorname, nachname, eltern_name, eltern_mail,
+            eltern_handynummer, strasse, hausnummer, ort, plz);
         // Check PLZ
         if res.plz.len() != 5 || res.plz.chars().any(|c| !c.is_numeric()) {
             bail!("Ungültige Postleitzahl ({})", res.plz);
+        }
+        // Check mail address
+        if !res.eltern_mail.contains('@') {
+            bail!("Ungültige E-Mail Addresse ({})", res.eltern_mail);
         }
 
         map.remove("submit");
