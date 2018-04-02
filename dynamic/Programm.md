@@ -8,11 +8,11 @@ Die Betreuung und Verpflegung übernimmt das bewährte Zeltlagerteam, das die Ze
 
 Alle Ausflüge, Eintritte, Vollverpflegung, Fahrten, usw.sind im Preis von 210.- € enthalten. Außer einem kleinen Taschengeld für persönliche Mitbringsel entstehen keine weiteren Kosten. Dieses Jahr zelten wir vom 30.07.2018 bis zum 10.08.2018 auf dem Sportgelände des TV Erkheim.
 
-Treffpunkt Abfahrt 30.07.2018
-Parkplatz Westfriedhof westliches Ende – Nähe Nederlingerstr.
+Treffpunkt Abfahrt 30.07.2018  
+Parkplatz Westfriedhof westliches Ende – Nähe Nederlingerstr.  
 10:00 Uhr
 
-Rückkehr 10.08.2018, ca. 14:00 Uhr
+Rückkehr 10.08.2018, ca. 14:00 Uhr  
 Die Hin- und Rückreise erfolgt mit dem Bus.
 
 Für die Jugendlichen (7-15 Jahre) bieten wir ein abwechslungsreiches Programm bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen mit Lagerfeuer und Lagerwache, Nachtwanderung, Wellness-Tag, vielen Spielen auf dem Sportgelände, Lagerdisco, Gruselnacht, Lagerolympiade und vieles mehr wie Tischtennisplatten, Kicker und viele Gesellschafts/Brettspielen.

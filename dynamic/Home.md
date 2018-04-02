@@ -2,7 +2,7 @@
 
 Das Zeltlager 2018 findet vom Montag den 30.07.2018 bis zum Freitag den
 10.08.2018 statt. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden
-Sie ihre Kinder rechtzeitig an und überweisen innerhalb 14 Tagen den
+Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den
 Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind
 verbindlich angemeldet.
 
