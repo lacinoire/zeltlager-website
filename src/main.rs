@@ -208,7 +208,7 @@ fn signup_insert(mail_addr: &actix::Addr<actix::Syn, mail::MailExecutor>,
             Ok(Ok(())) => {
                 // Redirect to success site
                 Box::new(httpcodes::
-                    HttpTemporaryRedirect.build()
+                    HttpFound.build()
                     .header(header::http::LOCATION,
                         "anmeldungErfolgreich")
                     .finish().into_future().from_err())
