@@ -28,6 +28,12 @@ impl Message for SignupMessage {
     type Result = Result<()>;
 }
 
+pub struct CountMemberMessage;
+
+impl Message for CountMemberMessage {
+    type Result = Result<i64>;
+}
+
 impl DbExecutor {
     pub fn new() -> Result<Self> {
         dotenv().ok();
@@ -53,5 +59,16 @@ impl Handler<SignupMessage> for DbExecutor {
             .execute(&self.connection)?;
 
         Ok(())
+    }
+}
+
+impl Handler<CountMemberMessage> for DbExecutor {
+    type Result = Result<i64>;
+
+    fn handle(&mut self, _: CountMemberMessage, _: &mut Self::Context)
+        -> Self::Result {
+        use self::schema::teilnehmer;
+
+        Ok(teilnehmer::table.count().get_result(&self.connection)?)
     }
 }

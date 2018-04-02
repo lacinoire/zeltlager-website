@@ -40,7 +40,7 @@ description = "Ausstattung des Zeltlagers"
 [[sites]]
 name = "betreuer"
 file_name = "Betreuer.md"
-title = "Betreuer"
+title = "Für Betreuer"
 description = "Für Betreuer des Zeltlagers"
 
 [[sites]]
@@ -48,12 +48,14 @@ name = "agb"
 file_name = "Agb.html"
 title = "Allgemeine Geschäftsbedingungen"
 description = "Allgemeine Geschäftsbedingungen des Zeltlagers"
+navbar_visible = false
 
 [[sites]]
 name = "datenschutz"
 file_name = "Datenschutz.html"
 title = "Datenschutz"
 description = "Datenschutzerklärung der Zeltlagerwebsite"
+navbar_visible = false
 
 [[sites]]
 name = "impressum"

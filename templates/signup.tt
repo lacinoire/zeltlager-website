@@ -6,6 +6,14 @@
     <#= ::escape_html_body(error).replace("\n", "<br>") #>
 </div>
     <# }
+
+    // Show only note if the maximum count is reached
+    if let Some(ref reached_max_members) = self.reached_max_members { #>
+<#= reached_max_members #>
+
+<p>Unsere <a href="agb">AGB</a> und <a href="datenschutz">Datenschutzbestimmungen</a>.</p>
+    <# return Ok(());
+    }
 #>
 <h1 class="headline">
     Anmeldung für das Zeltlager 2018

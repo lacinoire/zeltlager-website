@@ -28,7 +28,7 @@ use std::fs::File;
 use std::io::Read;
 
 use actix_web::*;
-use futures::{future, Future, IntoFuture};
+use futures::{Future, IntoFuture};
 
 mod basic;
 mod db;
@@ -38,14 +38,14 @@ mod signup;
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
 
-macro_rules! tryf {
+/*macro_rules! tryf {
     ($e:expr) => {
         match $e {
             Ok(e) => e,
             Err(error) => return Box::new(future::err(error.into())),
         }
     };
-}
+}*/
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -53,6 +53,12 @@ pub struct Config {
     email_userdescription: String,
     email_password: String,
     email_host: String,
+
+    /// The maximum allowed amount of members.
+    max_members: i64,
+    /// The message which will be shown when the maximum number of members is
+    /// reached.
+    max_members_reached: String,
     /// An error message, which will be displayed on generic errors.
     ///
     /// Put here something like: Please write us an e-mail.
@@ -136,11 +142,11 @@ fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
        .body(content)?)
 }
 
-fn signup(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
     render_signup(req, HashMap::new())
 }
 
-fn signup_test(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
     let map = vec![
         ("vorname", "a"),
         ("nachname", "b"),
@@ -165,23 +171,58 @@ fn signup_test(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 
 /// Return the signup site with the prefilled `values`.
 fn render_signup(req: HttpRequest<AppState>, values: HashMap<String, String>)
-    -> Result<HttpResponse> {
+    -> BoxFuture<HttpResponse> {
     if let Ok(site) = req.state().basics.get_site(&req.state().config,
         "anmeldung") {
-        let content = format!("{}", site).replace("<insert content here>",
-            &format!("{}", signup::Signup { values }));
+        let content = format!("{}", site);
+        return Box::new(signup::Signup::new(req.state(), values)
+            .and_then(move |new_content| {
+                let content = content.replace("<insert content here>",
+                    &format!("{}", new_content));
 
-        return Ok(httpcodes::HttpOk.build()
-           .content_type("text/html; charset=utf-8")
-           .body(content)?);
+                Ok(httpcodes::HttpOk.build()
+                   .content_type("text/html; charset=utf-8")
+                   .body(content)?)
+            }));
     }
-    not_found(req)
+    Box::new(not_found(req).into_future().from_err())
+}
+
+/// Insert the member into the database, write an email and show a success site.
+fn signup_insert(mail_addr: &actix::Addr<actix::Syn, mail::MailExecutor>,
+    member: db::models::Teilnehmer, mut body: HashMap<String, String>,
+    error_message: String, req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+    // Write an e-mail
+    Box::new(mail_addr.send(mail::SignupMessage { member })
+        .from_err::<failure::Error>()
+        .then(move |result| -> BoxFuture<HttpResponse> { match result {
+            Err(error) | Ok(Err(error)) => {
+                // Show error and prefilled form
+                body.insert("error".to_string(), format!("\
+                    Ihre Daten wurden erfolgreich gespeichert.\n\
+                    Es ist leider ein Fehler beim E-Mail senden aufgetreten.\n{}",
+                    error_message));
+                warn!("Error inserting into database: {}", error);
+                render_signup(req, body)
+            }
+            Ok(Ok(())) => {
+                // Redirect to success site
+                Box::new(httpcodes::
+                    HttpTemporaryRedirect.build()
+                    .header(header::http::LOCATION,
+                        "anmeldungErfolgreich")
+                    .finish().into_future().from_err())
+            }
+        }}))
 }
 
 fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
     let db_addr = req.state().db_addr.clone();
     let mail_addr = req.state().mail_addr.clone();
     let error_message = req.state().config.error_message.clone();
+    let max_members = req.state().config.max_members;
+    let db_addr2 = db_addr.clone();
+
     // Get the body of the request
     req.clone().urlencoded()
         .limit(1024 * 5) // 5 kiB
@@ -193,12 +234,12 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
                 Err(error) => {
                     // Show error and prefilled form
                     body.insert("error".to_string(), format!("{}", error));
-                    warn!("Error handling form content: {} (got {:?})", error,
-                        body);
+                    warn!("Error handling form content: {}", error);
                     return Box::new(render_signup(req, body).into_future());
                 }
             };
-            Box::new(db_addr.send(db::SignupMessage { member: member.clone() })
+
+            Box::new(db_addr.send(db::CountMemberMessage)
                 .from_err::<failure::Error>()
                 .then(move |result| -> BoxFuture<HttpResponse> { match result {
                     Err(error) | Ok(Err(error)) => {
@@ -207,34 +248,37 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
                             Es ist ein Datenbank-Fehler aufgetreten.\n{}",
                             error_message));
                         warn!("Error inserting into database: {}", error);
-                        Box::new(future::ok(tryf!(render_signup(req, body))))
+                        render_signup(req, body)
                     }
-                    Ok(Ok(())) => {
-                        // Write an e-mail
-                        Box::new(mail_addr.send(mail::SignupMessage { member })
+                    Ok(Ok(count)) => {
+                        if count >= max_members {
+                            // Show error
+                            body.insert("error".to_string(),
+                                "Während Ihrer Anmeldung ist das Zeltlager \
+                                leider schon voll geworden.".to_string());
+                            warn!("Already too many members registered \
+                                (from {})", member.eltern_mail);
+                            render_signup(req, body)
+                        } else {
+                            Box::new(db_addr2.send(db::SignupMessage {
+                                member: member.clone() })
                             .from_err::<failure::Error>()
-                            .then(move |result| -> Result<HttpResponse> { match result {
+                            .then(move |result| -> BoxFuture<HttpResponse> { match result {
                                 Err(error) | Ok(Err(error)) => {
                                     // Show error and prefilled form
                                     body.insert("error".to_string(), format!("\
-                                        Ihre Daten wurden erfolgreich gespeichert.\n\
-                                        Es ist leider ein Fehler beim E-Mail senden aufgetreten.\n{}",
+                                        Es ist ein Datenbank-Fehler aufgetreten.\n{}",
                                         error_message));
                                     warn!("Error inserting into database: {}", error);
                                     render_signup(req, body)
                                 }
-                                Ok(Ok(())) => {
-                                    // Redirect to success site
-                                    Ok(httpcodes::
-                                        HttpTemporaryRedirect.build()
-                                        .header(header::http::LOCATION,
-                                            "anmeldungErfolgreich")
-                                        .finish()?)
-                                }
+                                Ok(Ok(())) => signup_insert(&mail_addr, member,
+                                    body, error_message, req),
                             }}))
+                        }
                     }
-                }}))
-        })
+                }})
+        )})
         .responder()
 }
 
@@ -252,7 +296,7 @@ fn main() {
         // Default log level
         env::set_var("RUST_LOG", "actix_web=info,zeltlager_website=info");
     }
-    let _ = env_logger::init();
+    env_logger::init();
 
     let basics = basic::SiteDescriptions::parse()
         .expect("Failed to parse basic.toml");
