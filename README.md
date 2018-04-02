@@ -20,12 +20,20 @@ Es werden zwei Konfigurationsdateien benötigt:
 
 ```toml
 # Von dieser E-Mail Addresse aus werden die Bestätigungsmails verschickt
-email_username = "meine@email.addresse"
+email_username = "mein.name@email.addresse"
+email_userdescription = "Mein Name"
 email_password = "Password für die E-Mail Addresse"
+email_host = "smtp.email.addresse"
+
+# Wird bei manchen Fehlern angezeigt (zusätlich zu einer Fehlermeldung)
+error_message = "Bitte informieren Sie uns über webmaster@meine.seite."
 
 # Optional
 # Standardwert: 127.0.0.1:8080
 bind_address = "127.0.0.1:8080"
+
+# Wird auf allen Seiten angezeigt, die mit dem basic-Template angezeigt werden.
+global_message = "<h1>Ich bin ein globaler Header</h1>"
 ```
 
 `.env`:
@@ -44,7 +52,7 @@ Datenbankschemas reicht ein `diesel migration run` aus.
 
 Um Fehler zu finden:
 
-`env RUST_BACKTRACE=1 RUST_LOG=actix_web=debug cargo run`
+`env RUST_BACKTRACE=1 RUST_LOG=actix_web=debug,zeltlager_website=debug cargo run`
 
 ### Entwickler
 
