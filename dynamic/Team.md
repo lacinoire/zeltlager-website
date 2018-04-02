@@ -1,12 +1,12 @@
 # Das Zeltlagerteam
 
 <div class="row">
-    <div class="col">
-        <img src="/static/img/team/TeamBrasilien.jpg" alt="Ü-Abend Brasilien">
-    </div>
-    <div class="col">
-        <img src="/static/img/team/TeamJapan.jpg" alt="Ü-Abend Japan">
-    </div>
+	<div class="col">
+		<img src="/static/img/team/TeamBrasilien.jpg" alt="Ü-Abend Brasilien">
+	</div>
+	<div class="col">
+		<img src="/static/img/team/TeamJapan.jpg" alt="Ü-Abend Japan">
+	</div>
 </div>
 
 

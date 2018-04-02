@@ -52,28 +52,28 @@ Eure Supervisor 😃
 # Eindrücke
 
 <div class="row">
-    <div class="col">
-        <img src="/static/img/programm/SpieleSonne.jpg" alt="Menschenketten in der Sonne">
-    </div>
-    <div class="col">
-        <img src="/static/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness">
-    </div>
+	<div class="col">
+		<img src="/static/img/programm/SpieleSonne.jpg" alt="Menschenketten in der Sonne">
+	</div>
+	<div class="col">
+		<img src="/static/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness">
+	</div>
 </div>
 
 <div class="row">
-    <div class="col">
-        <img src="/static/img/programm/SpieleUeabend.jpg" alt="Ü-Abend">
-    </div>
-    <div class="col">
-        <img src="/static/img/programm/SpieleSchatten.jpg" alt="Werwolf im Schatten">
-    </div>
+	<div class="col">
+		<img src="/static/img/programm/SpieleUeabend.jpg" alt="Ü-Abend">
+	</div>
+	<div class="col">
+		<img src="/static/img/programm/SpieleSchatten.jpg" alt="Werwolf im Schatten">
+	</div>
 </div>
 
 <div class="row">
-    <div class="col">
-        <img src="/static/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag">
-    </div>
-    <div class="col">
-        <img src="/static/img/programm/SpieleFussballplatz.jpg" alt="Fußball">
-    </div>
+	<div class="col">
+		<img src="/static/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag">
+	</div>
+	<div class="col">
+		<img src="/static/img/programm/SpieleFussballplatz.jpg" alt="Fußball">
+	</div>
 </div>

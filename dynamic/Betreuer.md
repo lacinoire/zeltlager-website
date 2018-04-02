@@ -2,4 +2,4 @@
 
 Diese Seite ist noch im Aufbau.
 
-Momentan müsst ihr dem Lagerleiter noch E-Mails schreiben.
+Momentan müsst ihr dem Zeltlagerleiter noch E-Mails schreiben.
