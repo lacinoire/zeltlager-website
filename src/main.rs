@@ -207,6 +207,65 @@ fn render_signup(
 	Box::new(not_found(req).into_future().from_err())
 }
 
+/// Check if too many members are already registered, then call `signup_insert`.
+fn signup_check_count(
+	count: i64,
+	max_members: i64,
+	db_addr: actix::Addr<actix::Syn, db::DbExecutor>,
+	mail_addr: actix::Addr<actix::Syn, mail::MailExecutor>,
+	member: db::models::Teilnehmer,
+	mut body: HashMap<String, String>,
+	error_message: String,
+	req: HttpRequest<AppState>,
+) -> BoxFuture<HttpResponse> {
+	if count >= max_members {
+		// Show error
+		body.insert(
+			"error".to_string(),
+			"Während Ihrer Anmeldung ist das Zeltlager leider schon voll \
+			 geworden."
+				.to_string(),
+		);
+		warn!(
+			"Already too many members registered (from {})",
+			member.eltern_mail
+		);
+		render_signup(req, body)
+	} else {
+		Box::new(
+			db_addr
+				.send(db::SignupMessage {
+					member: member.clone(),
+				})
+				.from_err::<failure::Error>()
+				.then(move |result| -> BoxFuture<HttpResponse> {
+					match result {
+						Err(error) | Ok(Err(error)) => {
+							// Show error and prefilled form
+							body.insert(
+								"error".to_string(),
+								format!(
+									"Es ist ein Datenbank-Fehler \
+									 aufgetreten.\n{}",
+									error_message
+								),
+							);
+							warn!("Error inserting into database: {}", error);
+							render_signup(req, body)
+						}
+						Ok(Ok(())) => signup_insert(
+							&mail_addr,
+							member,
+							body,
+							error_message,
+							req,
+						),
+					}
+				}),
+		)
+	}
+}
+
 /// Insert the member into the database, write an email and show a success site.
 fn signup_insert(
 	mail_addr: &actix::Addr<actix::Syn, mail::MailExecutor>,
@@ -289,33 +348,8 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 						warn!("Error inserting into database: {}", error);
 						render_signup(req, body)
 					}
-					Ok(Ok(count)) => {
-						if count >= max_members {
-							// Show error
-							body.insert("error".to_string(),
-								"Während Ihrer Anmeldung ist das Zeltlager \
-								leider schon voll geworden.".to_string());
-							warn!("Already too many members registered \
-								(from {})", member.eltern_mail);
-							render_signup(req, body)
-						} else {
-							Box::new(db_addr2.send(db::SignupMessage {
-								member: member.clone() })
-							.from_err::<failure::Error>()
-							.then(move |result| -> BoxFuture<HttpResponse> { match result {
-								Err(error) | Ok(Err(error)) => {
-									// Show error and prefilled form
-									body.insert("error".to_string(), format!("\
-										Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-										error_message));
-									warn!("Error inserting into database: {}", error);
-									render_signup(req, body)
-								}
-								Ok(Ok(())) => signup_insert(&mail_addr, member,
-									body, error_message, req),
-							}}))
-						}
-					}
+					Ok(Ok(count)) => signup_check_count(count, max_members,
+						db_addr2, mail_addr, member, body, error_message, req),
 				}})
 		)})
 		.responder()
