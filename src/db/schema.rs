@@ -4,6 +4,7 @@ table! {
         vorname -> Text,
         nachname -> Text,
         geburtsdatum -> Date,
+        geschlecht -> Text,
         schwimmer -> Bool,
         vegetarier -> Bool,
         tetanus_impfung -> Bool,

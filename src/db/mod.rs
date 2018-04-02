@@ -44,7 +44,8 @@ impl DbExecutor {
 impl Handler<SignupMessage> for DbExecutor {
     type Result = Result<()>;
 
-    fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context)
+        -> Self::Result {
         use self::schema::teilnehmer;
 
         diesel::insert_into(teilnehmer::table)

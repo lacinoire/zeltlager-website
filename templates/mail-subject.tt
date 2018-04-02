@@ -1,0 +1,1 @@
+Anmeldung für das Zeltlager 2018 von <#= self.member.vorname #> <#= self.member.nachname #>

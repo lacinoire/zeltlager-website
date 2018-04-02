@@ -1,0 +1,5 @@
+<#@ template cleanws="true" #>
+Sehr geehrte/r <#= self.member.eltern_name #>,
+
+<# if self.member.geschlecht == Gender::Male { #>Ihr Sohn<# } else { #>Ihre Tocher<# } #> <#= self.member.vorname #> wurde zum Zeltlager angemeldet.
+hiermit erhalten Sie die Zahlungsaufforderung bla bla bla…

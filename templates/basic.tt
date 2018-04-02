@@ -1,9 +1,8 @@
 <#@ template cleanws="true" #>
 <!DOCTYPE html>
 <html lang="de">
-
-<head data-detected="1">
-	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 
 	<meta charset="utf-8">
 	<title><#= self.description.title #> - Zeltlager</title>
@@ -16,7 +15,6 @@
 
 	<link rel="icon" type="image/svg+xml" href="static/img/icon.svg" sizes="any">
 </head>
-
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-light">
 		<a class="navbar-brand" href="startseite"><img src="static/img/icon.svg" width="26" height="26" alt=""></a>
@@ -42,6 +40,12 @@
 	</nav>
 
 	<div class="container">
+<#
+	// Show global message if there is one
+	if let Some(ref message) = self.config.global_message { #>
+	<#= message #>
+	<# }
+#>
 
 <#= self.content #>
 

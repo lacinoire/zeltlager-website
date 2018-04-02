@@ -1,8 +1,14 @@
 use std::collections::HashMap;
+use std::io::Write;
+use std::fmt;
 
-use chrono::{Datelike, NaiveDate, Utc};
+use chrono::{self, Datelike, Date, NaiveDate, Utc};
+use diesel::sql_types::Text;
+use diesel::deserialize::{self, FromSql};
+use diesel::pg::Pg;
+use diesel::serialize::{self, IsNull, Output, ToSql};
 
-use {chrono, Result};
+use Result;
 use super::schema::teilnehmer;
 
 macro_rules! get_str {
@@ -62,40 +68,105 @@ pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
         }
         Ok(date)
     } else {
-        bail!("Bitte geben Sie das Geburtsdatum ({}) im Format dd.mm.yyyy an.",
+        bail!("Bitte geben Sie das Geburtsdatum ({}) im Format TT.MM.JJJJ an.",
             s);
+    }
+}
+
+pub fn try_parse_gender(s: &str) -> Result<Gender> {
+    const MALE: &[&str] = &["m", "M", "männlich", "Männlich", "maennlich",
+        "Maennlich", "male", "Male"];
+    const FEMALE: &[&str] = &["w", "W", "weiblich", "Weiblich", "female",
+        "Female"];
+
+    if MALE.contains(&s) {
+        Ok(Gender::Male)
+    } else if FEMALE.contains(&s) {
+        Ok(Gender::Female)
+    } else {
+        bail!("{} ist kein bekanntes Geschlecht.", s);
+    }
+}
+
+pub fn years_old(date: Date<Utc>) -> i32 {
+    let now = Utc::now().date();
+    let mut years = now.year() - date.year();
+    if now.month() < date.month() || (now.month() == date.month()
+        && now.day() < date.day()) {
+        years -= 1;
+    }
+    years
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression)]
+#[sql_type = "Text"]
+pub enum Gender {
+    Male,
+    Female
+}
+
+impl fmt::Display for Gender {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if *self == Gender::Male {
+            write!(f, "m")
+        } else {
+            write!(f, "w")
+        }
+    }
+}
+
+impl ToSql<Text, Pg> for Gender {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
+        match *self {
+            Gender::Male => out.write_all(b"m")?,
+            Gender::Female => out.write_all(b"w")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<Text, Pg> for Gender {
+    fn from_sql(bytes: Option<&[u8]>) -> deserialize::Result<Self> {
+        match not_none!(bytes) {
+            b"m" => Ok(Gender::Male),
+            b"w" => Ok(Gender::Female),
+            _ => Err("Unrecognized enum variant".into()),
+        }
     }
 }
 
 #[derive(Clone, Debug, Insertable, Queryable)]
 #[table_name = "teilnehmer"]
 pub struct Teilnehmer {
-    vorname: String,
-    nachname: String,
-    geburtsdatum: chrono::NaiveDate,
-    schwimmer: bool,
-    vegetarier: bool,
-    tetanus_impfung: bool,
-    eltern_name: String,
-    eltern_mail: String,
-    eltern_handynummer: String,
-    strasse: String,
-    hausnummer: String,
-    ort: String,
-    plz: String,
-    besonderheiten: String,
-    agb: bool,
+    pub vorname: String,
+    pub nachname: String,
+    pub geburtsdatum: chrono::NaiveDate,
+    pub geschlecht: Gender,
+    pub schwimmer: bool,
+    pub vegetarier: bool,
+    pub tetanus_impfung: bool,
+    pub eltern_name: String,
+    pub eltern_mail: String,
+    pub eltern_handynummer: String,
+    pub strasse: String,
+    pub hausnummer: String,
+    pub ort: String,
+    pub plz: String,
+    pub besonderheiten: String,
+    pub agb: bool,
 }
 
 impl Teilnehmer {
     pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
         let date = get_str!(map, "geburtsdatum")?;
         let geburtsdatum = try_parse_date(&date)?;
+        let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
 
         let res = Self {
             vorname: get_str!(map, "vorname")?,
             nachname: get_str!(map, "nachname")?,
             geburtsdatum,
+            geschlecht,
 
             schwimmer: get_bool!(map, "schwimmer")?,
             vegetarier: get_bool!(map, "vegetarier")?,
@@ -126,10 +197,32 @@ impl Teilnehmer {
         if !res.eltern_mail.contains('@') {
             bail!("Ungültige E-Mail Addresse ({})", res.eltern_mail);
         }
+        // Check birth date
+        let birthday = Date::from_utc(res.geburtsdatum, Utc);
+        let now = Utc::now().date();
+        let years = years_old(birthday);
+        if now <= birthday || years >= 100 {
+            bail!("Sind Sie sicher, dass {} das Geburtsdatum Ihres Kindes ist?\n\
+                Bitte geben Sie das Geburtsdatum im Format TT.MM.JJJJ an.",
+                res.geburtsdatum.format("%d.%m.%Y"));
+        }
+
+        if years < 5 {
+            bail!("Ihr Kind ist leider zu jung (Geburtsdatum {}).\n\
+                Das Zeltlager ist für Kinder und Jugendliche zwischen 7 und 15 Jahren.",
+                res.geburtsdatum.format("%d.%m.%Y"));
+        }
+        if years > 15 {
+            bail!("Ihr Kind ist leider zu alt um als Teilnehmer beim Zeltlager mitzufahren (Geburtsdatum {}).\n\
+                Wir suchen immer nach motivierten Betreuern (ab 16 Jahren), die auf das Zeltlager mitfahren.\n\
+                Infos dazu finden Sie auf der Betreuerseite.\n\
+                Das Zeltlager ist für Kinder und Jugendliche zwischen 7 und 15 Jahren.",
+                res.geburtsdatum.format("%d.%m.%Y"));
+        }
 
         map.remove("submit");
         if !map.is_empty() {
-            println!("Warning: Map is not yet empty ({:?})", map);
+            warn!("Teilnehmer::from_hashmap: Map is not yet empty ({:?})", map);
         }
 
         Ok(res)

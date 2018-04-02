@@ -1,6 +1,9 @@
+//! The basic template.
+
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+
 use pulldown_cmark::{html, Parser};
 
 use {Result, toml};
@@ -26,6 +29,7 @@ pub struct SiteDescriptions {
 #[TemplatePath = "templates/basic.tt"]
 #[derive(Debug)]
 pub struct Basic<'a> {
+    pub config: &'a ::Config,
     pub all_sites: &'a SiteDescriptions,
     pub description: &'a SiteDescription,
     pub content: String,
@@ -38,7 +42,7 @@ impl SiteDescriptions {
         Ok(toml::from_str(&content)?)
     }
 
-    pub fn get_site(&self, name: &str) -> Result<Basic> {
+    pub fn get_site<'a>(&'a self, config: &'a ::Config, name: &str) -> Result<Basic<'a>> {
         // Check if this site exists
         for site in &self.sites {
             if site.name == name {
@@ -53,6 +57,7 @@ impl SiteDescriptions {
                 }
 
                 return Ok(Basic {
+                    config,
                     all_sites: self,
                     description: site,
                     content,

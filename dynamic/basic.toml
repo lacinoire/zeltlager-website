@@ -8,7 +8,7 @@ description = "Startseite der Zeltlagerwebseite"
 
 [[sites]]
 name = "anmeldung"
-file_name = "Anmeldung.html"
+file_name = "Anmeldung.txt"
 title = "Anmeldung"
 description = "Anmeldung für’s Zeltlager"
 
@@ -36,6 +36,12 @@ name = "ausstattung"
 file_name = "Ausstattung.md"
 title = "Ausstattung"
 description = "Ausstattung des Zeltlagers"
+
+[[sites]]
+name = "betreuer"
+file_name = "Betreuer.md"
+title = "Betreuer"
+description = "Für Betreuer des Zeltlagers"
 
 [[sites]]
 name = "agb"
