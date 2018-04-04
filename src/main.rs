@@ -48,11 +48,30 @@ type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
 }*/
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct MailAddress {
+	name: Option<String>,
+	address: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct MailAccount {
+	/// Host for smtp.
+	host: String,
+	/// Username to login to smtp.
+	name: Option<String>,
+	/// Password to login to smtp.
+	password: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
-	email_username: String,
-	email_userdescription: String,
-	email_password: String,
-	email_host: String,
+	/// The sender of emails
+	sender_mail: MailAddress,
+	sender_mail_account: MailAccount,
+
+	/// E-Mail addresses which should also receive all signup-confirmation
+	/// mails.
+	additional_mail_receivers: Vec<MailAddress>,
 
 	/// The maximum allowed amount of members.
 	max_members: i64,
@@ -71,8 +90,6 @@ pub struct Config {
 	bind_address: Option<String>,
 	/// A message which will be displayed on top of all basic templated sites.
 	global_message: Option<String>,
-	/// E-Mailadresses that should also receive all signup-confirmation mails.
-	aditional_receivers: Vec<(String, String)>,
 }
 
 #[derive(Clone)]
@@ -82,7 +99,14 @@ pub struct AppState {
 	db_addr: actix::Addr<actix::Syn, db::DbExecutor>,
 	mail_addr: actix::Addr<actix::Syn, mail::MailExecutor>,
 }
-
+impl lettre_email::IntoMailbox for MailAddress {
+	fn into_mailbox(self) -> lettre_email::Mailbox {
+		lettre_email::Mailbox {
+			name: self.name,
+			address: self.address,
+		}
+	}
+}
 /// Escapes a string so it can be put into html (between tags).
 ///
 /// # Escapes

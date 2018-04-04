@@ -9,8 +9,8 @@ Mit freundlichen Grüßen
 Ihr Zeltlager Team
 
 Bankverbindung
-Empfänger:			FT Gern e.V.
-IBAN:				DE  49 7015 0000 0902 2401 00
-Bankname:			Stadtsparkasse München
+Empfänger:          FT Gern e.V.
+IBAN:               DE  49 7015 0000 0902 2401 00
+Bankname:           Stadtsparkasse München
 
-Verwendungszweck	<#= self.member.vorname #> <#= self.member.nachname #> Zeltlager 2018
+Verwendungszweck    <#= self.member.vorname #> <#= self.member.nachname #> Zeltlager 2018

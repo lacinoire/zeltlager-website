@@ -65,33 +65,33 @@ impl Handler<SignupMessage> for MailExecutor {
 		).trim()
 			.to_string();
 
-		let email_builder = EmailBuilder::new()
+		let mut email_builder = EmailBuilder::new()
 			.to((
 				msg.member.eltern_mail.clone(),
 				msg.member.eltern_name.clone(),
 			))
-			.from((
-				self.config.email_username.clone(),
-				self.config.email_userdescription.clone(),
-			))
+			.from(self.config.sender_mail.clone())
 			.subject(subject)
 			.text(body);
 
+		// Send to additional receivers in bcc
+		for receiver in &self.config.additional_mail_receivers {
+			email_builder.add_bcc(receiver.clone());
+		}
+
+		let email = email_builder.build()?;
+
 		let mut mailer = SmtpTransport::simple_builder(
-			self.config.email_host.clone(),
+			self.config.sender_mail_account.host.clone(),
 		)?.credentials(Credentials::new(
-			self.config.email_username.clone(),
-			self.config.email_password.clone(),
+			self.config.sender_mail_account.name.clone().unwrap_or_else(||
+				self.config.sender_mail.address.clone()),
+			self.config.sender_mail_account.password.clone(),
 		))
 			.build();
-		// Send the email
-		mailer.send(&(email_builder.build()?))?;
 
-		// send to additional receivers
-		for receiver in self.config.additional_receivers {
-			email_builder.set_to(receiver);
-			mailer.send(&(email_builder.build()?))?;
-		}
+		// Send the email
+		mailer.send(&email)?;
 
 		Ok(())
 	}
