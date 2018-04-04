@@ -65,7 +65,7 @@ impl Handler<SignupMessage> for MailExecutor {
 		).trim()
 			.to_string();
 
-		let email = EmailBuilder::new()
+		let email_builder = EmailBuilder::new()
 			.to((
 				msg.member.eltern_mail.clone(),
 				msg.member.eltern_name.clone(),
@@ -75,8 +75,7 @@ impl Handler<SignupMessage> for MailExecutor {
 				self.config.email_userdescription.clone(),
 			))
 			.subject(subject)
-			.text(body)
-			.build()?;
+			.text(body);
 
 		let mut mailer = SmtpTransport::simple_builder(
 			self.config.email_host.clone(),
@@ -86,7 +85,13 @@ impl Handler<SignupMessage> for MailExecutor {
 		))
 			.build();
 		// Send the email
-		mailer.send(&email)?;
+		mailer.send(&(email_builder.build()?))?;
+
+		// send to additional receivers
+		for receiver in self.config.additional_receivers {
+			email_builder.set_to(receiver);
+			mailer.send(&(email_builder.build()?))?;
+		}
 
 		Ok(())
 	}

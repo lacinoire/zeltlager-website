@@ -71,6 +71,8 @@ pub struct Config {
 	bind_address: Option<String>,
 	/// A message which will be displayed on top of all basic templated sites.
 	global_message: Option<String>,
+	/// E-Mailadresses that should also receive all signup-confirmation mails.
+	aditional_receivers: Vec<(String, String)>,
 }
 
 #[derive(Clone)]
