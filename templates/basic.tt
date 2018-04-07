@@ -53,7 +53,10 @@
 
 	<footer class="footer">
 		<div class="text-center">
-			<a href="websiteInfo" class="text-muted">Über diese Website</a>
+			<span class="text-muted"><a href="https://github.com/lacinoire/zeltlager-website" class="text-muted">Programmiert von Caro und Sebastian</a>
+				&nbsp;&nbsp;&nbsp;&nbsp;
+				Zelt-Icon von <a href="https://openclipart.org/user-detail/qubodup" class="text-muted">qubodup</a> auf <a href="https://openclipart.org/detail/12920/cartoon-tipi-tent-with-red-flag" class="text-muted">openclipart</a>
+			</span>
 		</div>
 	</footer>
 </body>

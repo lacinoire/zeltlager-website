@@ -64,13 +64,6 @@ title = "Impressum"
 description = "Impressum der Zeltlagerwebsite"
 
 [[sites]]
-name = "websiteInfo"
-file_name = "WebsiteInfo.md"
-title = "Über diese Seite"
-description = "Informationen zur Zeltlagerwebseite"
-navbar_visible = false
-
-[[sites]]
 name = "404"
 file_name = "404.md"
 title = "404 - Not Found"
