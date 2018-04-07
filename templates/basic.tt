@@ -50,5 +50,11 @@
 <#= self.content #>
 
 	</div>
+
+	<footer class="footer">
+		<div class="text-center">
+			<a href="websiteInfo" class="text-muted">Über diese Website</a>
+		</div>
+	</footer>
 </body>
 </html>
