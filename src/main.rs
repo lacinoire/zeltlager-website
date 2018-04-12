@@ -48,12 +48,14 @@ type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
 }*/
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct MailAddress {
 	name: Option<String>,
 	address: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct MailAccount {
 	/// Host for smtp.
 	host: String,
@@ -64,6 +66,7 @@ pub struct MailAccount {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
 	/// The sender of emails
 	sender_mail: MailAddress,
@@ -318,7 +321,7 @@ fn signup_insert(
 								error_message
 							),
 						);
-						warn!("Error inserting into database: {}", error);
+						warn!("Error sending e-mail: {}", error);
 						render_signup(req, body)
 					}
 					Ok(Ok(())) => {
