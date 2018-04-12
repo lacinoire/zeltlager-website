@@ -28,7 +28,7 @@ use std::fs::File;
 use std::io::Read;
 
 use actix_web::*;
-use futures::{Future, IntoFuture};
+use futures::{future, Future, IntoFuture};
 
 mod basic;
 mod db;
@@ -159,10 +159,9 @@ fn basic_sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	{
 		let content = format!("{}", site);
 
-		return Ok(httpcodes::HttpOk
-			.build()
+		return Ok(HttpResponse::Ok()
 			.content_type("text/html; charset=utf-8")
-			.body(content)?);
+			.body(content));
 	}
 	not_found(req)
 }
@@ -173,10 +172,9 @@ fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 		.get_site(&req.state().config, "startseite")?;
 	let content = format!("{}", site);
 
-	Ok(httpcodes::HttpOk
-		.build()
+	Ok(HttpResponse::Ok()
 		.content_type("text/html; charset=utf-8")
-		.body(content)?)
+		.body(content))
 }
 
 fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
@@ -225,10 +223,9 @@ fn render_signup(
 						&format!("{}", new_content),
 					);
 
-					Ok(httpcodes::HttpOk
-						.build()
+					Ok(HttpResponse::Ok()
 						.content_type("text/html; charset=utf-8")
-						.body(content)?)
+						.body(content))
 				},
 			),
 		);
@@ -240,7 +237,7 @@ fn render_signup(
 fn signup_check_count(
 	count: i64,
 	max_members: i64,
-	db_addr: actix::Addr<actix::Syn, db::DbExecutor>,
+	db_addr: &actix::Addr<actix::Syn, db::DbExecutor>,
 	mail_addr: actix::Addr<actix::Syn, mail::MailExecutor>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
@@ -326,17 +323,14 @@ fn signup_insert(
 					}
 					Ok(Ok(())) => {
 						// Redirect to success site
-						Box::new(
-							httpcodes::HttpFound
-								.build()
+						Box::new(future::ok(
+							HttpResponse::Found()
 								.header(
-									header::http::LOCATION,
+									http::header::LOCATION,
 									"anmeldungErfolgreich",
 								)
-								.finish()
-								.into_future()
-								.from_err(),
-						)
+								.finish(),
+						))
 					}
 				}
 			}),
@@ -354,7 +348,7 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	req.clone().urlencoded()
 		.limit(1024 * 5) // 5 kiB
 		.from_err()
-		.and_then(move |mut body| -> BoxFuture<_> {
+		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
 			let member = match db::models::Teilnehmer::
 				from_hashmap(body.clone()) {
 				Ok(member) => member,
@@ -378,7 +372,7 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 						render_signup(req, body)
 					}
 					Ok(Ok(count)) => signup_check_count(count, max_members,
-						db_addr2, mail_addr, member, body, error_message, req),
+						&db_addr2, mail_addr, member, body, error_message, req),
 				}})
 		)})
 		.responder()
@@ -390,10 +384,9 @@ fn not_found(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 		.basics
 		.get_site(&req.state().config, "404")?;
 	let content = format!("{}", site);
-	Ok(httpcodes::HttpNotFound
-		.build()
+	Ok(HttpResponse::NotFound()
 		.content_type("text/html; charset=utf-8")
-		.body(content)?)
+		.body(content))
 }
 
 fn main() {
@@ -442,18 +435,17 @@ fn main() {
 		mail_addr,
 	};
 
-	HttpServer::new(move || {
-		Application::with_state(state.clone())
+	server::new(move || {
+		App::with_state(state.clone())
 			.middleware(middleware::Logger::default())
 			.handler(
 				"/static",
-				fs::StaticFiles::new("static", false)
-					.default_handler(not_found),
+				fs::StaticFiles::new("static").default_handler(not_found),
 			)
 			.resource("/anmeldung", |r| r.f(signup))
 			.resource("/anmeldung-test", |r| r.f(signup_test))
 			.resource("/signup-send", |r| {
-				r.method(Method::POST).a(signup_send)
+				r.method(http::Method::POST).a(signup_send)
 			})
 			.resource("/{name}", |r| r.f(basic_sites))
 			.resource("", |r| r.f(index))

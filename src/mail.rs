@@ -82,10 +82,13 @@ impl Handler<SignupMessage> for MailExecutor {
 		let email = email_builder.build()?;
 
 		let mut mailer = SmtpTransport::simple_builder(
-			self.config.sender_mail_account.host.clone(),
+			&self.config.sender_mail_account.host,
 		)?.credentials(Credentials::new(
-			self.config.sender_mail_account.name.clone().unwrap_or_else(||
-				self.config.sender_mail.address.clone()),
+			self.config
+				.sender_mail_account
+				.name
+				.clone()
+				.unwrap_or_else(|| self.config.sender_mail.address.clone()),
 			self.config.sender_mail_account.password.clone(),
 		))
 			.build();

@@ -5,19 +5,19 @@ authors = ["Flakebi <flakebi@t-online.de>"]
 
 [dependencies]
 actix = "0.5"
-actix-web = "0.4"
+actix-web = "0.5"
 bytes = "0.4"
 chrono = "0.4"
-diesel = { version = "1", features = ["chrono", "large-tables", "postgres"] }
-dotenv = "0.9"
+diesel = { version = "1", features = ["chrono", "postgres"] }
+dotenv = "0.11"
 env_logger = "0.5"
 failure = "0.1"
 futures = "0.1"
-lettre = "0.7"
-lettre_email = "0.7"
+lettre = "0.8"
+lettre_email = "0.8"
 log = "0.4"
 mime = "0.3"
-pulldown-cmark = { version = "0.0", default-features = false }
+pulldown-cmark = { version = "0.1", default-features = false }
 serde = "1"
 serde_derive = "1"
 t4rust-derive = { git = "https://github.com/ReSpeak/t4rust.git" }
