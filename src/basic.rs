@@ -1,6 +1,5 @@
 //! The basic template.
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -34,10 +33,9 @@ pub struct SiteDescriptions {
 #[derive(Debug)]
 pub struct Basic<'a> {
 	pub config: &'a ::Config,
-	pub all_sites: &'a HashMap<String, SiteDescriptions>,
+	pub all_sites: &'a SiteDescriptions,
 	pub current_site: &'a SiteDescription,
 	pub content: String,
-	pub prefix: String,
 }
 
 impl SiteDescriptions {
@@ -72,7 +70,6 @@ impl SiteDescriptions {
 					all_sites: self,
 					current_site: site,
 					content,
-					prefix: self.prefix,
 				});
 			}
 		}

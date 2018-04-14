@@ -152,17 +152,19 @@ fn escape_html_attribute(s: &str) -> String {
 }
 
 fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
-	let name: String = req.match_info().query("name").unwrap_or_else(|| "startseite".to_string());
-	let prefix: String = req.match_info().query("prefix").unwrap_or_else(|| "public".to_string());
-	if let Some(site) = req.state()
-		.sites.get(prefix).and_then(|site_descriptions|
-			site_descriptions.get_site(&req.state().config, &name).ok())
 	{
-		let content = format!("{}", site);
+		let name = req.match_info().get("name").unwrap_or("startseite");
+		let prefix = req.match_info().get("prefix").unwrap_or("public");
+		if let Some(site) = req.state()
+			.sites.get(prefix).and_then(|site_descriptions|
+				site_descriptions.get_site(&req.state().config, &name).ok())
+		{
+			let content = format!("{}", site);
 
-		return Ok(HttpResponse::Ok()
-			.content_type("text/html; charset=utf-8")
-			.body(content));
+			return Ok(HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body(content));
+		}
 	}
 	not_found(req)
 }
@@ -390,7 +392,7 @@ fn main() {
 	env_logger::init();
 
 	let mut sites = HashMap::new();
-	for name in ["public", "intern"] {
+	for name in ["public", "intern"].iter() {
 		sites.insert(name.to_string(), basic::SiteDescriptions::parse(&format!("{}.toml", name)).expect(&format!("Failed to parse {}.toml", name)));
 	}
 
@@ -441,9 +443,9 @@ fn main() {
 			.resource("/signup-send", |r| {
 				r.method(http::Method::POST).a(signup_send)
 			})
-			.resource("/{prefix}/{name}", |r| r.f(sites))
-			.resource("/{name}", |r| r.f(sites))
-			.resource("", |r| r.f(sites))
+			.resource("/{prefix}/{name}", |r| r.f(::sites))
+			.resource("/{name}", |r| r.f(::sites))
+			.resource("", |r| r.f(::sites))
 			.default_resource(|r| r.f(not_found))
 	}).bind(address)
 		.unwrap()

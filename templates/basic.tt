@@ -5,19 +5,19 @@
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 
 	<meta charset="utf-8">
-	<title><#= self.description.title #> - Zeltlager</title>
+	<title><#= self.current_site.title #> - Zeltlager</title>
 
-	<meta name="description" content="<#= self.description.description #>">
+	<meta name="description" content="<#= self.current_site.description #>">
 	<link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css"/>
 	<link rel="stylesheet" href="/static/css/style.css"/>
 	<script src="/static/bootstrap/js/jquery-3.3.1.slim.min.js"></script>
 	<script src="/static/bootstrap/js/bootstrap.min.js"></script>
 
-	<link rel="icon" type="image/svg+xml" href="static/img/icon.svg" sizes="any">
+	<link rel="icon" type="image/svg+xml" href="/static/img/icon.svg" sizes="any">
 </head>
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-light">
-		<a class="navbar-brand" href="startseite"><img src="static/img/icon.svg" width="40" height="40" alt="Logo"/></a>
+		<a class="navbar-brand" href="startseite"><img src="/static/img/icon.svg" width="40" height="40" alt="Logo"/></a>
 		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
 			aria-expanded="false" aria-label="Toggle navigation">
 		<span class="navbar-toggler-icon"></span>
@@ -25,14 +25,14 @@
 		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
 			<div class="navbar-nav">
 			<# /* TODO Autogenerate and set active class/sr-only */ #>
-				<# for site in &self.all_sites[self.prefix].sites {
+				<# for site in &self.all_sites.sites {
 					if !site.navbar_visible {
 						continue;
 					}
-					if site.name == self.description.name { #>
-					<a class="nav-item nav-link active" href="<#= self.prefix #>/<#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
+					if site.name == self.current_site.name { #>
+					<a class="nav-item nav-link active" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
 					<# } else { #>
-					<a class="nav-item nav-link" href="<#= self.prefix #>/<#= site.name #>"><#= site.title #></a>
+					<a class="nav-item nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #></a>
 					<# } #>
 				<# } #>
 			</div>
