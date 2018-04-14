@@ -1,5 +1,6 @@
 //! The basic template.
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -25,6 +26,7 @@ pub struct SiteDescription {
 #[derive(Clone, Deserialize, Debug)]
 pub struct SiteDescriptions {
 	pub sites: Vec<SiteDescription>,
+	pub prefix: String,
 }
 
 #[derive(Template)]
@@ -32,15 +34,16 @@ pub struct SiteDescriptions {
 #[derive(Debug)]
 pub struct Basic<'a> {
 	pub config: &'a ::Config,
-	pub all_sites: &'a SiteDescriptions,
-	pub description: &'a SiteDescription,
+	pub all_sites: &'a HashMap<String, SiteDescriptions>,
+	pub current_site: &'a SiteDescription,
 	pub content: String,
+	pub prefix: String,
 }
 
 impl SiteDescriptions {
-	pub fn parse() -> Result<Self> {
+	pub fn parse(path: &str) -> Result<Self> {
 		let mut content = String::new();
-		File::open(Path::new("dynamic").join("basic.toml"))?
+		File::open(Path::new("dynamic").join(path))?
 			.read_to_string(&mut content)?;
 		Ok(toml::from_str(&content)?)
 	}
@@ -67,8 +70,9 @@ impl SiteDescriptions {
 				return Ok(Basic {
 					config,
 					all_sites: self,
-					description: site,
+					current_site: site,
 					content,
+					prefix: self.prefix,
 				});
 			}
 		}

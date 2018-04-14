@@ -1,0 +1,9 @@
+# The list of all sites which get rendered with the basic template + intern navbar
+
+prefix = "intern"
+
+[[sites]]
+name = "betreuer"
+file_name = "Betreuer.md"
+title = "Für Betreuer"
+description = "Für Betreuer des Zeltlagers"

@@ -25,14 +25,14 @@
 		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
 			<div class="navbar-nav">
 			<# /* TODO Autogenerate and set active class/sr-only */ #>
-				<# for site in &self.all_sites.sites {
+				<# for site in &self.all_sites[self.prefix].sites {
 					if !site.navbar_visible {
 						continue;
 					}
 					if site.name == self.description.name { #>
-					<a class="nav-item nav-link active" href="<#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
+					<a class="nav-item nav-link active" href="<#= self.prefix #>/<#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
 					<# } else { #>
-					<a class="nav-item nav-link" href="<#= site.name #>"><#= site.title #></a>
+					<a class="nav-item nav-link" href="<#= self.prefix #>/<#= site.name #>"><#= site.title #></a>
 					<# } #>
 				<# } #>
 			</div>

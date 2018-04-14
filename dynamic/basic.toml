@@ -1,5 +1,7 @@
 # The list of all sites which get rendered with the basic template
 
+prefix = ""
+
 [[sites]]
 name = "startseite"
 file_name = "Home.md"

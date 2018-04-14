@@ -97,7 +97,7 @@ pub struct Config {
 
 #[derive(Clone)]
 pub struct AppState {
-	basics: basic::SiteDescriptions,
+	sites: HashMap<String, basic::SiteDescriptions>,
 	config: Config,
 	db_addr: actix::Addr<actix::Syn, db::DbExecutor>,
 	mail_addr: actix::Addr<actix::Syn, mail::MailExecutor>,
@@ -151,11 +151,12 @@ fn escape_html_attribute(s: &str) -> String {
 		.replace('"', "&quot;")
 }
 
-fn basic_sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
-	let name: String = req.match_info().query("name")?;
-	if let Ok(site) = req.state()
-		.basics
-		.get_site(&req.state().config, &name)
+fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+	let name: String = req.match_info().query("name").unwrap_or_else(|| "startseite".to_string());
+	let prefix: String = req.match_info().query("prefix").unwrap_or_else(|| "public".to_string());
+	if let Some(site) = req.state()
+		.sites.get(prefix).and_then(|site_descriptions|
+			site_descriptions.get_site(&req.state().config, &name).ok())
 	{
 		let content = format!("{}", site);
 
@@ -166,17 +167,6 @@ fn basic_sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	not_found(req)
 }
 
-fn index(req: HttpRequest<AppState>) -> Result<HttpResponse> {
-	let site = req.state()
-		.basics
-		.get_site(&req.state().config, "startseite")?;
-	let content = format!("{}", site);
-
-	Ok(HttpResponse::Ok()
-		.content_type("text/html; charset=utf-8")
-		.body(content))
-}
-
 fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	render_signup(req, HashMap::new())
 }
@@ -185,7 +175,7 @@ fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let map = vec![
 		("vorname", "a"),
 		("nachname", "b"),
-		("geburtsdatum", "1.1.2000"),
+		("geburtsdatum", "1.1.2010"),
 		("geschlecht", "w"),
 		("schwimmer", "true"),
 		("vegetarier", "false"),
@@ -211,7 +201,7 @@ fn render_signup(
 	values: HashMap<String, String>,
 ) -> BoxFuture<HttpResponse> {
 	if let Ok(site) = req.state()
-		.basics
+		.sites["public"]
 		.get_site(&req.state().config, "anmeldung")
 	{
 		let content = format!("{}", site);
@@ -381,7 +371,7 @@ fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 fn not_found(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	warn!("File not found '{}'", req.path());
 	let site = req.state()
-		.basics
+		.sites["public"]
 		.get_site(&req.state().config, "404")?;
 	let content = format!("{}", site);
 	Ok(HttpResponse::NotFound()
@@ -399,8 +389,12 @@ fn main() {
 	}
 	env_logger::init();
 
-	let basics =
-		basic::SiteDescriptions::parse().expect("Failed to parse basic.toml");
+	let mut sites = HashMap::new();
+	for name in ["public", "intern"] {
+		sites.insert(name.to_string(), basic::SiteDescriptions::parse(&format!("{}.toml", name)).expect(&format!("Failed to parse {}.toml", name)));
+	}
+
+
 	let mut content = String::new();
 	File::open("config.toml")
 		.unwrap()
@@ -429,7 +423,7 @@ fn main() {
 		.unwrap_or("127.0.0.1:8080")
 		.to_string();
 	let state = AppState {
-		basics,
+		sites,
 		config,
 		db_addr,
 		mail_addr,
@@ -447,8 +441,9 @@ fn main() {
 			.resource("/signup-send", |r| {
 				r.method(http::Method::POST).a(signup_send)
 			})
-			.resource("/{name}", |r| r.f(basic_sites))
-			.resource("", |r| r.f(index))
+			.resource("/{prefix}/{name}", |r| r.f(sites))
+			.resource("/{name}", |r| r.f(sites))
+			.resource("", |r| r.f(sites))
 			.default_resource(|r| r.f(not_found))
 	}).bind(address)
 		.unwrap()
