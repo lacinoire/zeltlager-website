@@ -1,7 +1,7 @@
 # Zeltlager-Website
 
 Website für Informationen und Anmeldung für das Zeltlager aus München.
-Live findet ihr sie unter: [zeltlager.flakebi.de](https://zeltlager.flakebi.de)
+Live findet ihr sie unter: [meinzeltlager.com](https://meinzeltlager.com)
 
 # Setup
 
