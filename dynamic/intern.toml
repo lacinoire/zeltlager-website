@@ -7,3 +7,9 @@ name = "betreuer"
 file_name = "Betreuer.md"
 title = "Für Betreuer"
 description = "Für Betreuer des Zeltlagers"
+
+[[sites]]
+name = "betreuerAnmeldung"
+file_name = "AnmeldungBetreuer.txt"
+title = "Betreueranmeldung"
+description = "Anmeldung für Betreuer des Zeltlagers"
