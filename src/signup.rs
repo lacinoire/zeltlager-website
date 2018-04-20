@@ -6,11 +6,12 @@ use actix_web::*;
 use AppState;
 use BoxFuture;
 use db;
-use form::Form;
-use futures::{future, Future, IntoFuture};
-use mail;
 use failure;
+use form::Form;
+use futures::{BoxFuture, future, Future, IntoFuture};
 use HttpResponse;
+use HttpRequest;
+use mail;
 
 #[derive(Template)]
 #[TemplatePath = "templates/signup.tt"]
@@ -60,11 +61,11 @@ impl Signup {
 	}
 }
 
-fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+pub fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	render_signup(req, HashMap::new())
 }
 
-fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+pub fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let map = vec![
 		("vorname", "a"),
 		("nachname", "b"),
@@ -113,7 +114,7 @@ fn render_signup(
 			),
 		);
 	}
-	Box::new(not_found(req).into_future().from_err())
+	Box::new(::not_found(req).into_future().from_err())
 }
 
 /// Check if too many members are already registered, then call `signup_insert`.
@@ -220,7 +221,7 @@ fn signup_insert(
 	)
 }
 
-fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let db_addr = req.state().db_addr.clone();
 	let mail_addr = req.state().mail_addr.clone();
 	let error_message = req.state().config.error_message.clone();

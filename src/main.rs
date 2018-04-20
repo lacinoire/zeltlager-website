@@ -245,6 +245,9 @@ fn main() {
 			.resource("/signup-send", |r| {
 				r.method(http::Method::POST).a(signup::signup_send)
 			})
+			.resource("/signupBetreuer-send", |r| {
+				r.method(http::Method::POST).a(signup_betreuer::signup_send)
+			})
 			.resource("/{prefix}/{name}", |r| r.f(::sites))
 			.resource("/{name}", |r| r.f(::sites))
 			.resource("", |r| r.f(::sites))
