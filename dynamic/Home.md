@@ -1,10 +1,7 @@
 # Zeltlager 2018 - Elterninfo
 
 Das Zeltlager 2018 findet vom Montag den 30.07.2018 bis zum Freitag den
-10.08.2018 statt. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden
-Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den
-Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind
-verbindlich angemeldet.
+10.08.2018 auf dem Sportgelände des TV Erkheim statt. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
 
 Etwa 6 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten
 Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle
