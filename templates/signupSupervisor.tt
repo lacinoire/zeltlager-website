@@ -146,7 +146,7 @@
 			<label class="custom-control custom-checkbox">
 				<input name="agb" class="custom-control-input" value="true" required="required" type="checkbox">
 				<span class="custom-control-indicator"></span>
-				<span class="custom-control-description">Ich habe die <a href="agb" target="_blank">AGB</a> und die <a href="datenschutz" target="_blank">Datenschutzbestimmungen</a> gelesen und akzeptiere sie.</span>
+				<span class="custom-control-description">Ich habe die <a href="/agb" target="_blank">AGB</a> und die <a href="/datenschutz" target="_blank">Datenschutzbestimmungen</a> gelesen und akzeptiere sie.</span>
 			</label>
 		</div>
 	</div>

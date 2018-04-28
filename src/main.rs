@@ -260,6 +260,9 @@ fn main() {
 				r.method(http::Method::POST)
 					.f(signup_supervisor::signup_send)
 			})
+			.resource("/intern", |r| {
+				r.f(signup_supervisor::signup)
+			})
 			.resource("/{prefix}/{name}", |r| r.f(::sites))
 			.resource("/{name}", |r| r.f(::sites))
 			.resource("", |r| r.f(::sites))

@@ -387,8 +387,8 @@ impl Supervisor {
 		if years < 15 {
 			bail!(
 				"Mit deinem Geburtsdatum {} bist du leider zu jung, um als \
-				 Betreuer mit aufs Zeltlager zu fahren :), bitte melde dich \
-				 als Teilnehmer an",
+				 Betreuer mit aufs Zeltlager zu fahren 🙂, bitte melde dich \
+				 als Teilnehmer an.",
 				res.geburtsdatum.format("%d.%m.%Y")
 			);
 		}
