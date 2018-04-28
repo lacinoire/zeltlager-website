@@ -15,7 +15,7 @@ title = "Anmeldung"
 description = "Anmeldung für’s Zeltlager"
 
 [[sites]]
-name = "anmeldungErfolgreich"
+name = "anmeldung-erfolgreich"
 file_name = "AnmeldungErfolgreich.md"
 title = "Anmeldung erfolgreich"
 description = "Anmeldung für’s Zeltlager war erfolgreich"

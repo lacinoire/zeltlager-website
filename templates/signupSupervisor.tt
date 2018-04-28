@@ -11,7 +11,7 @@
 	Betreueranmeldung für das Zeltlager 2018
 </h1>
 
-<form style="padding-top: 10px" method="post" action="signupBetreuer-send">
+<form style="padding-top: 10px" method="post" action="signup-supervisor-send">
 	<div class="form-group form-row">
 		<label for="vorname" class="col-4 col-form-label">Vorname</label>
 		<div class="col-8">
@@ -127,7 +127,7 @@
 		<label class="col-4">PLATZHALTER Selbsterklärung</label>
 		<div class="col-8">
 			<label class="custom-control custom-checkbox">
-				<input name="selbsterklaerung" class="custom-control-input" value="true" required="required" type="checkbox">
+				<input name="selbsterklaerung" class="custom-control-input" value="true" required="required" type="checkbox"<#= self.bool_checked("selbsterklaerung", "true") #>>
 				<span class="custom-control-indicator"></span>
 				<span class="custom-control-description">Ich erkläre...</span>
 			</label>

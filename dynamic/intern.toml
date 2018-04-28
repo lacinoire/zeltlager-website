@@ -9,13 +9,13 @@ title = "Für Betreuer"
 description = "Für Betreuer des Zeltlagers"
 
 [[sites]]
-name = "betreuerAnmeldung"
+name = "betreuer-anmeldung"
 file_name = "AnmeldungBetreuer.txt"
 title = "Betreueranmeldung"
 description = "Anmeldung für Betreuer des Zeltlagers"
 
 [[sites]]
-name = "anmeldungBetreuerErfolgreich"
+name = "betreuer-anmeldung-erfolgreich"
 file_name = "AnmeldungBetreuerErfolgreich.md"
 title = "Betreueranmeldung erfolgreich"
 description = "Betreueranmeldung für’s Zeltlager war erfolgreich"

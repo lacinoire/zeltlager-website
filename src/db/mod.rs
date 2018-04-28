@@ -28,11 +28,11 @@ impl Message for SignupMessage {
 	type Result = Result<()>;
 }
 
-pub struct SignupBetreuerMessage {
-	pub betreuer: models::Betreuer,
+pub struct SignupSupervisorMessage {
+	pub supervisor: models::Supervisor,
 }
 
-impl Message for SignupBetreuerMessage {
+impl Message for SignupSupervisorMessage {
 	type Result = Result<()>;
 }
 
@@ -74,18 +74,18 @@ impl Handler<SignupMessage> for DbExecutor {
 	}
 }
 
-impl Handler<SignupBetreuerMessage> for DbExecutor {
+impl Handler<SignupSupervisorMessage> for DbExecutor {
 	type Result = Result<()>;
 
 	fn handle(
 		&mut self,
-		msg: SignupBetreuerMessage,
+		msg: SignupSupervisorMessage,
 		_: &mut Self::Context,
 	) -> Self::Result {
 		use self::schema::betreuer;
 
 		diesel::insert_into(betreuer::table)
-			.values(&msg.betreuer)
+			.values(&msg.supervisor)
 			.execute(&self.connection)?;
 
 		Ok(())

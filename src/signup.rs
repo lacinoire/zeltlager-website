@@ -208,7 +208,7 @@ fn signup_insert(
 							HttpResponse::Found()
 								.header(
 									http::header::LOCATION,
-									"anmeldungErfolgreich",
+									"anmeldung-erfolgreich",
 								)
 								.finish(),
 						))

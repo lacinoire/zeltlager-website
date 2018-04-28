@@ -34,7 +34,7 @@ mod db;
 mod form;
 mod mail;
 mod signup;
-mod signup_betreuer;
+mod signup_supervisor;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
@@ -248,17 +248,17 @@ fn main() {
 				fs::StaticFiles::new("static").default_handler(not_found),
 			)
 			.resource("/anmeldung", |r| r.f(signup::signup))
-			.resource("/intern/betreuerAnmeldung", |r| {
-				r.f(signup_betreuer::signup)
+			.resource("/intern/betreuer-anmeldung", |r| {
+				r.f(signup_supervisor::signup)
 			})
 			.resource("/anmeldung-test", |r| r.f(signup::signup_test))
 			.resource("/signup-send", |r| {
 				r.method(http::Method::POST)
 					.a(signup::signup_send)
 			})
-			.resource("/intern/signupBetreuer-send", |r| {
+			.resource("/intern/signup-supervisor-send", |r| {
 				r.method(http::Method::POST)
-					.f(signup_betreuer::signup_send)
+					.f(signup_supervisor::signup_send)
 			})
 			.resource("/{prefix}/{name}", |r| r.f(::sites))
 			.resource("/{name}", |r| r.f(::sites))

@@ -289,7 +289,7 @@ impl Teilnehmer {
 
 #[derive(Clone, Debug, Insertable, Queryable)]
 #[table_name = "betreuer"]
-pub struct Betreuer {
+pub struct Supervisor {
 	pub vorname: String,
 	pub nachname: String,
 	pub geburtsdatum: chrono::NaiveDate,
@@ -310,7 +310,7 @@ pub struct Betreuer {
 	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 }
 
-impl Betreuer {
+impl Supervisor {
 	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
 		let date = get_str!(map, "geburtsdatum")?;
 		let geburtsdatum = try_parse_date(&date)?;

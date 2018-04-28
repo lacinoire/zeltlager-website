@@ -14,20 +14,20 @@ use futures::{future, Future, IntoFuture};
 use Result;
 
 #[derive(Template)]
-#[TemplatePath = "templates/signupBetreuer.tt"]
+#[TemplatePath = "templates/signupSupervisor.tt"]
 #[derive(Debug)]
-pub struct SignupBetreuer {
+pub struct SignupSupervisor {
 	/// Already entered values, which should be inserted into the form.
 	pub values: HashMap<String, String>,
 }
 
-impl Form for SignupBetreuer {
+impl Form for SignupSupervisor {
 	fn get_values(&self) -> &HashMap<String, String> {
 		&self.values
 	}
 }
 
-impl SignupBetreuer {
+impl SignupSupervisor {
 	pub fn new(_state: &::AppState, values: HashMap<String, String>) -> Self {
 		Self { values }
 	}
@@ -43,10 +43,10 @@ fn render_signup(
 	values: HashMap<String, String>,
 ) -> Result<HttpResponse> {
 	if let Ok(site) = req.state().sites["intern"]
-		.get_site(&req.state().config, "betreuerAnmeldung")
+		.get_site(&req.state().config, "betreuer-anmeldung")
 	{
 		let content = format!("{}", site);
-		let new_content = SignupBetreuer::new(req.state(), values);
+		let new_content = SignupSupervisor::new(req.state(), values);
 		let content = content.replace(
 			"<insert content here>",
 			&format!("{}", new_content),
@@ -63,7 +63,7 @@ fn signup_success() -> BoxFuture<HttpResponse> {
 	// Redirect to success site
 	Box::new(future::ok(
 		HttpResponse::Found()
-			.header(http::header::LOCATION, "anmeldungBetreuerErfolgreich")
+			.header(http::header::LOCATION, "betreuer-anmeldung-erfolgreich")
 			.finish(),
 	))
 }
@@ -77,9 +77,9 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		.limit(1024 * 5) // 5 kiB
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
-			let betreuer = match db::models::Betreuer::
+			let supervisor = match db::models::Supervisor::
 				from_hashmap(body.clone()) {
-				Ok(betreuer) => betreuer,
+				Ok(supervisor) => supervisor,
 				Err(error) => {
 					// Show error and prefilled form
 					body.insert("error".to_string(), format!("{}", error));
@@ -90,8 +90,8 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 
 			Box::new(
 			db_addr
-				.send(db::SignupBetreuerMessage {
-					betreuer: betreuer.clone(),
+				.send(db::SignupSupervisorMessage {
+					supervisor: supervisor.clone(),
 				})
 				.from_err::<failure::Error>()
 				.then(move |result| -> BoxFuture<HttpResponse> {
