@@ -49,6 +49,50 @@ macro_rules! check_empty {
 	}
 }
 
+#[derive(Clone, Debug, Insertable, Queryable)]
+#[table_name = "teilnehmer"]
+pub struct Teilnehmer {
+	pub vorname: String,
+	pub nachname: String,
+	pub geburtsdatum: chrono::NaiveDate,
+	pub geschlecht: Gender,
+	pub schwimmer: bool,
+	pub vegetarier: bool,
+	pub tetanus_impfung: bool,
+	pub eltern_name: String,
+	pub eltern_mail: String,
+	pub eltern_handynummer: String,
+	pub strasse: String,
+	pub hausnummer: String,
+	pub ort: String,
+	pub plz: String,
+	pub besonderheiten: String,
+	pub agb: bool,
+}
+
+#[derive(Clone, Debug, Insertable, Queryable)]
+#[table_name = "betreuer"]
+pub struct Supervisor {
+	pub vorname: String,
+	pub nachname: String,
+	pub geburtsdatum: chrono::NaiveDate,
+	pub geschlecht: Gender,
+	pub vegetarier: bool,
+	pub tetanus_impfung: bool,
+	pub juleica_nummer: String,
+	pub mail: String,
+	pub handynummer: String,
+	pub strasse: String,
+	pub hausnummer: String,
+	pub ort: String,
+	pub plz: String,
+	pub besonderheiten: String,
+	pub agb: bool,
+	pub selbsterklaerung: bool,
+	pub fuehrungszeugnis_auststellung: chrono::NaiveDate,
+	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+}
+
 pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
 	const FORMATS: &[&str] = &["%Y-%m-%d", "%d.%m.%Y"];
 	let mut res = None;
@@ -167,27 +211,6 @@ impl FromSql<Text, Pg> for Gender {
 	}
 }
 
-#[derive(Clone, Debug, Insertable, Queryable)]
-#[table_name = "teilnehmer"]
-pub struct Teilnehmer {
-	pub vorname: String,
-	pub nachname: String,
-	pub geburtsdatum: chrono::NaiveDate,
-	pub geschlecht: Gender,
-	pub schwimmer: bool,
-	pub vegetarier: bool,
-	pub tetanus_impfung: bool,
-	pub eltern_name: String,
-	pub eltern_mail: String,
-	pub eltern_handynummer: String,
-	pub strasse: String,
-	pub hausnummer: String,
-	pub ort: String,
-	pub plz: String,
-	pub besonderheiten: String,
-	pub agb: bool,
-}
-
 impl Teilnehmer {
 	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
 		let date = get_str!(map, "geburtsdatum")?;
@@ -287,29 +310,6 @@ impl Teilnehmer {
 	}
 }
 
-#[derive(Clone, Debug, Insertable, Queryable)]
-#[table_name = "betreuer"]
-pub struct Supervisor {
-	pub vorname: String,
-	pub nachname: String,
-	pub geburtsdatum: chrono::NaiveDate,
-	pub geschlecht: Gender,
-	pub vegetarier: bool,
-	pub tetanus_impfung: bool,
-	pub juleica_nummer: String,
-	pub mail: String,
-	pub handynummer: String,
-	pub strasse: String,
-	pub hausnummer: String,
-	pub ort: String,
-	pub plz: String,
-	pub besonderheiten: String,
-	pub agb: bool,
-	pub selbsterklaerung: bool,
-	pub fuehrungszeugnis_auststellung: chrono::NaiveDate,
-	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
-}
-
 impl Supervisor {
 	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
 		let date = get_str!(map, "geburtsdatum")?;
@@ -396,7 +396,7 @@ impl Supervisor {
 		map.remove("submit");
 		if !map.is_empty() {
 			warn!(
-				"Teilnehmer::from_hashmap: Map is not yet empty ({:?})",
+				"Supervisor::from_hashmap: Map is not yet empty ({:?})",
 				map
 			);
 		}

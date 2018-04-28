@@ -15,13 +15,13 @@
 	<div class="form-group form-row">
 		<label for="vorname" class="col-4 col-form-label">Vorname</label>
 		<div class="col-8">
-			<input id="vorname" name="vorname" placeholder="Vorname des Kindes" required="required" class="form-control here" type="text"<#= self.opt_val("vorname") #>>
+			<input id="vorname" name="vorname" placeholder="Vorname" required="required" class="form-control here" type="text"<#= self.opt_val("vorname") #>>
 		</div>
 	</div>
 	<div class="form-group form-row">
 		<label for="nachname" class="col-4 col-form-label">Nachname</label>
 		<div class="col-8">
-			<input id="nachname" name="nachname" placeholder="Nachname des Kindes" class="form-control here" required="required" type="text"<#= self.opt_val("nachname") #>>
+			<input id="nachname" name="nachname" placeholder="Nachname" class="form-control here" required="required" type="text"<#= self.opt_val("nachname") #>>
 		</div>
 	</div>
 	<div class="form-group form-row">
@@ -78,7 +78,7 @@
 	<div class="form-group form-row">
 		<label for="juleica_nummer" class="col-4 col-form-label">Juleica Nummer</label>
 		<div class="col-8">
-			<input id="juleica_nummer" name="juleica_nummer" placeholder="Juleica Nummer" class="form-control here" required="required" type="text"<#= self.opt_val("juleica_nummer") #>>
+			<input id="juleica_nummer" name="juleica_nummer" placeholder="Juleicanummer" class="form-control here" required="required" type="text"<#= self.opt_val("juleica_nummer") #>>
 		</div>
 	</div>
 	<div class="form-group form-row">
