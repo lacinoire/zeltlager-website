@@ -13,3 +13,10 @@ name = "betreuerAnmeldung"
 file_name = "AnmeldungBetreuer.txt"
 title = "Betreueranmeldung"
 description = "Anmeldung für Betreuer des Zeltlagers"
+
+[[sites]]
+name = "anmeldungBetreuerErfolgreich"
+file_name = "AnmeldungBetreuerErfolgreich.md"
+title = "Betreueranmeldung erfolgreich"
+description = "Betreueranmeldung für’s Zeltlager war erfolgreich"
+navbar_visible = false

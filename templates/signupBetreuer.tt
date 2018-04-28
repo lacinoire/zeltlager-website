@@ -5,12 +5,8 @@
 <div class="alert alert-danger" role="alert">
 	<#= ::escape_html_body(error).replace("\n", "<br>") #>
 </div>
-	<# }
+	<# } #>
 
-<p>Unsere <a href="agb">AGB</a> und <a href="datenschutz">Datenschutzbestimmungen</a>.</p>
-	<# return Ok(());
-	}
-#>
 <h1 class="headline">
 	Betreueranmeldung für das Zeltlager 2018
 </h1>
@@ -46,21 +42,6 @@
 				<input name="geschlecht" class="custom-control-input" value="w" required="required" type="radio"<#= self.bool_checked("geschlecht", "w") #>>
 				<span class="custom-control-indicator"></span>
 				<span class="custom-control-description">Weiblich</span>
-			</label>
-		</div>
-	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Schwimmer</label>
-		<div class="col-8">
-			<label class="custom-control custom-radio<#= self.bool_active("schwimmer", "true") #>">
-				<input name="schwimmer" class="custom-control-input" value="true" required="required" type="radio"<#= self.bool_checked("schwimmer", "true") #>>
-				<span class="custom-control-indicator"></span>
-				<span class="custom-control-description">Schwimmer</span>
-			</label>
-			<label class="custom-control custom-radio<#= self.bool_active("schwimmer", "false") #>">
-				<input name="schwimmer" class="custom-control-input" value="false" required="required" type="radio"<#= self.bool_checked("schwimmer", "false") #>>
-				<span class="custom-control-indicator"></span>
-				<span class="custom-control-description">Nichtschwimmer</span>
 			</label>
 		</div>
 	</div>
@@ -134,6 +115,22 @@
 		</div>
 		<div class="col-6">
 			<input id="ort" name="ort" placeholder="Ort" class="form-control here" required="required" type="text"<#= self.opt_val("ort") #>>
+		</div>
+	</div>
+	<div class="form-group form-row">
+		<label for="fuehrungszeugnis_auststellung" class="col-4 col-form-label">Austellungsdatum Erweitertes Führungszeugnis</label>
+		<div class="col-8">
+			<input id="fuehrungszeugnis_auststellung" name="fuehrungszeugnis_auststellung" placeholder="TT.MM.JJJJ" class="form-control here" required="required" type="text"<#= self.opt_val("fuehrungszeugnis_auststellung") #>>
+		</div>
+	</div>
+	<div class="form-group form-row">
+		<label class="col-4">PLATZHALTER Selbsterklärung</label>
+		<div class="col-8">
+			<label class="custom-control custom-checkbox">
+				<input name="selbsterklaerung" class="custom-control-input" value="true" required="required" type="checkbox">
+				<span class="custom-control-indicator"></span>
+				<span class="custom-control-description">Ich erkläre...</span>
+			</label>
 		</div>
 	</div>
 	<div class="form-group form-row">

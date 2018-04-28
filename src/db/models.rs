@@ -8,18 +8,19 @@ use diesel::pg::Pg;
 use diesel::serialize::{self, IsNull, Output, ToSql};
 use diesel::sql_types::Text;
 
+use super::schema::betreuer;
 use super::schema::teilnehmer;
 use Result;
 
 macro_rules! get_str {
-	($map: ident, $key: expr) => {
+	($map:ident, $key:expr) => {
 		$map.remove($key)
 			.ok_or_else(|| format_err!("{} fehlt", $key))
 	};
 }
 
 macro_rules! get_bool {
-	($map: ident, $key: expr) => {
+	($map:ident, $key:expr) => {
 		$map.remove($key)
 			.ok_or_else(|| format_err!("{} fehlt", $key))
 			.and_then(|s| {
@@ -119,6 +120,14 @@ pub fn years_old(date: Date<Utc>) -> i32 {
 		years -= 1;
 	}
 	years
+}
+
+pub fn check_only_numbers(text: &str, length: usize) -> bool {
+	text.len() == length && text.chars().all(|c| c.is_numeric())
+}
+
+pub fn check_email(text: &str) -> bool {
+	text.contains('@') && !text.contains(' ') && text.find('@') == text.rfind('@')
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression)]
@@ -223,11 +232,11 @@ impl Teilnehmer {
 			plz
 		);
 		// Check PLZ
-		if res.plz.len() != 5 || res.plz.chars().any(|c| !c.is_numeric()) {
+		if !check_only_numbers(&res.plz, 5) {
 			bail!("Ungültige Postleitzahl ({})", res.plz);
 		}
 		// Check mail address
-		if !res.eltern_mail.contains('@') {
+		if !check_email(&res.eltern_mail) {
 			bail!(
 				"Ungültige E-Mail Addresse ({})",
 				res.eltern_mail
@@ -262,6 +271,124 @@ impl Teilnehmer {
 				 mitfahren.\nInfos dazu finden Sie auf der \
 				 Betreuerseite.\nDas Zeltlager ist für Kinder und Jugendliche \
 				 zwischen 7 und 15 Jahren.",
+				res.geburtsdatum.format("%d.%m.%Y")
+			);
+		}
+
+		map.remove("submit");
+		if !map.is_empty() {
+			warn!(
+				"Teilnehmer::from_hashmap: Map is not yet empty ({:?})",
+				map
+			);
+		}
+
+		Ok(res)
+	}
+}
+
+#[derive(Clone, Debug, Insertable, Queryable)]
+#[table_name = "betreuer"]
+pub struct Betreuer {
+	pub vorname: String,
+	pub nachname: String,
+	pub geburtsdatum: chrono::NaiveDate,
+	pub geschlecht: Gender,
+	pub vegetarier: bool,
+	pub tetanus_impfung: bool,
+	pub juleica_nummer: String,
+	pub mail: String,
+	pub handynummer: String,
+	pub strasse: String,
+	pub hausnummer: String,
+	pub ort: String,
+	pub plz: String,
+	pub besonderheiten: String,
+	pub agb: bool,
+	pub selbsterklaerung: bool,
+	pub fuehrungszeugnis_auststellung: chrono::NaiveDate,
+	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+}
+
+impl Betreuer {
+	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
+		let date = get_str!(map, "geburtsdatum")?;
+		let geburtsdatum = try_parse_date(&date)?;
+		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
+		let f_date = get_str!(map, "fuehrungszeugnis_auststellung")?;
+		let fuehrungszeugnis_auststellung = try_parse_date(&f_date)?;
+
+		let res = Self {
+			vorname: get_str!(map, "vorname")?,
+			nachname: get_str!(map, "nachname")?,
+			geburtsdatum,
+			geschlecht,
+
+			vegetarier: get_bool!(map, "vegetarier")?,
+			tetanus_impfung: get_bool!(map, "tetanus_impfung")?,
+
+			juleica_nummer: get_str!(map, "juleica_nummer")?,
+			mail: get_str!(map, "mail")?,
+			handynummer: get_str!(map, "handynummer")?,
+			strasse: get_str!(map, "strasse")?,
+			hausnummer: get_str!(map, "hausnummer")?,
+			ort: get_str!(map, "ort")?,
+			plz: get_str!(map, "plz")?,
+			besonderheiten: get_str!(map, "besonderheiten")?,
+			selbsterklaerung: get_bool!(map, "selbsterklaerung")?,
+			fuehrungszeugnis_auststellung,
+			fuehrungszeugnis_eingesehen: None,
+
+			agb: get_bool!(map, "agb")?,
+		};
+
+		if !res.agb {
+			bail!("Die AGB müssen akzeptiert werden");
+		}
+		if !res.selbsterklaerung {
+			bail!("Die Selbsterklärung muss abgegeben werden");
+		}
+		check_empty!(
+			res,
+			vorname,
+			nachname,
+			juleica_nummer,
+			mail,
+			handynummer,
+			strasse,
+			hausnummer,
+			ort,
+			plz
+		);
+		// Check PLZ
+		if !check_only_numbers(&res.plz, 5) {
+			bail!("Ungültige Postleitzahl ({})", res.plz);
+		}
+		// Check mail address
+		if !check_email(&res.mail) {
+			bail!("Ungültige E-Mail Addresse ({})", res.mail);
+		}
+		// Check Juleica Number
+		if !check_only_numbers(&res.juleica_nummer, 11) {
+			bail!("Ungültige Juleicanummer ({}, Länge ≠ 11 oder Buchstaben drin)", res.juleica_nummer)
+		}
+		// Check birth date
+		let birthday = Date::from_utc(res.geburtsdatum, Utc);
+		let now = Utc::now().date();
+		let years = years_old(birthday);
+		if now <= birthday || years >= 100 {
+			bail!(
+				"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben \
+				 Sie das Geburtsdatum im Format TT.MM.JJJJ an.",
+				res.geburtsdatum.format("%d.%m.%Y")
+			);
+		}
+
+		if years < 15 {
+			bail!(
+				"Mit deinem Geburtsdatum {} bist du leider zu jung, um als \
+				 Betreuer mit aufs Zeltlager zu fahren :), bitte melde dich \
+				 als Teilnehmer an",
 				res.geburtsdatum.format("%d.%m.%Y")
 			);
 		}

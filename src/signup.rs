@@ -1,16 +1,16 @@
 //! The signup template.
 use std::collections::HashMap;
 
-use actix;
-use actix_web::*;
 use AppState;
 use BoxFuture;
+use HttpRequest;
+use HttpResponse;
+use actix;
+use actix_web::*;
 use db;
 use failure;
 use form::Form;
-use futures::{BoxFuture, future, Future, IntoFuture};
-use HttpResponse;
-use HttpRequest;
+use futures::{future, Future, IntoFuture};
 use mail;
 
 #[derive(Template)]
@@ -94,25 +94,22 @@ fn render_signup(
 	req: HttpRequest<AppState>,
 	values: HashMap<String, String>,
 ) -> BoxFuture<HttpResponse> {
-	if let Ok(site) = req.state()
-		.sites["public"]
-		.get_site(&req.state().config, "anmeldung")
+	if let Ok(site) =
+		req.state().sites["public"].get_site(&req.state().config, "anmeldung")
 	{
 		let content = format!("{}", site);
-		return Box::new(
-			Signup::new(req.state(), values).and_then(
-				move |new_content| {
-					let content = content.replace(
-						"<insert content here>",
-						&format!("{}", new_content),
-					);
+		return Box::new(Signup::new(req.state(), values).and_then(
+			move |new_content| {
+				let content = content.replace(
+					"<insert content here>",
+					&format!("{}", new_content),
+				);
 
-					Ok(HttpResponse::Ok()
-						.content_type("text/html; charset=utf-8")
-						.body(content))
-				},
-			),
-		);
+				Ok(HttpResponse::Ok()
+					.content_type("text/html; charset=utf-8")
+					.body(content))
+			},
+		));
 	}
 	Box::new(::not_found(req).into_future().from_err())
 }

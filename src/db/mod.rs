@@ -28,6 +28,14 @@ impl Message for SignupMessage {
 	type Result = Result<()>;
 }
 
+pub struct SignupBetreuerMessage {
+	pub betreuer: models::Betreuer,
+}
+
+impl Message for SignupBetreuerMessage {
+	type Result = Result<()>;
+}
+
 pub struct CountMemberMessage;
 
 impl Message for CountMemberMessage {
@@ -60,6 +68,24 @@ impl Handler<SignupMessage> for DbExecutor {
 
 		diesel::insert_into(teilnehmer::table)
 			.values(&msg.member)
+			.execute(&self.connection)?;
+
+		Ok(())
+	}
+}
+
+impl Handler<SignupBetreuerMessage> for DbExecutor {
+	type Result = Result<()>;
+
+	fn handle(
+		&mut self,
+		msg: SignupBetreuerMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::betreuer;
+
+		diesel::insert_into(betreuer::table)
+			.values(&msg.betreuer)
 			.execute(&self.connection)?;
 
 		Ok(())

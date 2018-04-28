@@ -28,7 +28,6 @@ use std::fs::File;
 use std::io::Read;
 
 use actix_web::*;
-use futures::{Future};
 
 mod basic;
 mod db;
@@ -155,12 +154,19 @@ fn escape_html_attribute(s: &str) -> String {
 
 fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	{
-		let name = req.match_info().get("name").unwrap_or("startseite");
-		let prefix = req.match_info().get("prefix").unwrap_or("public");
-		if let Some(site) = req.state()
-			.sites.get(prefix).and_then(|site_descriptions|
-				site_descriptions.get_site(&req.state().config, &name).ok())
-		{
+		let name = req.match_info()
+			.get("name")
+			.unwrap_or("startseite");
+		let prefix = req.match_info()
+			.get("prefix")
+			.unwrap_or("public");
+		if let Some(site) = req.state().sites.get(prefix).and_then(
+			|site_descriptions| {
+				site_descriptions
+					.get_site(&req.state().config, &name)
+					.ok()
+			},
+		) {
 			let content = format!("{}", site);
 
 			return Ok(HttpResponse::Ok()
@@ -173,9 +179,8 @@ fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 
 fn not_found(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	warn!("File not found '{}'", req.path());
-	let site = req.state()
-		.sites["public"]
-		.get_site(&req.state().config, "404")?;
+	let site =
+		req.state().sites["public"].get_site(&req.state().config, "404")?;
 	let content = format!("{}", site);
 	Ok(HttpResponse::NotFound()
 		.content_type("text/html; charset=utf-8")
@@ -194,9 +199,12 @@ fn main() {
 
 	let mut sites = HashMap::new();
 	for name in ["public", "intern"].iter() {
-		sites.insert(name.to_string(), basic::SiteDescriptions::parse(&format!("{}.toml", name)).expect(&format!("Failed to parse {}.toml", name)));
+		sites.insert(
+			name.to_string(),
+			basic::SiteDescriptions::parse(&format!("{}.toml", name))
+				.expect(&format!("Failed to parse {}.toml", name)),
+		);
 	}
-
 
 	let mut content = String::new();
 	File::open("config.toml")
@@ -240,13 +248,17 @@ fn main() {
 				fs::StaticFiles::new("static").default_handler(not_found),
 			)
 			.resource("/anmeldung", |r| r.f(signup::signup))
-			.resource("/anmeldungBetreuer", |r| r.f(signup_betreuer::signup))
+			.resource("/intern/betreuerAnmeldung", |r| {
+				r.f(signup_betreuer::signup)
+			})
 			.resource("/anmeldung-test", |r| r.f(signup::signup_test))
 			.resource("/signup-send", |r| {
-				r.method(http::Method::POST).a(signup::signup_send)
+				r.method(http::Method::POST)
+					.a(signup::signup_send)
 			})
-			.resource("/signupBetreuer-send", |r| {
-				r.method(http::Method::POST).a(signup_betreuer::signup_send)
+			.resource("/intern/signupBetreuer-send", |r| {
+				r.method(http::Method::POST)
+					.f(signup_betreuer::signup_send)
 			})
 			.resource("/{prefix}/{name}", |r| r.f(::sites))
 			.resource("/{name}", |r| r.f(::sites))
