@@ -2,7 +2,7 @@
 
 ### All Inclusive
 
-Im Rahmen unseres Ferienbetreuungsprogramms organisieren wir alljählich ein Jugendzeltlager. Das Lager beginnt unmittelbar mit Ferienbeginn, dauert 12 Tage inklusive An- und Rückreisetag und findet im Wechsel auf verschiedenen Sportanlagenvon befreundeten Vereinen statt. Die Hin- und Rückreise erfolgt mit einem modernen Reisebus.
+Im Rahmen unseres Ferienbetreuungsprogramms organisieren wir alljählich ein Jugendzeltlager. Das Lager beginnt unmittelbar mit Ferienbeginn, dauert 12 Tage inklusive An- und Rückreisetag und findet im Wechsel auf verschiedenen Sportanlagen von befreundeten Vereinen statt. Die Hin- und Rückreise erfolgt mit einem modernen Reisebus.
 
 Die Betreuung und Verpflegung übernimmt das bewährte Zeltlagerteam, das die Zelte bereits im Vorfeld aufbaut. Übernachtet wird in Mannschaftszelten, danebenstehen Aufenthaltszelte, eine mobile Gastroküche, eine 3-Sterne Sanitäranlage mit Warmwasserduschen, ein großes Sportgelände,Tischtennisplatten, Kicker und viele, viele Spiele zur Verfügung.
 
