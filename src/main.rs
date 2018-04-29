@@ -28,6 +28,7 @@ use std::fs::File;
 use std::io::Read;
 
 use actix_web::*;
+use actix_web::http::Method;
 
 mod basic;
 mod db;
@@ -243,29 +244,18 @@ fn main() {
 	server::new(move || {
 		App::with_state(state.clone())
 			.middleware(middleware::Logger::default())
-			.handler(
-				"/static",
-				fs::StaticFiles::new("static").default_handler(not_found),
-			)
-			.resource("/anmeldung", |r| r.f(signup::signup))
-			.resource("/intern/betreuer-anmeldung", |r| {
-				r.f(signup_supervisor::signup)
-			})
-			.resource("/anmeldung-test", |r| r.f(signup::signup_test))
-			.resource("/signup-send", |r| {
-				r.method(http::Method::POST)
-					.a(signup::signup_send)
-			})
-			.resource("/intern/signup-supervisor-send", |r| {
-				r.method(http::Method::POST)
-					.f(signup_supervisor::signup_send)
-			})
-			.resource("/intern", |r| {
-				r.f(signup_supervisor::signup)
-			})
-			.resource("/{prefix}/{name}", |r| r.f(::sites))
-			.resource("/{name}", |r| r.f(::sites))
-			.resource("", |r| r.f(::sites))
+			.resource("/static/{tail:.*}", |r| r.h(fs::StaticFiles::new("static").default_handler(not_found)))
+			.route("/anmeldung", Method::GET, signup::signup)
+			.route("/intern/betreuer-anmeldung", Method::GET,
+				signup_supervisor::signup)
+			.route("/anmeldung-test", Method::GET, signup::signup_test)
+			.route("/signup-send", Method::POST, signup::signup_send)
+			.route("/intern/signup-supervisor-send", Method::POST,
+				signup_supervisor::signup_send)
+			.route("/intern", Method::GET, signup_supervisor::signup)
+			.route("/{prefix}/{name}", Method::GET, ::sites)
+			.route("/{name}", Method::GET, ::sites)
+			.route("", Method::GET, ::sites)
 			.default_resource(|r| r.f(not_found))
 	}).bind(address)
 		.unwrap()
