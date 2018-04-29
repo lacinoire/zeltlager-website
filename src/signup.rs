@@ -1,10 +1,6 @@
 //! The signup template.
 use std::collections::HashMap;
 
-use AppState;
-use BoxFuture;
-use HttpRequest;
-use HttpResponse;
 use actix;
 use actix_web::*;
 use db;
@@ -12,6 +8,10 @@ use failure;
 use form::Form;
 use futures::{future, Future, IntoFuture};
 use mail;
+use AppState;
+use BoxFuture;
+use HttpRequest;
+use HttpResponse;
 
 #[derive(Template)]
 #[TemplatePath = "templates/signup.tt"]

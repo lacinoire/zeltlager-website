@@ -27,8 +27,8 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 
-use actix_web::*;
 use actix_web::http::Method;
+use actix_web::*;
 
 mod basic;
 mod db;
@@ -39,6 +39,9 @@ mod signup_supervisor;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
+
+const DEFAULT_PREFIX: &str = "public";
+const DEFAULT_NAME: &str = "startseite";
 
 /*macro_rules! tryf {
 	($e:expr) => {
@@ -155,27 +158,55 @@ fn escape_html_attribute(s: &str) -> String {
 
 fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	{
-		let name = req.match_info()
-			.get("name")
-			.unwrap_or("startseite");
-		let prefix = req.match_info()
-			.get("prefix")
-			.unwrap_or("public");
-		if let Some(site) = req.state().sites.get(prefix).and_then(
-			|site_descriptions| {
-				site_descriptions
-					.get_site(&req.state().config, &name)
-					.ok()
-			},
-		) {
-			let content = format!("{}", site);
+		let prefix;
+		let name;
+		if let Some(n) = req.match_info().get("name").filter(|s| !s.is_empty()) {
+			if let Some(p) = req.match_info().get("prefix") {
+				prefix = p;
+				name = n;
+			} else {
+				// Check if the name is actually a prefix
+				if req.state().sites.get(n).is_some() {
+					prefix = n;
+					name = DEFAULT_NAME;
+				} else {
+					prefix = DEFAULT_PREFIX;
+					name = n;
+				}
+			}
+		} else {
+			name = DEFAULT_NAME;
+			prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX);
+		}
 
-			return Ok(HttpResponse::Ok()
-				.content_type("text/html; charset=utf-8")
-				.body(content));
+		if let Some(res) = site(&req, prefix, name) {
+			return Ok(res);
 		}
 	}
 	not_found(req)
+}
+
+fn site(
+	req: &HttpRequest<AppState>,
+	prefix: &str,
+	name: &str,
+) -> Option<HttpResponse> {
+	if let Some(site) = req.state().sites.get(prefix).and_then(
+		|site_descriptions| {
+			site_descriptions
+				.get_site(&req.state().config, &name)
+				.ok()
+		},
+	) {
+		let content = format!("{}", site);
+
+		return Some(
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body(content),
+		);
+	}
+	None
 }
 
 fn not_found(req: HttpRequest<AppState>) -> Result<HttpResponse> {
@@ -244,16 +275,34 @@ fn main() {
 	server::new(move || {
 		App::with_state(state.clone())
 			.middleware(middleware::Logger::default())
-			.resource("/static/{tail:.*}", |r| r.h(fs::StaticFiles::new("static").default_handler(not_found)))
+			// Register static file handler as resource. If it is registered as
+			// handler, it will be overwritten by resources.
+			.resource("/static/{tail:.*}", |r| {
+				r.h(fs::StaticFiles::new("static").default_handler(not_found))
+			})
 			.route("/anmeldung", Method::GET, signup::signup)
-			.route("/intern/betreuer-anmeldung", Method::GET,
-				signup_supervisor::signup)
-			.route("/anmeldung-test", Method::GET, signup::signup_test)
-			.route("/signup-send", Method::POST, signup::signup_send)
-			.route("/intern/signup-supervisor-send", Method::POST,
-				signup_supervisor::signup_send)
-			.route("/intern", Method::GET, signup_supervisor::signup)
-			.route("/{prefix}/{name}", Method::GET, ::sites)
+			.route(
+				"/intern/betreuer-anmeldung",
+				Method::GET,
+				signup_supervisor::signup,
+			)
+			.route(
+				"/anmeldung-test",
+				Method::GET,
+				signup::signup_test,
+			)
+			.route(
+				"/signup-send",
+				Method::POST,
+				signup::signup_send,
+			)
+			.route(
+				"/intern/signup-supervisor-send",
+				Method::POST,
+				signup_supervisor::signup_send,
+			)
+			// Allow an empty name
+			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)
 			.route("/{name}", Method::GET, ::sites)
 			.route("", Method::GET, ::sites)
 			.default_resource(|r| r.f(not_found))

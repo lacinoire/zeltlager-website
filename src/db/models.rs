@@ -143,7 +143,7 @@ pub fn try_parse_gender(s: &str) -> Result<Gender> {
 		"Male",
 	];
 	const FEMALE: &[&str] = &[
-		"w", "W", "weiblich", "Weiblich", "female", "Female"
+		"w", "W", "weiblich", "Weiblich", "female", "Female",
 	];
 
 	if MALE.contains(&s) {
@@ -171,7 +171,8 @@ pub fn check_only_numbers(text: &str, length: usize) -> bool {
 }
 
 pub fn check_email(text: &str) -> bool {
-	text.contains('@') && !text.contains(' ') && text.find('@') == text.rfind('@')
+	text.contains('@') && !text.contains(' ')
+		&& text.find('@') == text.rfind('@')
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression)]

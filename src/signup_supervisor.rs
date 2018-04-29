@@ -1,15 +1,15 @@
 //! The signup template.
 use std::collections::HashMap;
 
-use AppState;
-use BoxFuture;
-use HttpRequest;
-use HttpResponse;
 use actix_web::*;
 use db;
 use failure;
 use form::Form;
 use futures::{future, Future, IntoFuture};
+use AppState;
+use BoxFuture;
+use HttpRequest;
+use HttpResponse;
 
 use Result;
 
@@ -63,7 +63,10 @@ fn signup_success() -> BoxFuture<HttpResponse> {
 	// Redirect to success site
 	Box::new(future::ok(
 		HttpResponse::Found()
-			.header(http::header::LOCATION, "betreuer-anmeldung-erfolgreich")
+			.header(
+				http::header::LOCATION,
+				"betreuer-anmeldung-erfolgreich",
+			)
 			.finish(),
 	))
 }
