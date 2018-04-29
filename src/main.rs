@@ -160,7 +160,13 @@ fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	{
 		let prefix;
 		let name;
-		if let Some(n) = req.match_info().get("name").filter(|s| !s.is_empty()) {
+		if let Some(n) = req.match_info().get("name").and_then(|s| {
+			if s.is_empty() {
+				None
+			} else {
+				Some(s)
+			}
+		}) {
 			if let Some(p) = req.match_info().get("prefix") {
 				prefix = p;
 				name = n;
@@ -176,7 +182,9 @@ fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 			}
 		} else {
 			name = DEFAULT_NAME;
-			prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX);
+			prefix = req.match_info()
+				.get("prefix")
+				.unwrap_or(DEFAULT_PREFIX);
 		}
 
 		if let Some(res) = site(&req, prefix, name) {

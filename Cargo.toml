@@ -8,7 +8,7 @@ actix = "0.5"
 actix-web = "0.5"
 bytes = "0.4"
 chrono = "0.4"
-diesel = { version = "1", features = ["chrono", "postgres"] }
+diesel = { version = "1.2", features = ["chrono", "postgres"] }
 dotenv = "0.11"
 env_logger = "0.5"
 failure = "0.1"
