@@ -20,3 +20,10 @@ file_name = "AnmeldungBetreuerErfolgreich.md"
 title = "Betreueranmeldung erfolgreich"
 description = "Betreueranmeldung für’s Zeltlager war erfolgreich"
 navbar_visible = false
+
+[[sites]]
+name = "selbstverpflichtung"
+file_name = "Selbstverpflichtung.html"
+title = "Selbstverpflichtungserklärung"
+description = "Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt"
+navbar_visible = false

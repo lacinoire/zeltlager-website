@@ -5,8 +5,6 @@ table! {
 		nachname -> Text,
 		geburtsdatum -> Date,
 		geschlecht -> Text,
-		vegetarier -> Bool,
-		tetanus_impfung -> Bool,
 		juleica_nummer -> Text,
 		mail -> Text,
 		handynummer -> Text,

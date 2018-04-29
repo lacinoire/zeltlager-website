@@ -77,8 +77,6 @@ pub struct Supervisor {
 	pub nachname: String,
 	pub geburtsdatum: chrono::NaiveDate,
 	pub geschlecht: Gender,
-	pub vegetarier: bool,
-	pub tetanus_impfung: bool,
 	pub juleica_nummer: String,
 	pub mail: String,
 	pub handynummer: String,
@@ -324,9 +322,6 @@ impl Supervisor {
 			nachname: get_str!(map, "nachname")?,
 			geburtsdatum,
 			geschlecht,
-
-			vegetarier: get_bool!(map, "vegetarier")?,
-			tetanus_impfung: get_bool!(map, "tetanus_impfung")?,
 
 			juleica_nummer: get_str!(map, "juleica_nummer")?,
 			mail: get_str!(map, "mail")?,

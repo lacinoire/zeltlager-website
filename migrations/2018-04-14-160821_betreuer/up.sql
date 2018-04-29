@@ -5,8 +5,6 @@ CREATE TABLE betreuer (
 	nachname TEXT NOT NULL,
 	geburtsdatum DATE NOT NULL,
 	geschlecht TEXT NOT NULL,
-	vegetarier BOOLEAN NOT NULL,
-	tetanus_impfung BOOLEAN NOT NULL,
 	juleica_nummer TEXT NOT NULL,
 	mail TEXT NOT NULL,
 	handynummer TEXT NOT NULL,
