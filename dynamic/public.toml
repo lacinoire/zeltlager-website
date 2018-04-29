@@ -15,7 +15,7 @@ title = "Anmeldung"
 description = "Anmeldung für’s Zeltlager"
 
 [[sites]]
-name = "anmeldungErfolgreich"
+name = "anmeldung-erfolgreich"
 file_name = "AnmeldungErfolgreich.md"
 title = "Anmeldung erfolgreich"
 description = "Anmeldung für’s Zeltlager war erfolgreich"
@@ -38,6 +38,12 @@ name = "ausstattung"
 file_name = "Ausstattung.md"
 title = "Ausstattung"
 description = "Ausstattung des Zeltlagers"
+
+[[sites]]
+name = "betreuer"
+file_name = "Betreuer.md"
+title = "Für Betreuer"
+description = "Für Betreuer des Zeltlagers"
 
 [[sites]]
 name = "agb"

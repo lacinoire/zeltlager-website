@@ -1,10 +1,10 @@
 use actix::prelude::*;
-use lettre::{EmailTransport, SmtpTransport};
 use lettre::smtp::authentication::Credentials;
+use lettre::{EmailTransport, SmtpTransport};
 use lettre_email::EmailBuilder;
 
-use Result;
 use db::models::{Gender, Teilnehmer};
+use Result;
 
 pub struct MailExecutor {
 	config: ::Config,

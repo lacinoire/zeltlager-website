@@ -27,16 +27,21 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 
+use actix_web::http::Method;
 use actix_web::*;
-use futures::{future, Future, IntoFuture};
 
 mod basic;
 mod db;
+mod form;
 mod mail;
 mod signup;
+mod signup_supervisor;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
+
+const DEFAULT_PREFIX: &str = "public";
+const DEFAULT_NAME: &str = "startseite";
 
 /*macro_rules! tryf {
 	($e:expr) => {
@@ -153,228 +158,61 @@ fn escape_html_attribute(s: &str) -> String {
 
 fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	{
-		let name = req.match_info().get("name").unwrap_or("startseite");
-		let prefix = req.match_info().get("prefix").unwrap_or("public");
-		if let Some(site) = req.state()
-			.sites.get(prefix).and_then(|site_descriptions|
-				site_descriptions.get_site(&req.state().config, &name).ok())
-		{
-			let content = format!("{}", site);
+		let prefix;
+		let name;
+		if let Some(n) = req.match_info().get("name").filter(|s| !s.is_empty()) {
+			if let Some(p) = req.match_info().get("prefix") {
+				prefix = p;
+				name = n;
+			} else {
+				// Check if the name is actually a prefix
+				if req.state().sites.get(n).is_some() {
+					prefix = n;
+					name = DEFAULT_NAME;
+				} else {
+					prefix = DEFAULT_PREFIX;
+					name = n;
+				}
+			}
+		} else {
+			name = DEFAULT_NAME;
+			prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX);
+		}
 
-			return Ok(HttpResponse::Ok()
-				.content_type("text/html; charset=utf-8")
-				.body(content));
+		if let Some(res) = site(&req, prefix, name) {
+			return Ok(res);
 		}
 	}
 	not_found(req)
 }
 
-fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
-	render_signup(req, HashMap::new())
-}
-
-fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
-	let map = vec![
-		("vorname", "a"),
-		("nachname", "b"),
-		("geburtsdatum", "1.1.2010"),
-		("geschlecht", "w"),
-		("schwimmer", "true"),
-		("vegetarier", "false"),
-		("tetanus_impfung", "true"),
-		("eltern_name", "d"),
-		("eltern_mail", "@"),
-		("eltern_handynummer", "f"),
-		("strasse", "g"),
-		("hausnummer", "h"),
-		("ort", "i"),
-		("plz", "80000"),
-	];
-
-	let map = map.iter()
-		.map(|&(a, b)| (a.to_string(), b.to_string()));
-
-	render_signup(req, map.collect())
-}
-
-/// Return the signup site with the prefilled `values`.
-fn render_signup(
-	req: HttpRequest<AppState>,
-	values: HashMap<String, String>,
-) -> BoxFuture<HttpResponse> {
-	if let Ok(site) = req.state()
-		.sites["public"]
-		.get_site(&req.state().config, "anmeldung")
-	{
+fn site(
+	req: &HttpRequest<AppState>,
+	prefix: &str,
+	name: &str,
+) -> Option<HttpResponse> {
+	if let Some(site) = req.state().sites.get(prefix).and_then(
+		|site_descriptions| {
+			site_descriptions
+				.get_site(&req.state().config, &name)
+				.ok()
+		},
+	) {
 		let content = format!("{}", site);
-		return Box::new(
-			signup::Signup::new(req.state(), values).and_then(
-				move |new_content| {
-					let content = content.replace(
-						"<insert content here>",
-						&format!("{}", new_content),
-					);
 
-					Ok(HttpResponse::Ok()
-						.content_type("text/html; charset=utf-8")
-						.body(content))
-				},
-			),
+		return Some(
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body(content),
 		);
 	}
-	Box::new(not_found(req).into_future().from_err())
-}
-
-/// Check if too many members are already registered, then call `signup_insert`.
-fn signup_check_count(
-	count: i64,
-	max_members: i64,
-	db_addr: &actix::Addr<actix::Syn, db::DbExecutor>,
-	mail_addr: actix::Addr<actix::Syn, mail::MailExecutor>,
-	member: db::models::Teilnehmer,
-	mut body: HashMap<String, String>,
-	error_message: String,
-	req: HttpRequest<AppState>,
-) -> BoxFuture<HttpResponse> {
-	if count >= max_members {
-		// Show error
-		body.insert(
-			"error".to_string(),
-			"Während Ihrer Anmeldung ist das Zeltlager leider schon voll \
-			 geworden."
-				.to_string(),
-		);
-		warn!(
-			"Already too many members registered (from {})",
-			member.eltern_mail
-		);
-		render_signup(req, body)
-	} else {
-		Box::new(
-			db_addr
-				.send(db::SignupMessage {
-					member: member.clone(),
-				})
-				.from_err::<failure::Error>()
-				.then(move |result| -> BoxFuture<HttpResponse> {
-					match result {
-						Err(error) | Ok(Err(error)) => {
-							// Show error and prefilled form
-							body.insert(
-								"error".to_string(),
-								format!(
-									"Es ist ein Datenbank-Fehler \
-									 aufgetreten.\n{}",
-									error_message
-								),
-							);
-							warn!("Error inserting into database: {}", error);
-							render_signup(req, body)
-						}
-						Ok(Ok(())) => signup_insert(
-							&mail_addr,
-							member,
-							body,
-							error_message,
-							req,
-						),
-					}
-				}),
-		)
-	}
-}
-
-/// Insert the member into the database, write an email and show a success site.
-fn signup_insert(
-	mail_addr: &actix::Addr<actix::Syn, mail::MailExecutor>,
-	member: db::models::Teilnehmer,
-	mut body: HashMap<String, String>,
-	error_message: String,
-	req: HttpRequest<AppState>,
-) -> BoxFuture<HttpResponse> {
-	// Write an e-mail
-	Box::new(
-		mail_addr
-			.send(mail::SignupMessage { member })
-			.from_err::<failure::Error>()
-			.then(move |result| -> BoxFuture<HttpResponse> {
-				match result {
-					Err(error) | Ok(Err(error)) => {
-						// Show error and prefilled form
-						body.insert(
-							"error".to_string(),
-							format!(
-								"Ihre Daten wurden erfolgreich \
-								 gespeichert.\nEs ist leider ein Fehler beim \
-								 E-Mail senden aufgetreten.\n{}",
-								error_message
-							),
-						);
-						warn!("Error sending e-mail: {}", error);
-						render_signup(req, body)
-					}
-					Ok(Ok(())) => {
-						// Redirect to success site
-						Box::new(future::ok(
-							HttpResponse::Found()
-								.header(
-									http::header::LOCATION,
-									"anmeldungErfolgreich",
-								)
-								.finish(),
-						))
-					}
-				}
-			}),
-	)
-}
-
-fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
-	let db_addr = req.state().db_addr.clone();
-	let mail_addr = req.state().mail_addr.clone();
-	let error_message = req.state().config.error_message.clone();
-	let max_members = req.state().config.max_members;
-	let db_addr2 = db_addr.clone();
-
-	// Get the body of the request
-	req.clone().urlencoded()
-		.limit(1024 * 5) // 5 kiB
-		.from_err()
-		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
-			let member = match db::models::Teilnehmer::
-				from_hashmap(body.clone()) {
-				Ok(member) => member,
-				Err(error) => {
-					// Show error and prefilled form
-					body.insert("error".to_string(), format!("{}", error));
-					warn!("Error handling form content: {}", error);
-					return Box::new(render_signup(req, body).into_future());
-				}
-			};
-
-			Box::new(db_addr.send(db::CountMemberMessage)
-				.from_err::<failure::Error>()
-				.then(move |result| -> BoxFuture<HttpResponse> { match result {
-					Err(error) | Ok(Err(error)) => {
-						// Show error and prefilled form
-						body.insert("error".to_string(), format!("\
-							Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-							error_message));
-						warn!("Error inserting into database: {}", error);
-						render_signup(req, body)
-					}
-					Ok(Ok(count)) => signup_check_count(count, max_members,
-						&db_addr2, mail_addr, member, body, error_message, req),
-				}})
-		)})
-		.responder()
+	None
 }
 
 fn not_found(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 	warn!("File not found '{}'", req.path());
-	let site = req.state()
-		.sites["public"]
-		.get_site(&req.state().config, "404")?;
+	let site =
+		req.state().sites["public"].get_site(&req.state().config, "404")?;
 	let content = format!("{}", site);
 	Ok(HttpResponse::NotFound()
 		.content_type("text/html; charset=utf-8")
@@ -393,9 +231,12 @@ fn main() {
 
 	let mut sites = HashMap::new();
 	for name in ["public", "intern"].iter() {
-		sites.insert(name.to_string(), basic::SiteDescriptions::parse(&format!("{}.toml", name)).expect(&format!("Failed to parse {}.toml", name)));
+		sites.insert(
+			name.to_string(),
+			basic::SiteDescriptions::parse(&format!("{}.toml", name))
+				.expect(&format!("Failed to parse {}.toml", name)),
+		);
 	}
-
 
 	let mut content = String::new();
 	File::open("config.toml")
@@ -434,18 +275,36 @@ fn main() {
 	server::new(move || {
 		App::with_state(state.clone())
 			.middleware(middleware::Logger::default())
-			.handler(
-				"/static",
-				fs::StaticFiles::new("static").default_handler(not_found),
-			)
-			.resource("/anmeldung", |r| r.f(signup))
-			.resource("/anmeldung-test", |r| r.f(signup_test))
-			.resource("/signup-send", |r| {
-				r.method(http::Method::POST).a(signup_send)
+			// Register static file handler as resource. If it is registered as
+			// handler, it will be overwritten by resources.
+			.resource("/static/{tail:.*}", |r| {
+				r.h(fs::StaticFiles::new("static").default_handler(not_found))
 			})
-			.resource("/{prefix}/{name}", |r| r.f(::sites))
-			.resource("/{name}", |r| r.f(::sites))
-			.resource("", |r| r.f(::sites))
+			.route("/anmeldung", Method::GET, signup::signup)
+			.route(
+				"/intern/betreuer-anmeldung",
+				Method::GET,
+				signup_supervisor::signup,
+			)
+			.route(
+				"/anmeldung-test",
+				Method::GET,
+				signup::signup_test,
+			)
+			.route(
+				"/signup-send",
+				Method::POST,
+				signup::signup_send,
+			)
+			.route(
+				"/intern/signup-supervisor-send",
+				Method::POST,
+				signup_supervisor::signup_send,
+			)
+			// Allow an empty name
+			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)
+			.route("/{name}", Method::GET, ::sites)
+			.route("", Method::GET, ::sites)
 			.default_resource(|r| r.f(not_found))
 	}).bind(address)
 		.unwrap()
