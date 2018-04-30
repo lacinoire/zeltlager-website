@@ -99,7 +99,7 @@
 			<label class="custom-control custom-checkbox">
 				<input name="selbsterklaerung" class="custom-control-input" value="true" required="required" type="checkbox"<#= self.bool_checked("selbsterklaerung", "true") #>>
 				<span class="custom-control-indicator"></span>
-				<span class="custom-control-description">Ich habe die <a href="/intern/selbstverpflichtung" target="_blank">Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</a> gelesen und verpflichte mich, mich daran zu halten.</span>
+				<span class="custom-control-description">Ich habe die <a href="/intern/selbstverpflichtung" target="_blank">Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</a> sowie den <a href="/intern/selbstverpflichtung-anhang" target="_blank">Anhang</a> gelesen und verpflichte mich, mich daran zu halten.</span>
 			</label>
 		</div>
 	</div>

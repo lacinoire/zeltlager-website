@@ -25,5 +25,12 @@ navbar_visible = false
 name = "selbstverpflichtung"
 file_name = "Selbstverpflichtung.html"
 title = "Selbstverpflichtungserklärung"
-description = "Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt"
+description = "Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt"
+navbar_visible = false
+
+[[sites]]
+name = "selbstverpflichtung-anhang"
+file_name = "SelbstverpflichtungAnhang.html"
+title = "Anhang Selbstverpflichtungserklärung"
+description = "Anhang Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt"
 navbar_visible = false
