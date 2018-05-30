@@ -5,7 +5,7 @@ CREATE TABLE betreuer (
 	nachname TEXT NOT NULL,
 	geburtsdatum DATE NOT NULL,
 	geschlecht TEXT NOT NULL,
-	juleica_nummer TEXT,
+	juleica_nummer TEXT NOT NULL,
 	mail TEXT NOT NULL,
 	handynummer TEXT NOT NULL,
 	strasse TEXT NOT NULL,
@@ -15,6 +15,6 @@ CREATE TABLE betreuer (
 	besonderheiten TEXT NOT NULL,
 	agb BOOLEAN NOT NULL,
 	selbsterklaerung BOOLEAN NOT NULL,
-	fuehrungszeugnis_auststellung DATE,
+	fuehrungszeugnis_auststellung DATE NOT NULL,
 	fuehrungszeugnis_eingesehen DATE
 );
