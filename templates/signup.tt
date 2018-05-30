@@ -20,26 +20,26 @@
 </h1>
 
 <form style="padding-top: 10px" method="post" action="signup-send">
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="vorname" class="col-4 col-form-label">Vorname</label>
 		<div class="col-8">
 			<input id="vorname" name="vorname" placeholder="Vorname des Kindes" required="required" class="form-control here" type="text"<#= self.opt_val("vorname") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="nachname" class="col-4 col-form-label">Nachname</label>
 		<div class="col-8">
 			<input id="nachname" name="nachname" placeholder="Nachname des Kindes" class="form-control here" required="required" type="text"<#= self.opt_val("nachname") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="geburtsdatum" class="col-4 col-form-label">Geburtsdatum</label>
 		<div class="col-8">
 			<input id="geburtsdatum" name="geburtsdatum" placeholder="TT.MM.JJJJ" class="form-control here" required="required" type="text"<#= self.opt_val("geburtsdatum") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Geschlecht</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Geschlecht</label>
 		<div class="col-8">
 			<label class="custom-control custom-radio<#= self.bool_active("geschlecht", "m") #>">
 				<input name="geschlecht" class="custom-control-input" value="m" required="required" type="radio"<#= self.bool_checked("geschlecht", "m") #>>
@@ -53,8 +53,8 @@
 			</label>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Schwimmer</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Schwimmer</label>
 		<div class="col-8">
 			<label class="custom-control custom-radio<#= self.bool_active("schwimmer", "true") #>">
 				<input name="schwimmer" class="custom-control-input" value="true" required="required" type="radio"<#= self.bool_checked("schwimmer", "true") #>>
@@ -68,8 +68,8 @@
 			</label>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Vegetarier</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Vegetarier</label>
 		<div class="col-8">
 			<label class="custom-control custom-radio<#= self.bool_active("vegetarier", "true") #>">
 				<input name="vegetarier" class="custom-control-input" value="true" required="required" type="radio"<#= self.bool_checked("vegetarier", "true") #>>
@@ -83,8 +83,8 @@
 			</label>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Tetanusimpfung</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Tetanusimpfung</label>
 		<div class="col-8">
 			<label class="custom-control custom-radio<#= self.bool_active("tetanus_impfung", "true") #>">
 				<input name="tetanus_impfung" class="custom-control-input" value="true" required="required" type="radio"<#= self.bool_checked("tetanus_impfung", "true") #>>
@@ -98,25 +98,25 @@
 			</label>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="eltern_name" class="col-4 col-form-label">Name eines Erziehungsberechtigten</label>
 		<div class="col-8">
 			<input id="eltern_name" name="eltern_name" placeholder="Name eines Erziehungsberechtigten des Kindes" class="form-control here" required="required" type="text"<#= self.opt_val("eltern_name") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="eltern_mail" class="col-4 col-form-label">E-Mailadresse des Erziehungsberechtigten</label>
 		<div class="col-8">
 			<input id="eltern_mail" name="eltern_mail" placeholder="E-Mail des Erziehungsberechtigten" class="form-control here" required="required" type="text"<#= self.opt_val("eltern_mail") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="eltern_handynummer" class="col-4 col-form-label">Handynummer des Erziehungsberechtigten (für Notfälle)</label>
 		<div class="col-8">
 			<input id="eltern_handynummer" name="eltern_handynummer" placeholder="Handynummer des Erziehungsberechtigten" class="form-control here" required="required" type="text"<#= self.opt_val("eltern_handynummer") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<div class="col-4">
 			<label for="strasse" class="col-form-label">Straße</label>,
 			<label for="hausnummer" class="col-form-label">Hausnummer</label>
@@ -128,7 +128,7 @@
 			<input id="hausnummer" name="hausnummer" placeholder="Hausnummer" class="form-control here" required="required" type="text"<#= self.opt_val("hausnummer") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<div class="col-4">
 			<label for="plz" class="col-form-label">Postleitzahl</label>,
 			<label for="ort" class="col-form-label">Ort</label>
@@ -147,8 +147,8 @@
 			<span id="besonderheitenHelpBlock" class="form-text text-muted">Allergien, Krankheiten, Medikamente, Eigenheiten, etc.</span>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Allgemeine Geschäftsbedingungen und Datenschutzbestimmungen</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Allgemeine Geschäftsbedingungen und Datenschutzbestimmungen</label>
 		<div class="col-8">
 			<label class="custom-control custom-checkbox">
 				<input name="agb" class="custom-control-input" value="true" required="required" type="checkbox">

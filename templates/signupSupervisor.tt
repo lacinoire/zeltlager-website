@@ -12,26 +12,26 @@
 </h1>
 
 <form style="padding-top: 10px" method="post" action="/intern/signup-supervisor-send">
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="vorname" class="col-4 col-form-label">Vorname</label>
 		<div class="col-8">
 			<input id="vorname" name="vorname" placeholder="Vorname" required="required" class="form-control here" type="text"<#= self.opt_val("vorname") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="nachname" class="col-4 col-form-label">Nachname</label>
 		<div class="col-8">
 			<input id="nachname" name="nachname" placeholder="Nachname" class="form-control here" required="required" type="text"<#= self.opt_val("nachname") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="geburtsdatum" class="col-4 col-form-label">Geburtsdatum</label>
 		<div class="col-8">
 			<input id="geburtsdatum" name="geburtsdatum" placeholder="TT.MM.JJJJ" class="form-control here" required="required" type="text"<#= self.opt_val("geburtsdatum") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Geschlecht</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Geschlecht</label>
 		<div class="col-8">
 			<label class="custom-control custom-radio<#= self.bool_active("geschlecht", "m") #>">
 				<input name="geschlecht" class="custom-control-input" value="m" required="required" type="radio"<#= self.bool_checked("geschlecht", "m") #>>
@@ -48,22 +48,22 @@
 	<div class="form-group form-row">
 		<label for="juleica_nummer" class="col-4 col-form-label">Juleica Nummer</label>
 		<div class="col-8">
-			<input id="juleica_nummer" name="juleica_nummer" placeholder="Juleicanummer" class="form-control here" required="required" type="text"<#= self.opt_val("juleica_nummer") #>>
+			<input id="juleica_nummer" name="juleica_nummer" placeholder="Juleicanummer" class="form-control here" type="text"<#= self.opt_val("juleica_nummer") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="mail" class="col-4 col-form-label">E-Mailadresse</label>
 		<div class="col-8">
 			<input id="mail" name="mail" placeholder="E-Mailadresse" class="form-control here" required="required" type="text"<#= self.opt_val("mail") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<label for="handynummer" class="col-4 col-form-label">Handynummer</label>
 		<div class="col-8">
 			<input id="handynummer" name="handynummer" placeholder="Handynummer" class="form-control here" required="required" type="text"<#= self.opt_val("handynummer") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<div class="col-4">
 			<label for="strasse" class="col-form-label">Straße</label>,
 			<label for="hausnummer" class="col-form-label">Hausnummer</label>
@@ -75,7 +75,7 @@
 			<input id="hausnummer" name="hausnummer" placeholder="Hausnummer" class="form-control here" required="required" type="text"<#= self.opt_val("hausnummer") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
+	<div class="form-group form-row required">
 		<div class="col-4">
 			<label for="plz" class="col-form-label">Postleitzahl</label>,
 			<label for="ort" class="col-form-label">Ort</label>
@@ -90,11 +90,11 @@
 	<div class="form-group form-row">
 		<label for="fuehrungszeugnis_auststellung" class="col-4 col-form-label">Austellungsdatum Erweitertes Führungszeugnis</label>
 		<div class="col-8">
-			<input id="fuehrungszeugnis_auststellung" name="fuehrungszeugnis_auststellung" placeholder="TT.MM.JJJJ" class="form-control here" required="required" type="text"<#= self.opt_val("fuehrungszeugnis_auststellung") #>>
+			<input id="fuehrungszeugnis_auststellung" name="fuehrungszeugnis_auststellung" placeholder="TT.MM.JJJJ" class="form-control here" type="text"<#= self.opt_val("fuehrungszeugnis_auststellung") #>>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</label>
 		<div class="col-8">
 			<label class="custom-control custom-checkbox">
 				<input name="selbsterklaerung" class="custom-control-input" value="true" required="required" type="checkbox"<#= self.bool_checked("selbsterklaerung", "true") #>>
@@ -110,8 +110,8 @@
 			<span id="besonderheitenHelpBlock" class="form-text text-muted">Allergien, Krankheiten, Medikamente, Eigenheiten, etc.</span>
 		</div>
 	</div>
-	<div class="form-group form-row">
-		<label class="col-4">Allgemeine Geschäftsbedingungen und Datenschutzbestimmungen</label>
+	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Allgemeine Geschäftsbedingungen und Datenschutzbestimmungen</label>
 		<div class="col-8">
 			<label class="custom-control custom-checkbox">
 				<input name="agb" class="custom-control-input" value="true" required="required" type="checkbox">
