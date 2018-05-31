@@ -5,7 +5,7 @@ table! {
         nachname -> Text,
         geburtsdatum -> Date,
         geschlecht -> Text,
-        juleica_nummer -> Text,
+        juleica_nummer -> Nullable<Text>,
         mail -> Text,
         handynummer -> Text,
         strasse -> Text,
@@ -15,7 +15,7 @@ table! {
         besonderheiten -> Text,
         agb -> Bool,
         selbsterklaerung -> Bool,
-        fuehrungszeugnis_auststellung -> Date,
+        fuehrungszeugnis_auststellung -> Nullable<Date>,
         fuehrungszeugnis_eingesehen -> Nullable<Date>,
     }
 }
