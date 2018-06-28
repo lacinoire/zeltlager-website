@@ -45,7 +45,7 @@
 	<#= message #>
 	<# }
 #>
-<h1>Freie Turnerschaft München Gern e.V. - Zeltlager</h1>
+<h3 style="color: black; text-align: center;">Freie Turnerschaft München Gern e.V. - Zeltlager</h3>
 
 <#= self.content #>
 
