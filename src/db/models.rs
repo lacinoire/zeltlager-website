@@ -169,8 +169,9 @@ pub fn check_only_numbers(text: &str, length: usize) -> bool {
 }
 
 pub fn check_email(text: &str) -> bool {
-	text.contains('@') && !text.contains(' ')
-		&& text.find('@') == text.rfind('@')
+	let at_pos = text.find('@');
+	at_pos.is_some() && !text.contains(' ')
+		&& at_pos == text.rfind('@') // Only one mail address
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression)]

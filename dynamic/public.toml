@@ -57,7 +57,6 @@ name = "datenschutz"
 file_name = "Datenschutz.html"
 title = "Datenschutz"
 description = "Datenschutzerklärung der Zeltlagerwebsite"
-navbar_visible = false
 
 [[sites]]
 name = "impressum"
