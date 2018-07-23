@@ -21,6 +21,22 @@ table! {
 }
 
 table! {
+    rate_limiting (ip_addr) {
+        ip_addr -> Inet,
+        counter -> Int4,
+        first_count -> Timestamp,
+    }
+}
+
+table! {
+    roles (id) {
+        id -> Int4,
+        role -> Text,
+        user_id -> Int4,
+    }
+}
+
+table! {
     teilnehmer (id) {
         id -> Int4,
         vorname -> Text,
@@ -42,7 +58,20 @@ table! {
     }
 }
 
+table! {
+    users (id) {
+        id -> Int4,
+        username -> Text,
+        password -> Text,
+    }
+}
+
+joinable!(roles -> users (user_id));
+
 allow_tables_to_appear_in_same_query!(
     betreuer,
+    rate_limiting,
+    roles,
     teilnehmer,
+    users,
 );

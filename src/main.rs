@@ -1,3 +1,5 @@
+#![allow(proc_macro_derive_resolution_fallback)]
+
 extern crate actix;
 extern crate actix_web;
 extern crate bytes;
@@ -18,6 +20,9 @@ extern crate pulldown_cmark;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate strum;
+#[macro_use]
+extern crate strum_macros;
 #[macro_use]
 extern crate t4rust_derive;
 extern crate toml;
@@ -30,12 +35,14 @@ use std::io::Read;
 use actix_web::http::Method;
 use actix_web::*;
 
+mod auth;
 mod basic;
 mod db;
 mod form;
 mod mail;
 mod signup;
 mod signup_supervisor;
+mod rate;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;

@@ -70,3 +70,16 @@ file_name = "404.md"
 title = "404 - Not Found"
 description = "404 - Not Found"
 navbar_visible = false
+
+[[sites]]
+name = "login"
+file_name = "Login.html"
+title = "Login"
+description = "Login der Zeltlagerwebsite"
+
+[[sites]]
+name = "bilder"
+file_name = "Bilder.html"
+title = "Bilder"
+description = "Bilder aus dem Zeltlager"
+roles = ["ImageDownload2018"]

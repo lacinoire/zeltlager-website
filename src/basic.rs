@@ -8,6 +8,8 @@ use pulldown_cmark::{html, Parser};
 
 use {toml, Result};
 
+use auth::Roles;
+
 fn get_true() -> bool {
 	true
 }
@@ -20,6 +22,8 @@ pub struct SiteDescription {
 	pub description: String,
 	#[serde(default = "get_true")]
 	pub navbar_visible: bool,
+	#[serde(default = "Vec::new")]
+	pub roles: Vec<Roles>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
