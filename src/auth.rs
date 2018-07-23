@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse};
 use actix_web::middleware::identity::RequestIdentity;
+use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse};
 use failure;
 use futures::{future, Future};
 
@@ -20,7 +20,8 @@ pub fn login(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let db_addr = req.state().db_addr.clone();
 	let error_message = req.state().config.error_message.clone();
 
-	Box::new(req.clone().urlencoded()
+	Box::new(
+		req.clone().urlencoded()
 		.limit(1024 * 5) // 5 kiB
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
@@ -50,7 +51,8 @@ pub fn login(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 					}
 				})})
 		)})
-		.responder())
+		.responder(),
+	)
 }
 
 pub fn logout(req: HttpRequest<AppState>) -> HttpResponse {

@@ -66,7 +66,6 @@ pub struct Teilnehmer {
 	pub agb: bool,
 }
 
-
 #[derive(Clone, Debug, Insertable, Queryable)]
 #[table_name = "betreuer"]
 pub struct Supervisor {
@@ -160,9 +159,8 @@ pub fn try_parse_gender(s: &str) -> Result<Gender> {
 		"male",
 		"Male",
 	];
-	const FEMALE: &[&str] = &[
-		"w", "W", "weiblich", "Weiblich", "female", "Female",
-	];
+	const FEMALE: &[&str] =
+		&["w", "W", "weiblich", "Weiblich", "female", "Female"];
 
 	if MALE.contains(&s) {
 		Ok(Gender::Male)
@@ -190,8 +188,7 @@ pub fn check_only_numbers(text: &str, length: usize) -> bool {
 
 pub fn check_email(text: &str) -> bool {
 	let at_pos = text.find('@');
-	at_pos.is_some() && !text.contains(' ')
-		&& at_pos == text.rfind('@') // Only one mail address
+	at_pos.is_some() && !text.contains(' ') && at_pos == text.rfind('@') // Only one mail address
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression)]
@@ -280,10 +277,7 @@ impl Teilnehmer {
 		}
 		// Check mail address
 		if !check_email(&res.eltern_mail) {
-			bail!(
-				"Ungültige E-Mail Addresse ({})",
-				res.eltern_mail
-			);
+			bail!("Ungültige E-Mail Addresse ({})", res.eltern_mail);
 		}
 		// Check birth date
 		let birthday = Date::from_utc(res.geburtsdatum, Utc);
@@ -320,10 +314,7 @@ impl Teilnehmer {
 
 		map.remove("submit");
 		if !map.is_empty() {
-			warn!(
-				"Teilnehmer::from_hashmap: Map is not yet empty ({:?})",
-				map
-			);
+			warn!("Teilnehmer::from_hashmap: Map is not yet empty ({:?})", map);
 		}
 
 		Ok(res)
@@ -337,7 +328,7 @@ impl Supervisor {
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
 
 		let f_date = get_str!(map, "fuehrungszeugnis_auststellung")?;
-		let fuehrungszeugnis_auststellung : Option<chrono::NaiveDate>;
+		let fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>;
 		if !f_date.is_empty() {
 			fuehrungszeugnis_auststellung = Some(try_parse_date(&f_date)?);
 		} else {
@@ -345,7 +336,7 @@ impl Supervisor {
 		}
 
 		let juleica_nummer_str = get_str!(map, "juleica_nummer")?;
-		let juleica_nummer : Option<String>;
+		let juleica_nummer: Option<String>;
 		if juleica_nummer_str.is_empty() {
 			juleica_nummer = None;
 		} else {
@@ -400,12 +391,16 @@ impl Supervisor {
 		}
 		// Check Juleica Number
 		match res.juleica_nummer {
-				Some(ref jn) => {
-					if !check_only_numbers(&jn, 11) {
-						bail!("Ungültige Juleicanummer ({}, Länge ≠ 11 oder Buchstaben drin)", jn)
-					}
-				},
-				None => {}
+			Some(ref jn) => {
+				if !check_only_numbers(&jn, 11) {
+					bail!(
+						"Ungültige Juleicanummer ({}, Länge ≠ 11 oder \
+						 Buchstaben drin)",
+						jn
+					)
+				}
+			}
+			None => {}
 		}
 		// Check birth date
 		let birthday = Date::from_utc(res.geburtsdatum, Utc);
@@ -430,10 +425,7 @@ impl Supervisor {
 
 		map.remove("submit");
 		if !map.is_empty() {
-			warn!(
-				"Supervisor::from_hashmap: Map is not yet empty ({:?})",
-				map
-			);
+			warn!("Supervisor::from_hashmap: Map is not yet empty ({:?})", map);
 		}
 
 		Ok(res)

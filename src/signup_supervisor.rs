@@ -47,10 +47,8 @@ fn render_signup(
 	{
 		let content = format!("{}", site);
 		let new_content = SignupSupervisor::new(req.state(), values);
-		let content = content.replace(
-			"<insert content here>",
-			&format!("{}", new_content),
-		);
+		let content = content
+			.replace("<insert content here>", &format!("{}", new_content));
 		return Ok(HttpResponse::Ok()
 			.content_type("text/html; charset=utf-8")
 			.body(content));
@@ -63,10 +61,7 @@ fn signup_success() -> BoxFuture<HttpResponse> {
 	// Redirect to success site
 	Box::new(future::ok(
 		HttpResponse::Found()
-			.header(
-				http::header::LOCATION,
-				"betreuer-anmeldung-erfolgreich",
-			)
+			.header(http::header::LOCATION, "betreuer-anmeldung-erfolgreich")
 			.finish(),
 	))
 }

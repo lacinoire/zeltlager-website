@@ -34,9 +34,9 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 
-use actix_web::*;
-use actix_web::http::Method;
 use actix_web::http::header::DispositionType;
+use actix_web::http::Method;
+use actix_web::*;
 use futures::{future, Future};
 
 macro_rules! tryf {
@@ -44,7 +44,7 @@ macro_rules! tryf {
 		match $e {
 			Ok(e) => e,
 			Err(error) => return Box::new(future::err(error.into())),
-		}
+			}
 	};
 }
 
@@ -184,19 +184,21 @@ fn escape_html_attribute(s: &str) -> String {
 
 fn rate_check(req: HttpRequest<AppState>) -> BoxFuture<String> {
 	// TODO remove test here
-	let ip = tryf!(req.connection_info().remote().ok_or_else(|| format_err!("no ip detected"))).to_string();
+	let ip = tryf!(
+		req.connection_info()
+			.remote()
+			.ok_or_else(|| format_err!("no ip detected"))
+	).to_string();
 	let res = req.state().db_addr.send(db::CheckRateMessage { ip });
-	Box::new(res.from_err().and_then(|db_result| {
-		match db_result {
-			Ok(result) => {
-				if result {
-					Ok("rate ok".to_string())
-				} else {
-					bail!("rate limit reached")
-				}
+	Box::new(res.from_err().and_then(|db_result| match db_result {
+		Ok(result) => {
+			if result {
+				Ok("rate ok".to_string())
+			} else {
+				bail!("rate limit reached")
 			}
-			Err(msg) => bail!(msg),
 		}
+		Err(msg) => bail!(msg),
 	}))
 }
 
@@ -226,9 +228,7 @@ fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 			}
 		} else {
 			name = DEFAULT_NAME;
-			prefix = req.match_info()
-				.get("prefix")
-				.unwrap_or(DEFAULT_PREFIX);
+			prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX);
 		}
 
 		if let Some(res) = site(&req, prefix, name) {
@@ -243,13 +243,10 @@ fn site(
 	prefix: &str,
 	name: &str,
 ) -> Option<HttpResponse> {
-	if let Some(site) = req.state().sites.get(prefix).and_then(
-		|site_descriptions| {
-			site_descriptions
-				.get_site(&req.state().config, &name)
-				.ok()
-		},
-	) {
+	if let Some(site) =
+		req.state().sites.get(prefix).and_then(|site_descriptions| {
+			site_descriptions.get_site(&req.state().config, &name).ok()
+		}) {
 		let content = format!("{}", site);
 
 		return Some(
@@ -274,10 +271,7 @@ fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 fn main() {
 	if env::var("RUST_LOG").is_err() {
 		// Default log level
-		env::set_var(
-			"RUST_LOG",
-			"actix_web=info,zeltlager_website=info",
-		);
+		env::set_var("RUST_LOG", "actix_web=info,zeltlager_website=info");
 	}
 	env_logger::init();
 

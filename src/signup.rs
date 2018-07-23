@@ -83,8 +83,7 @@ pub fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		("plz", "80000"),
 	];
 
-	let map = map.iter()
-		.map(|&(a, b)| (a.to_string(), b.to_string()));
+	let map = map.iter().map(|&(a, b)| (a.to_string(), b.to_string()));
 
 	render_signup(req, map.collect())
 }

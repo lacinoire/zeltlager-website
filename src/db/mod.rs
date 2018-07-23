@@ -8,7 +8,7 @@ use std::env;
 use std::net::SocketAddr;
 
 use actix::prelude::*;
-use chrono::{Utc, Duration};
+use chrono::{Duration, Utc};
 use diesel;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
@@ -78,8 +78,9 @@ impl Message for AuthenticateMessage {
 }
 
 impl AuthenticateMessage {
-	pub fn from_hashmap(mut map: HashMap<String, String>)
-		-> Result<AuthenticateMessage> {
+	pub fn from_hashmap(
+		mut map: HashMap<String, String>,
+	) -> Result<AuthenticateMessage> {
 		Ok(AuthenticateMessage {
 			username: get_str!(map, "username")?,
 			password: get_str!(map, "password")?,
@@ -110,30 +111,46 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		_: &mut Self::Context,
 	) -> Self::Result {
 		use self::schema::rate_limiting::dsl::*;
-		use diesel::expression::dsl::now;
 		use diesel::dsl::insert_into;
+		use diesel::expression::dsl::now;
 
 		//let request_ip = req.connection_info().remote();
 		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
-		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&self.connection);
+		let entry_res = rate_limiting
+			.find(ip)
+			.first::<models::RateLimiting>(&self.connection);
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
-				if entry.first_count <= Utc::now().naive_utc() - Duration::days(1) {
+				if entry.first_count
+					<= Utc::now().naive_utc() - Duration::days(1)
+				{
 					// reset counter and grant request
-					diesel::update(&entry).set(counter.eq(1)).execute(&self.connection)?;
-					diesel::update(&entry).set(first_count.eq(now)).execute(&self.connection)?;
+					diesel::update(&entry)
+						.set(counter.eq(1))
+						.execute(&self.connection)?;
+					diesel::update(&entry)
+						.set(first_count.eq(now))
+						.execute(&self.connection)?;
 					Ok(true)
 				} else if entry.counter >= 50 {
 					// limit reached
 					Ok(false)
 				} else {
-					diesel::update(&entry).set(counter.eq(counter + 1)).execute(&self.connection)?;
+					diesel::update(&entry)
+						.set(counter.eq(counter + 1))
+						.execute(&self.connection)?;
 					Ok(true)
 				}
 			}
 			Err(Error::NotFound) => {
-				insert_into(rate_limiting).values((ip_addr.eq(ip), counter.eq(1), first_count.eq(now))).execute(&self.connection)?;
+				insert_into(rate_limiting)
+					.values((
+						ip_addr.eq(ip),
+						counter.eq(1),
+						first_count.eq(now),
+					))
+					.execute(&self.connection)?;
 				Ok(true)
 			}
 			Err(_) => panic!(),
@@ -187,9 +204,7 @@ impl Handler<CountMemberMessage> for DbExecutor {
 	) -> Self::Result {
 		use self::schema::teilnehmer;
 
-		Ok(teilnehmer::table
-			.count()
-			.get_result(&self.connection)?)
+		Ok(teilnehmer::table.count().get_result(&self.connection)?)
 	}
 }
 
@@ -204,9 +219,13 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 		use self::schema::users::dsl::*;
 
 		// Fetch user from db
-		match users.filter(username.eq(msg.username)).first::<models::UserQueryResult>(&self.connection) {
-			Ok(user) => Ok(libpasta::verify_password(&user.password,
-				&msg.password)),
+		match users
+			.filter(username.eq(msg.username))
+			.first::<models::UserQueryResult>(&self.connection)
+		{
+			Ok(user) => {
+				Ok(libpasta::verify_password(&user.password, &msg.password))
+			}
 			Err(Error::NotFound) => Ok(false),
 			Err(err) => Err(err.into()),
 		}
