@@ -7,9 +7,11 @@ use diesel::deserialize::{self, FromSql};
 use diesel::pg::Pg;
 use diesel::serialize::{self, IsNull, Output, ToSql};
 use diesel::sql_types::Text;
+use ipnetwork::IpNetwork;
 
 use super::schema::betreuer;
 use super::schema::teilnehmer;
+use super::schema::rate_limiting;
 use Result;
 
 macro_rules! get_str {
@@ -70,25 +72,35 @@ pub struct Teilnehmer {
 	pub agb: bool,
 }
 
+
 #[derive(Clone, Debug, Insertable, Queryable)]
 #[table_name = "betreuer"]
 pub struct Supervisor {
-	pub vorname: String,
-	pub nachname: String,
-	pub geburtsdatum: chrono::NaiveDate,
-	pub geschlecht: Gender,
-	pub juleica_nummer: Option<String>,
-	pub mail: String,
-	pub handynummer: String,
-	pub strasse: String,
-	pub hausnummer: String,
-	pub ort: String,
-	pub plz: String,
-	pub besonderheiten: String,
-	pub agb: bool,
-	pub selbsterklaerung: bool,
-	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
-	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+  pub vorname: String,
+  pub nachname: String,
+  pub geburtsdatum: chrono::NaiveDate,
+  pub geschlecht: Gender,
+  pub juleica_nummer: Option<String>,
+  pub mail: String,
+  pub handynummer: String,
+  pub strasse: String,
+  pub hausnummer: String,
+  pub ort: String,
+  pub plz: String,
+  pub besonderheiten: String,
+  pub agb: bool,
+  pub selbsterklaerung: bool,
+  pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
+  pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+}
+
+#[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
+#[primary_key(ip_addr)]
+#[table_name = "rate_limiting"]
+pub struct RateLimiting {
+	pub ip_addr: IpNetwork,
+	pub counter: i32,
+	pub first_count: chrono::NaiveDateTime,
 }
 
 pub fn try_parse_date(s: &str) -> Result<NaiveDate> {

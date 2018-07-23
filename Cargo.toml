@@ -8,11 +8,12 @@ actix = "0.7"
 actix-web = "0.7"
 bytes = "0.4"
 chrono = "0.4"
-diesel = { version = "1.2", features = ["chrono", "postgres"] }
+diesel = { version = "1.2", features = ["chrono", "postgres", "network-address"] }
 dotenv = "0.13"
 env_logger = "0.5"
 failure = "0.1"
 futures = "0.1"
+ipnetwork = { version = "0.12.2" }
 lettre = "0.8"
 lettre_email = "0.8"
 log = "0.4"

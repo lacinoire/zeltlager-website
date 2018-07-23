@@ -11,6 +11,7 @@ extern crate env_logger;
 #[macro_use]
 extern crate failure;
 extern crate futures;
+extern crate ipnetwork;
 extern crate lettre;
 extern crate lettre_email;
 #[macro_use]
@@ -35,6 +36,7 @@ use std::io::Read;
 use actix_web::*;
 use actix_web::http::Method;
 use actix_web::http::header::DispositionType;
+use futures::{future, Future};
 
 mod auth;
 mod basic;
@@ -43,7 +45,6 @@ mod form;
 mod mail;
 mod signup;
 mod signup_supervisor;
-mod rate;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
@@ -51,14 +52,14 @@ type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
 const DEFAULT_PREFIX: &str = "public";
 const DEFAULT_NAME: &str = "startseite";
 
-/*macro_rules! tryf {
+macro_rules! tryf {
 	($e:expr) => {
 		match $e {
 			Ok(e) => e,
 			Err(error) => return Box::new(future::err(error.into())),
 		}
 	};
-}*/
+}
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -178,6 +179,24 @@ fn escape_html_attribute(s: &str) -> String {
 	s.replace('&', "&amp;")
 		.replace('<', "&lt;")
 		.replace('"', "&quot;")
+}
+
+fn rate_check(req: HttpRequest<AppState>) -> BoxFuture<String> {
+	// TODO remove test here
+	let ip = tryf!(req.connection_info().remote().ok_or_else(|| format_err!("no ip detected"))).to_string();
+	let res = req.state().db_addr.send(db::CheckRateMessage { ip });
+	Box::new(res.from_err().and_then(|db_result| {
+		match db_result {
+			Ok(result) => {
+				if result {
+					Ok("rate ok".to_string())
+				} else {
+					bail!("rate limit reached")
+				}
+			}
+			Err(msg) => bail!(msg),
+		}
+	}))
 }
 
 fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
@@ -313,6 +332,7 @@ fn main() {
 				// TODO return inline on pdf
 				r.h(fs::StaticFiles::with_config("static", StaticFilesConfig).unwrap().default_handler(not_found))
 			})
+			.route("/rate", Method::GET, rate_check)
 			.route("/anmeldung", Method::GET, signup::signup)
 			.route(
 				"/intern/betreuer-anmeldung",

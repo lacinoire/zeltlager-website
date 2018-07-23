@@ -1,10 +1,19 @@
+//! All Database requests are implemented here
+//! for each request you need:
+//! - A Message struct with a `Message` Implementation
+//! - A Handler method for the DbExecutor
+
 use std::env;
 
 use actix::prelude::*;
+use chrono::{Utc, Duration};
 use diesel;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::result::Error::NotFound;
 use dotenv::dotenv;
+use ipnetwork::IpNetwork;
+use std::net::SocketAddr;
 
 use Result;
 
@@ -18,6 +27,14 @@ pub struct DbExecutor {
 
 impl Actor for DbExecutor {
 	type Context = SyncContext<Self>;
+}
+
+pub struct CheckRateMessage {
+	pub ip: String,
+}
+
+impl Message for CheckRateMessage {
+	type Result = Result<bool>;
 }
 
 pub struct SignupMessage {
@@ -53,6 +70,46 @@ impl DbExecutor {
 		})?;
 		let connection = PgConnection::establish(&database_url)?;
 		Ok(Self { connection })
+	}
+}
+
+impl Handler<CheckRateMessage> for DbExecutor {
+	type Result = Result<bool>;
+
+	fn handle(
+		&mut self,
+		msg: CheckRateMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::rate_limiting::dsl::*;
+		use diesel::expression::dsl::now;
+		use diesel::dsl::insert_into;
+
+		//let request_ip = req.connection_info().remote();
+		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
+		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&self.connection);
+		// check for no entry found
+		match entry_res {
+			Ok(entry) => {
+				if entry.first_count <= Utc::now().naive_utc() - Duration::days(1) {
+					// reset counter and grant request
+					diesel::update(&entry).set(counter.eq(1)).execute(&self.connection)?;
+					diesel::update(&entry).set(first_count.eq(now)).execute(&self.connection)?;
+					Ok(true)
+				} else if entry.counter >= 50 {
+					// limit reached
+					Ok(false)
+				} else {
+					diesel::update(&entry).set(counter.eq(counter + 1)).execute(&self.connection)?;
+					Ok(true)
+				}
+			}
+			Err(NotFound) => {
+				insert_into(rate_limiting).values((ip_addr.eq(ip), counter.eq(1), first_count.eq(now))).execute(&self.connection)?;
+				Ok(true)
+			}
+			Err(_) => panic!(),
+		}
 	}
 }
 
