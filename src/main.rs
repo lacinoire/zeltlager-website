@@ -325,40 +325,26 @@ fn main() {
 			// handler, it will be overwritten by resources.
 			.resource("/static/{tail:.*}", |r| {
 				// TODO return inline on pdf
-				r.h(fs::StaticFiles::with_config("static", StaticFilesConfig).unwrap().default_handler(not_found))
+				r.h(fs::StaticFiles::with_config("static", StaticFilesConfig)
+					.unwrap().default_handler(not_found))
 			})
 			.route("/rate", Method::GET, rate_check)
 			.route("/anmeldung", Method::GET, signup::signup)
+			.route("/login", Method::GET, auth::login)
 			.route(
 				"/intern/betreuer-anmeldung",
 				Method::GET,
 				signup_supervisor::signup,
 			)
-			.route(
-				"/anmeldung-test",
-				Method::GET,
-				signup::signup_test,
-			)
-			.route(
-				"/signup-send",
-				Method::POST,
-				signup::signup_send,
-			)
+			.route("/anmeldung-test", Method::GET, signup::signup_test)
+			.route("/signup-send", Method::POST, signup::signup_send)
 			.route(
 				"/intern/signup-supervisor-send",
 				Method::POST,
 				signup_supervisor::signup_send,
 			)
-			.route(
-				"/login",
-				Method::POST,
-				auth::login,
-			)
-			.route(
-				"/logout",
-				Method::GET,
-				auth::logout,
-			)
+			.route("/login-send", Method::POST, auth::login)
+			.route("/logout", Method::GET, auth::logout)
 			// Allow an empty name
 			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)
 			.route("/{name}", Method::GET, ::sites)

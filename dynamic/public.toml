@@ -73,7 +73,7 @@ navbar_visible = false
 
 [[sites]]
 name = "login"
-file_name = "Login.html"
+file_name = "Login.txt"
 title = "Login"
 description = "Login der Zeltlagerwebsite"
 

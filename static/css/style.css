@@ -43,3 +43,13 @@ body {
 	color: #d00;
 	content: "*";
 }
+
+.login-form {
+	width: 20em;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.login-form input {
+	margin-bottom: 1em;
+}

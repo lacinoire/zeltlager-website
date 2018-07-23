@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 pub trait Form {
-	fn get_values(&self) -> &HashMap<String, String>;
+	fn get_values(&self) -> Cow<HashMap<String, String>>;
 
 	/// If this value exists and is the given value, return ` active`.
 	fn bool_active(&self, name: &str, value: &str) -> String {

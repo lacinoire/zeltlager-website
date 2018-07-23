@@ -1,0 +1,18 @@
+<#@ template cleanws="true" #>
+<#
+	// Show error if there is one
+	if let Some(error) = self.values.get("error") { #>
+<div class="alert alert-danger" role="alert">
+	<#= ::escape_html_body(error).replace("\n", "<br>") #>
+</div>
+	<# }
+#>
+<h1 class="headline" style="text-align: center;">
+	Anmelden
+</h1>
+
+<form class="login-form" style="padding-top: 10px;" method="post" action="login-send">
+	<input id="username" name="username" placeholder="Name" required="required" class="form-control here" type="text"<#= self.opt_val("username") #>>
+	<input id="password" name="password" placeholder="Passwort" required="required" class="form-control here" type="password">
+	<button class="form-control here btn-primary" type="submit">Anmelden</button>
+</form>

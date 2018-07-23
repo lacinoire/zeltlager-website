@@ -1,4 +1,5 @@
 //! The signup template.
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use actix_web::*;
@@ -22,8 +23,8 @@ pub struct SignupSupervisor {
 }
 
 impl Form for SignupSupervisor {
-	fn get_values(&self) -> &HashMap<String, String> {
-		&self.values
+	fn get_values(&self) -> Cow<HashMap<String, String>> {
+		Cow::Borrowed(&self.values)
 	}
 }
 
