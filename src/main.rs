@@ -32,8 +32,9 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 
-use actix_web::http::Method;
 use actix_web::*;
+use actix_web::http::Method;
+use actix_web::http::header::DispositionType;
 
 mod auth;
 mod basic;
@@ -111,9 +112,10 @@ pub struct Config {
 pub struct AppState {
 	sites: HashMap<String, basic::SiteDescriptions>,
 	config: Config,
-	db_addr: actix::Addr<actix::Syn, db::DbExecutor>,
-	mail_addr: actix::Addr<actix::Syn, mail::MailExecutor>,
+	db_addr: actix::Addr<db::DbExecutor>,
+	mail_addr: actix::Addr<mail::MailExecutor>,
 }
+
 impl lettre_email::IntoMailbox for MailAddress {
 	fn into_mailbox(self) -> lettre_email::Mailbox {
 		lettre_email::Mailbox {
@@ -122,6 +124,21 @@ impl lettre_email::IntoMailbox for MailAddress {
 		}
 	}
 }
+
+#[derive(Default)]
+struct StaticFilesConfig;
+
+impl actix_web::fs::StaticFileConfig for StaticFilesConfig {
+	fn content_disposition_map(typ: mime::Name) -> DispositionType {
+		if typ == "application" {
+			// For application/pdf in object tags
+			DispositionType::Inline
+		} else {
+			actix_web::fs::DefaultConfig::content_disposition_map(typ)
+		}
+	}
+}
+
 /// Escapes a string so it can be put into html (between tags).
 ///
 /// # Escapes
@@ -198,7 +215,7 @@ fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 			return Ok(res);
 		}
 	}
-	not_found(req)
+	not_found(&req)
 }
 
 fn site(
@@ -224,7 +241,7 @@ fn site(
 	None
 }
 
-fn not_found(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 	warn!("File not found '{}'", req.path());
 	let site =
 		req.state().sites["public"].get_site(&req.state().config, "404")?;
@@ -245,7 +262,7 @@ fn main() {
 	env_logger::init();
 
 	let mut sites = HashMap::new();
-	for name in ["public", "intern"].iter() {
+	for name in &["public", "intern"] {
 		sites.insert(
 			name.to_string(),
 			basic::SiteDescriptions::parse(&format!("{}.toml", name))
@@ -293,7 +310,8 @@ fn main() {
 			// Register static file handler as resource. If it is registered as
 			// handler, it will be overwritten by resources.
 			.resource("/static/{tail:.*}", |r| {
-				r.h(fs::StaticFiles::new("static").default_handler(not_found))
+				// TODO return inline on pdf
+				r.h(fs::StaticFiles::with_config("static", StaticFilesConfig).unwrap().default_handler(not_found))
 			})
 			.route("/anmeldung", Method::GET, signup::signup)
 			.route(

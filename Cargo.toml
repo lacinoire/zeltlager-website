@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Flakebi <flakebi@t-online.de>"]
 
 [dependencies]
-actix = "0.5"
-actix-web = "0.5"
+actix = "0.7"
+actix-web = "0.7"
 bytes = "0.4"
 chrono = "0.4"
 diesel = { version = "1.2", features = ["chrono", "postgres"] }

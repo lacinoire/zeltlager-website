@@ -111,15 +111,15 @@ fn render_signup(
 			},
 		));
 	}
-	Box::new(::not_found(req).into_future().from_err())
+	Box::new(::not_found(&req).into_future().from_err())
 }
 
 /// Check if too many members are already registered, then call `signup_insert`.
 fn signup_check_count(
 	count: i64,
 	max_members: i64,
-	db_addr: &actix::Addr<actix::Syn, db::DbExecutor>,
-	mail_addr: actix::Addr<actix::Syn, mail::MailExecutor>,
+	db_addr: &actix::Addr<db::DbExecutor>,
+	mail_addr: actix::Addr<mail::MailExecutor>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
 	error_message: String,
@@ -175,7 +175,7 @@ fn signup_check_count(
 
 /// Insert the member into the database, write an email and show a success site.
 fn signup_insert(
-	mail_addr: &actix::Addr<actix::Syn, mail::MailExecutor>,
+	mail_addr: &actix::Addr<mail::MailExecutor>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
 	error_message: String,

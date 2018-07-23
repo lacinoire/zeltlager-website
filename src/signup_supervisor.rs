@@ -55,7 +55,7 @@ fn render_signup(
 			.content_type("text/html; charset=utf-8")
 			.body(content));
 	}
-	::not_found(req)
+	::not_found(&req)
 }
 
 /// show a success site.
