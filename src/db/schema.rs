@@ -5,6 +5,8 @@ table! {
         nachname -> Text,
         geburtsdatum -> Date,
         geschlecht -> Text,
+        vegetarier -> Bool,
+        tetanus_impfung -> Bool,
         juleica_nummer -> Nullable<Text>,
         mail -> Text,
         handynummer -> Text,
@@ -29,10 +31,9 @@ table! {
 }
 
 table! {
-    roles (id) {
-        id -> Int4,
-        role -> Text,
+    roles (user_id, role) {
         user_id -> Int4,
+        role -> Text,
     }
 }
 

@@ -1,14 +1,14 @@
 -- Your SQL goes here
 CREATE TABLE users (
 	id SERIAL PRIMARY KEY,
-	username TEXT NOT NULL,
+	username TEXT NOT NULL UNIQUE,
 	password TEXT NOT NULL
 );
 
 CREATE TABLE roles (
-	id SERIAL PRIMARY KEY,
+	user_id SERIAL NOT NULL REFERENCES users (id),
 	role TEXT NOT NULL,
-	user_id SERIAL NOT NULL REFERENCES users (id)
+	PRIMARY KEY (user_id, role)
 );
 
 CREATE TABLE rate_limiting (

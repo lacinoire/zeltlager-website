@@ -70,22 +70,22 @@ pub struct Teilnehmer {
 #[derive(Clone, Debug, Insertable, Queryable)]
 #[table_name = "betreuer"]
 pub struct Supervisor {
-  pub vorname: String,
-  pub nachname: String,
-  pub geburtsdatum: chrono::NaiveDate,
-  pub geschlecht: Gender,
-  pub juleica_nummer: Option<String>,
-  pub mail: String,
-  pub handynummer: String,
-  pub strasse: String,
-  pub hausnummer: String,
-  pub ort: String,
-  pub plz: String,
-  pub besonderheiten: String,
-  pub agb: bool,
-  pub selbsterklaerung: bool,
-  pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
-  pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+	pub vorname: String,
+	pub nachname: String,
+	pub geburtsdatum: chrono::NaiveDate,
+	pub geschlecht: Gender,
+	pub juleica_nummer: Option<String>,
+	pub mail: String,
+	pub handynummer: String,
+	pub strasse: String,
+	pub hausnummer: String,
+	pub ort: String,
+	pub plz: String,
+	pub besonderheiten: String,
+	pub agb: bool,
+	pub selbsterklaerung: bool,
+	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
+	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 }
 
 #[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
