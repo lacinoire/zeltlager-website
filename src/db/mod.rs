@@ -8,7 +8,7 @@ use std::env;
 use std::net::SocketAddr;
 
 use actix::prelude::*;
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use diesel;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
@@ -74,7 +74,7 @@ pub struct AuthenticateMessage {
 }
 
 impl Message for AuthenticateMessage {
-	type Result = Result<bool>;
+	type Result = Result<Option<i32>>;
 }
 
 impl AuthenticateMessage {
@@ -123,7 +123,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		match entry_res {
 			Ok(entry) => {
 				if entry.first_count
-					<= Utc::now().naive_utc() - Duration::days(1)
+					<= Utc::now().naive_utc() - ::ratelimit_duration()
 				{
 					// reset counter and grant request
 					diesel::update(&entry)
@@ -133,7 +133,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 						.set(first_count.eq(now))
 						.execute(&self.connection)?;
 					Ok(true)
-				} else if entry.counter >= 50 {
+				} else if entry.counter >= ::RATELIMIT_MAX_COUNTER {
 					// limit reached
 					Ok(false)
 				} else {
@@ -144,6 +144,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 				}
 			}
 			Err(Error::NotFound) => {
+				// TODO Work in UTC?
 				insert_into(rate_limiting)
 					.values((
 						ip_addr.eq(ip),
@@ -209,7 +210,7 @@ impl Handler<CountMemberMessage> for DbExecutor {
 }
 
 impl Handler<AuthenticateMessage> for DbExecutor {
-	type Result = Result<bool>;
+	type Result = Result<Option<i32>>;
 
 	fn handle(
 		&mut self,
@@ -224,9 +225,15 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			.first::<models::UserQueryResult>(&self.connection)
 		{
 			Ok(user) => {
-				Ok(libpasta::verify_password(&user.password, &msg.password))
+				if libpasta::verify_password(&user.password, &msg.password) {
+					Ok(Some(user.id))
+				} else {
+					Ok(None)
+				}
 			}
-			Err(Error::NotFound) => Ok(false),
+			// TODO Maybe sleep a random amount of time to hide that the user
+			// exists?
+			Err(Error::NotFound) => Ok(None),
 			Err(err) => Err(err.into()),
 		}
 	}

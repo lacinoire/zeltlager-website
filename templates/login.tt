@@ -11,7 +11,7 @@
 	Anmelden
 </h1>
 
-<form class="login-form" style="padding-top: 10px;" method="post" action="login-send">
+<form class="login-form" style="padding-top: 10px;" method="post" action="login">
 	<input id="username" name="username" placeholder="Name" required="required" class="form-control here" type="text"<#= self.opt_val("username") #>>
 	<input id="password" name="password" placeholder="Passwort" required="required" class="form-control here" type="password">
 	<button class="form-control here btn-primary" type="submit">Anmelden</button>

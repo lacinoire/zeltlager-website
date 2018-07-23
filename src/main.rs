@@ -22,6 +22,8 @@ extern crate pulldown_cmark;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate structopt;
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
@@ -36,14 +38,20 @@ use std::io::Read;
 
 use actix_web::http::header::DispositionType;
 use actix_web::http::Method;
+use actix_web::middleware::csrf;
+use actix_web::middleware::identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::*;
-use futures::{future, Future};
+use chrono::Duration;
+use structopt::clap::AppSettings;
+use structopt::StructOpt;
 
 macro_rules! tryf {
 	($e:expr) => {
 		match $e {
 			Ok(e) => e,
-			Err(error) => return Box::new(future::err(error.into())),
+			Err(error) => {
+				return Box::new(::futures::future::err(error.into()))
+				}
 			}
 	};
 }
@@ -53,6 +61,7 @@ mod basic;
 mod db;
 mod form;
 mod mail;
+mod management;
 mod signup;
 mod signup_supervisor;
 
@@ -61,6 +70,52 @@ type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
 
 const DEFAULT_PREFIX: &str = "public";
 const DEFAULT_NAME: &str = "startseite";
+const RATELIMIT_MAX_COUNTER: i32 = 50;
+
+fn cookie_maxtime() -> Duration {
+	Duration::minutes(30)
+}
+fn ratelimit_duration() -> Duration {
+	Duration::days(1)
+}
+
+#[derive(StructOpt, Debug)]
+#[structopt(
+	raw(
+		global_settings = "&[AppSettings::ColoredHelp, \
+		                   AppSettings::VersionlessSubcommands]"
+	)
+)]
+struct Args {
+	#[structopt(subcommand, help = "Default action is to start the server")]
+	action: Option<Action>,
+}
+
+#[derive(StructOpt, Debug)]
+#[structopt(name = "action")]
+enum Action {
+	#[structopt(
+		name = "adduser",
+		help = "Add a user to the database.\nIt will ask for the password on \
+		        the command line"
+	)]
+	AddUser {
+		#[structopt(name = "username", help = "Name of the added user")]
+		username: Option<String>,
+		#[structopt(
+			name = "force",
+			long = "force",
+			short = "f",
+			help = "Overwrite password of user without asking"
+		)]
+		force: bool,
+	},
+	#[structopt(name = "deluser", help = "Remove a user from the database")]
+	DelUser {
+		#[structopt(name = "username", help = "Name of the user to delete")]
+		username: Option<String>,
+	},
+}
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -101,13 +156,25 @@ pub struct Config {
 	/// Put here something like: Please write us an e-mail.
 	error_message: String,
 	/// Address to bind to.
-	///
-	/// # Default
-	///
-	/// 127.0.0.0:8080
-	bind_address: Option<String>,
+	#[serde(default = "default_bind_address")]
+	bind_address: String,
 	/// A message which will be displayed on top of all basic templated sites.
 	global_message: Option<String>,
+	/// If `true`, the authentication cookie can only be transfered over https.
+	#[serde(default = "get_true")]
+	secure: bool,
+	/// This should be the domain the server.
+	///
+	/// If set, it restricts the authentication cookie to a domain
+	/// and protects against csrf using the referer and origin header.
+	domain: Option<String>,
+}
+
+fn get_true() -> bool {
+	true
+}
+fn default_bind_address() -> String {
+	String::from("127.0.0.1:8080")
 }
 
 #[derive(Clone)]
@@ -180,26 +247,6 @@ fn escape_html_attribute(s: &str) -> String {
 	s.replace('&', "&amp;")
 		.replace('<', "&lt;")
 		.replace('"', "&quot;")
-}
-
-fn rate_check(req: HttpRequest<AppState>) -> BoxFuture<String> {
-	// TODO remove test here
-	let ip = tryf!(
-		req.connection_info()
-			.remote()
-			.ok_or_else(|| format_err!("no ip detected"))
-	).to_string();
-	let res = req.state().db_addr.send(db::CheckRateMessage { ip });
-	Box::new(res.from_err().and_then(|db_result| match db_result {
-		Ok(result) => {
-			if result {
-				Ok("rate ok".to_string())
-			} else {
-				bail!("rate limit reached")
-			}
-		}
-		Err(msg) => bail!(msg),
-	}))
 }
 
 fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
@@ -275,6 +322,13 @@ fn main() {
 	}
 	env_logger::init();
 
+	// Command line arguments
+	let args = Args::from_args();
+	if let Some(action) = args.action {
+		management::cmd_action(action).unwrap();
+		return;
+	}
+
 	let mut sites = HashMap::new();
 	for name in &["public", "intern"] {
 		sites.insert(
@@ -305,12 +359,7 @@ fn main() {
 		mail::MailExecutor::new(config2.clone())
 	});
 
-	let address = config
-		.bind_address
-		.as_ref()
-		.map(|s| s.as_str())
-		.unwrap_or("127.0.0.1:8080")
-		.to_string();
+	let address = config.bind_address.clone();
 	let state = AppState {
 		sites,
 		config,
@@ -319,18 +368,36 @@ fn main() {
 	};
 
 	server::new(move || {
-		App::with_state(state.clone())
-			.middleware(middleware::Logger::default())
+		let key = [0; 32]; // TODO
+		let mut identity_policy = CookieIdentityPolicy::new(&key)
+			.name("user")
+			// TODO Max-time is ignored?
+			.max_age(cookie_maxtime())
+			.secure(state.config.secure);
+
+		let mut app = App::with_state(state.clone())
+			.middleware(middleware::Logger::default());
+
+		if let Some(ref domain) = state.config.domain {
+			// TODO Test
+			identity_policy = identity_policy.domain(domain.clone());
+			app =
+				app.middleware(csrf::CsrfFilter::new().allowed_origin(format!(
+					"http{}://{}",
+					if state.config.secure { "s" } else { "" },
+					domain,
+				)))
+		}
+
+		app
+			.middleware(IdentityService::new(identity_policy))
 			// Register static file handler as resource. If it is registered as
 			// handler, it will be overwritten by resources.
 			.resource("/static/{tail:.*}", |r| {
-				// TODO return inline on pdf
 				r.h(fs::StaticFiles::with_config("static", StaticFilesConfig)
 					.unwrap().default_handler(not_found))
 			})
-			.route("/rate", Method::GET, rate_check)
 			.route("/anmeldung", Method::GET, signup::signup)
-			.route("/login", Method::GET, auth::login)
 			.route(
 				"/intern/betreuer-anmeldung",
 				Method::GET,
@@ -343,7 +410,8 @@ fn main() {
 				Method::POST,
 				signup_supervisor::signup_send,
 			)
-			.route("/login-send", Method::POST, auth::login)
+			.route("/login", Method::GET, auth::login)
+			.route("/login", Method::POST, auth::login_send)
 			.route("/logout", Method::GET, auth::logout)
 			// Allow an empty name
 			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)

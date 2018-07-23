@@ -10,17 +10,13 @@ use {toml, Result};
 
 use auth::Roles;
 
-fn get_true() -> bool {
-	true
-}
-
 #[derive(Clone, Deserialize, Debug)]
 pub struct SiteDescription {
 	pub name: String,
 	pub file_name: String,
 	pub title: String,
 	pub description: String,
-	#[serde(default = "get_true")]
+	#[serde(default = "::get_true")]
 	pub navbar_visible: bool,
 	#[serde(default = "Vec::new")]
 	pub roles: Vec<Roles>,
