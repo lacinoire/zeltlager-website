@@ -14,6 +14,7 @@ extern crate futures;
 extern crate ipnetwork;
 extern crate lettre;
 extern crate lettre_email;
+extern crate libpasta;
 #[macro_use]
 extern crate log;
 extern crate mime;
@@ -38,6 +39,15 @@ use actix_web::http::Method;
 use actix_web::http::header::DispositionType;
 use futures::{future, Future};
 
+macro_rules! tryf {
+	($e:expr) => {
+		match $e {
+			Ok(e) => e,
+			Err(error) => return Box::new(future::err(error.into())),
+		}
+	};
+}
+
 mod auth;
 mod basic;
 mod db;
@@ -51,15 +61,6 @@ type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
 
 const DEFAULT_PREFIX: &str = "public";
 const DEFAULT_NAME: &str = "startseite";
-
-macro_rules! tryf {
-	($e:expr) => {
-		match $e {
-			Ok(e) => e,
-			Err(error) => return Box::new(future::err(error.into())),
-		}
-	};
-}
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -353,6 +354,16 @@ fn main() {
 				"/intern/signup-supervisor-send",
 				Method::POST,
 				signup_supervisor::signup_send,
+			)
+			.route(
+				"/login",
+				Method::POST,
+				auth::login,
+			)
+			.route(
+				"/logout",
+				Method::GET,
+				auth::logout,
 			)
 			// Allow an empty name
 			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)

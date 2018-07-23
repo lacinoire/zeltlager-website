@@ -16,6 +16,7 @@ futures = "0.1"
 ipnetwork = { version = "0.12.2" }
 lettre = "0.8"
 lettre_email = "0.8"
+libpasta = "0.1.0-rc2"
 log = "0.4"
 mime = "0.3"
 pulldown-cmark = { version = "0.1", default-features = false }

@@ -10,16 +10,10 @@ use diesel::sql_types::Text;
 use ipnetwork::IpNetwork;
 
 use super::schema::betreuer;
-use super::schema::teilnehmer;
 use super::schema::rate_limiting;
+use super::schema::teilnehmer;
+use super::schema::users;
 use Result;
-
-macro_rules! get_str {
-	($map:ident, $key:expr) => {
-		$map.remove($key)
-			.ok_or_else(|| format_err!("{} fehlt", $key))
-	};
-}
 
 macro_rules! get_bool {
 	($map:ident, $key:expr) => {
@@ -101,6 +95,20 @@ pub struct RateLimiting {
 	pub ip_addr: IpNetwork,
 	pub counter: i32,
 	pub first_count: chrono::NaiveDateTime,
+}
+
+#[derive(Clone, Debug, Insertable)]
+#[table_name = "users"]
+pub struct User {
+	pub username: String,
+	pub password: String,
+}
+
+#[derive(Clone, Debug, Queryable)]
+pub struct UserQueryResult {
+	pub id: i32,
+	pub username: String,
+	pub password: String,
 }
 
 pub fn try_parse_date(s: &str) -> Result<NaiveDate> {

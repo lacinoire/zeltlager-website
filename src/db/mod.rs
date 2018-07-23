@@ -3,19 +3,28 @@
 //! - A Message struct with a `Message` Implementation
 //! - A Handler method for the DbExecutor
 
+use std::collections::HashMap;
 use std::env;
+use std::net::SocketAddr;
 
 use actix::prelude::*;
 use chrono::{Utc, Duration};
 use diesel;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::result::Error::NotFound;
+use diesel::result::Error;
 use dotenv::dotenv;
 use ipnetwork::IpNetwork;
-use std::net::SocketAddr;
+use libpasta;
 
 use Result;
+
+macro_rules! get_str {
+	($map:ident, $key:expr) => {
+		$map.remove($key)
+			.ok_or_else(|| format_err!("{} fehlt", $key))
+	};
+}
 
 pub mod models;
 // Generate with `diesel print-schema > src/db/schema.rs`
@@ -57,6 +66,25 @@ pub struct CountMemberMessage;
 
 impl Message for CountMemberMessage {
 	type Result = Result<i64>;
+}
+
+pub struct AuthenticateMessage {
+	pub username: String,
+	pub password: String,
+}
+
+impl Message for AuthenticateMessage {
+	type Result = Result<bool>;
+}
+
+impl AuthenticateMessage {
+	pub fn from_hashmap(mut map: HashMap<String, String>)
+		-> Result<AuthenticateMessage> {
+		Ok(AuthenticateMessage {
+			username: get_str!(map, "username")?,
+			password: get_str!(map, "password")?,
+		})
+	}
 }
 
 impl DbExecutor {
@@ -104,7 +132,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 					Ok(true)
 				}
 			}
-			Err(NotFound) => {
+			Err(Error::NotFound) => {
 				insert_into(rate_limiting).values((ip_addr.eq(ip), counter.eq(1), first_count.eq(now))).execute(&self.connection)?;
 				Ok(true)
 			}
@@ -162,5 +190,25 @@ impl Handler<CountMemberMessage> for DbExecutor {
 		Ok(teilnehmer::table
 			.count()
 			.get_result(&self.connection)?)
+	}
+}
+
+impl Handler<AuthenticateMessage> for DbExecutor {
+	type Result = Result<bool>;
+
+	fn handle(
+		&mut self,
+		msg: AuthenticateMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::users::dsl::*;
+
+		// Fetch user from db
+		match users.filter(username.eq(msg.username)).first::<models::UserQueryResult>(&self.connection) {
+			Ok(user) => Ok(libpasta::verify_password(&user.password,
+				&msg.password)),
+			Err(Error::NotFound) => Ok(false),
+			Err(err) => Err(err.into()),
+		}
 	}
 }
