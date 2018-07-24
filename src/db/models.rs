@@ -110,6 +110,12 @@ pub struct UserQueryResult {
 	pub password: String,
 }
 
+#[derive(Clone, Debug, Queryable)]
+pub struct Role {
+	pub user_id: i32,
+	pub role: String,
+}
+
 pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
 	const FORMATS: &[&str] = &["%Y-%m-%d", "%d.%m.%Y"];
 	let mut res = None;

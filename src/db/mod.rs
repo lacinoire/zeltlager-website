@@ -96,6 +96,15 @@ impl AuthenticateMessage {
 	}
 }
 
+/// If the user is member of this role.
+pub struct GetRolesMessage {
+	pub user: i32,
+}
+
+impl Message for GetRolesMessage {
+	type Result = Result<Vec<::auth::Roles>>;
+}
+
 impl DbExecutor {
 	pub fn new() -> Result<Self> {
 		dotenv().ok();
@@ -272,6 +281,33 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 				let pw = libpasta::hash_password(&msg.username);
 				let _ = libpasta::verify_password(&pw, &msg.username);
 				Ok(None)
+			}
+			Err(err) => Err(err.into()),
+		}
+	}
+}
+
+impl Handler<GetRolesMessage> for DbExecutor {
+	type Result = Result<Vec<::auth::Roles>>;
+
+	fn handle(
+		&mut self,
+		msg: GetRolesMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::roles::dsl::*;
+
+		// Fetch user from db
+		match roles
+			.filter(user_id.eq(msg.user))
+			.get_results::<models::Role>(&self.connection)
+		{
+			Ok(mut res) => {
+				// Convert to enum
+				res.drain(..)
+					.map(|r| r.role.parse())
+					.collect::<::std::result::Result<_, ::strum::ParseError>>()
+					.map_err(|e| e.into())
 			}
 			Err(err) => Err(err.into()),
 		}

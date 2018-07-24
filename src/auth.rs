@@ -196,3 +196,25 @@ pub fn logged_in_user(req: &HttpRequest<AppState>) -> Option<i32> {
 			Some(id)
 		})
 }
+
+pub fn get_roles(req: &HttpRequest<AppState>) -> BoxFuture<Option<Vec<Roles>>> {
+	if let Some(user) = logged_in_user(req) {
+		Box::new(user_get_roles(req, user).map(|s| Some(s)))
+	} else {
+		Box::new(Ok(None).into_future())
+	}
+}
+
+pub fn user_get_roles(
+	req: &HttpRequest<AppState>,
+	user: i32,
+) -> BoxFuture<Vec<Roles>> {
+	let db_addr = req.state().db_addr.clone();
+	let msg = ::db::GetRolesMessage { user };
+	Box::new(
+		db_addr
+			.send(msg)
+			.from_err::<failure::Error>()
+			.and_then(|r| r),
+	)
+}
