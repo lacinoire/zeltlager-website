@@ -197,6 +197,11 @@ pub fn check_email(text: &str) -> bool {
 	at_pos.is_some() && !text.contains(' ') && at_pos == text.rfind('@') // Only one mail address
 }
 
+pub fn check_house_number(text: &str) -> bool {
+	// Check for at least one digit
+	text.find(|c: char| c.is_digit(10)).is_some()
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression)]
 #[sql_type = "Text"]
 pub enum Gender {
@@ -284,6 +289,11 @@ impl Teilnehmer {
 		// Check mail address
 		if !check_email(&res.eltern_mail) {
 			bail!("Ungültige E-Mail Addresse ({})", res.eltern_mail);
+		}
+		// Check house number
+		if !check_house_number(&res.hausnummer) {
+			bail!("Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
+				enthalten", res.hausnummer);
 		}
 		// Check birth date
 		let birthday = Date::from_utc(res.geburtsdatum, Utc);
@@ -394,6 +404,11 @@ impl Supervisor {
 		// Check mail address
 		if !check_email(&res.mail) {
 			bail!("Ungültige E-Mail Addresse ({})", res.mail);
+		}
+		// Check house number
+		if !check_house_number(&res.hausnummer) {
+			bail!("Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
+				enthalten", res.hausnummer);
 		}
 		// Check Juleica Number
 		match res.juleica_nummer {
