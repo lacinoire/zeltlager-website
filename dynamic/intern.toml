@@ -46,4 +46,4 @@ name = "bilder-upload"
 file_name = "BilderUpload.html"
 title = "Bilder Upload"
 description = "Bilder Hochladen"
-roles = ["ImageUpload"]
+role = "ImageUpload"

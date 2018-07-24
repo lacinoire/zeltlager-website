@@ -18,8 +18,7 @@ pub struct SiteDescription {
 	pub description: String,
 	#[serde(default = "::get_true")]
 	pub navbar_visible: bool,
-	#[serde(default = "Vec::new")]
-	pub roles: Vec<Roles>,
+	pub role: Option<Roles>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -32,6 +31,7 @@ pub struct SiteDescriptions {
 #[TemplatePath = "templates/basic.tt"]
 #[derive(Debug)]
 pub struct Basic<'a> {
+	pub logged_in_roles: Option<Vec<Roles>>,
 	pub config: &'a ::Config,
 	pub all_sites: &'a SiteDescriptions,
 	pub current_site: &'a SiteDescription,
@@ -50,6 +50,7 @@ impl SiteDescriptions {
 		&'a self,
 		config: &'a ::Config,
 		name: &str,
+		logged_in_roles: Option<Vec<Roles>>,
 	) -> Result<Basic<'a>> {
 		// Check if this site exists
 		for site in &self.sites {
@@ -66,6 +67,7 @@ impl SiteDescriptions {
 				}
 
 				return Ok(Basic {
+					logged_in_roles,
 					config,
 					all_sites: self,
 					current_site: site,

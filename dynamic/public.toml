@@ -89,4 +89,4 @@ name = "Bilder2018/"
 file_name = "Empty.txt"
 title = "Bilder"
 description = "Bilder aus dem Zeltlager 2018"
-roles = ["ImageDownload2018"]
+role = "ImageDownload2018"
