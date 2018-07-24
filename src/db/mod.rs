@@ -77,6 +77,14 @@ impl Message for AuthenticateMessage {
 	type Result = Result<Option<i32>>;
 }
 
+pub struct DecreaseRateCounterMessage {
+	pub ip: String,
+}
+
+impl Message for DecreaseRateCounterMessage {
+	type Result = Result<()>;
+}
+
 impl AuthenticateMessage {
 	pub fn from_hashmap(
 		mut map: HashMap<String, String>,
@@ -114,7 +122,6 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		use diesel::dsl::insert_into;
 		use diesel::expression::dsl::now;
 
-		//let request_ip = req.connection_info().remote();
 		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
 		let entry_res = rate_limiting
 			.find(ip)
@@ -154,7 +161,35 @@ impl Handler<CheckRateMessage> for DbExecutor {
 					.execute(&self.connection)?;
 				Ok(true)
 			}
-			Err(_) => panic!(),
+			Err(e) => Err(e.into()),
+		}
+	}
+}
+
+impl Handler<DecreaseRateCounterMessage> for DbExecutor {
+	type Result = Result<()>;
+
+	fn handle(
+		&mut self,
+		msg: DecreaseRateCounterMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::rate_limiting::dsl::*;
+
+		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
+		let entry_res = rate_limiting
+			.find(ip)
+			.first::<models::RateLimiting>(&self.connection);
+		// check for no entry found
+		match entry_res {
+			Ok(entry) => {
+				diesel::update(&entry)
+						.set(counter.eq(counter - 1))
+						.execute(&self.connection)?;
+				Ok(())
+			}
+			Err(Error::NotFound) => bail!("Ip to decrease rate counter for not found in db"),
+			Err(e) => Err(e.into()),
 		}
 	}
 }

@@ -122,18 +122,26 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 				} else {
 					Box::new(db_addr.send(msg)
 						.from_err::<failure::Error>()
-						.then(move |result| -> Result<HttpResponse> { match result {
+						.then(move |result| -> BoxFuture<HttpResponse> { match result {
 							Err(error) | Ok(Err(error)) => {
 								// Show error and prefilled form
 								body.insert("error".to_string(), format!(
 									"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
 									error_message));
 								warn!("Error by auth message: {}", error);
-								render_login(req, body)
+								Box::new(render_login(req, body).into_future())
 							}
 							Ok(Ok(Some(id))) => {
 								set_logged_in(id, &req);
-								Ok(HttpResponse::Found().header("location", "/").finish())
+								let ip = tryf!(
+											req.connection_info()
+												.remote()
+												.ok_or_else(|| format_err!("no ip detected"))
+											).to_string();
+								let res = req.state().db_addr.send(::db::DecreaseRateCounterMessage { ip } );
+								Box::new(res.from_err().and_then(|_|
+									Ok(HttpResponse::Found().header("location", "/").finish()))
+								)
 							}
 							Ok(Ok(None)) => {
 								// Wrong username or password
@@ -141,7 +149,7 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 								body.insert("error".to_string(),
 									"Falsches Passwort oder falscher Benutzername"
 									.to_string());
-								render_login(req, body)
+								Box::new(render_login(req, body).into_future())
 							}
 						}}))
 			}
