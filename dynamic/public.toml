@@ -10,7 +10,7 @@ description = "Startseite der Zeltlagerwebseite"
 
 [[sites]]
 name = "anmeldung"
-file_name = "Anmeldung.txt"
+file_name = "Empty.txt"
 title = "Anmeldung"
 description = "Anmeldung für’s Zeltlager"
 
@@ -73,13 +73,13 @@ navbar_visible = false
 
 [[sites]]
 name = "login"
-file_name = "Login.txt"
+file_name = "Empty.txt"
 title = "Login"
 description = "Login der Zeltlagerwebsite"
 
 [[sites]]
 name = "bilder"
-file_name = "Bilder.html"
+file_name = "Empty.txt"
 title = "Bilder"
-description = "Bilder aus dem Zeltlager"
+description = "Bilder aus dem Zeltlager 2018"
 roles = ["ImageDownload2018"]

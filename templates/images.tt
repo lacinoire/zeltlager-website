@@ -1,0 +1,9 @@
+<#@ template cleanws="true" #>
+<div class="row">
+	<div class="col">
+		<img src="/static/img/ausstattung/AufenthaltszelteSonne.jpg">
+	</div>
+	<div class="col">
+		<img src="/static/img/ausstattung/AufenthaltszelteErpfting.jpg">
+	</div>
+</div>

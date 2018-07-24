@@ -39,10 +39,11 @@ use std::io::{Read, Write};
 
 use actix_web::http::header::DispositionType;
 use actix_web::http::Method;
-use actix_web::middleware::csrf;
+use actix_web::middleware::{self, csrf, Middleware};
 use actix_web::middleware::identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::*;
 use chrono::Duration;
+use futures::Future;
 use rand::Rng;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
@@ -210,6 +211,36 @@ impl actix_web::fs::StaticFileConfig for StaticFilesConfig {
 		} else {
 			actix_web::fs::DefaultConfig::content_disposition_map(typ)
 		}
+	}
+}
+
+struct HasRolePredicate {
+	role: auth::Roles,
+	// TODO filters
+}
+
+impl HasRolePredicate {
+	fn new(role: auth::Roles) -> Self {
+		Self {
+			role,
+		}
+	}
+}
+
+impl Middleware<AppState> for HasRolePredicate {
+	fn start(&self, req: &HttpRequest<AppState>) -> error::Result<middleware::Started> {
+		let role = self.role.clone();
+		let fut = auth::get_roles(req).map(move |r| {
+			if let Some(roles) = r {
+				if roles.contains(&role) {
+					return None;
+				}
+			}
+			// Not logged in
+			// TODO content
+			Some(HttpResponse::Forbidden().body("Access denied"))
+		});
+		Ok(middleware::Started::Future(Box::new(fut.from_err())))
 	}
 }
 
@@ -426,6 +457,14 @@ fn main() -> Result<()> {
 			.route("/login", Method::GET, auth::login)
 			.route("/login", Method::POST, auth::login_send)
 			.route("/logout", Method::GET, auth::logout)
+			.scope("/Bilder2018", |scope| { scope
+				.middleware(HasRolePredicate::new(auth::Roles::ImageDownload2018))
+				.resource("/static/{tail:.*}", |r| {
+					r.h(fs::StaticFiles::with_config("Bilder2018", StaticFilesConfig)
+						.unwrap().default_handler(not_found))
+				})
+				.default_resource(|r| r.f(not_found))
+			})
 			// Allow an empty name
 			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)
 			.route("/{name}", Method::GET, ::sites)

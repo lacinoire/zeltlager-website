@@ -13,7 +13,7 @@ use futures::{Future, IntoFuture};
 use form::Form;
 use {AppState, BoxFuture, Result};
 
-#[derive(Clone, EnumString, Debug, Deserialize)]
+#[derive(Clone, EnumString, Debug, Deserialize, PartialEq, Eq)]
 pub enum Roles {
 	ImageDownload2018,
 	ImageUpload,

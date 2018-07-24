@@ -10,7 +10,7 @@ description = "Für Betreuer des Zeltlagers"
 
 [[sites]]
 name = "betreuer-anmeldung"
-file_name = "AnmeldungBetreuer.txt"
+file_name = "Empty.txt"
 title = "Betreueranmeldung"
 description = "Anmeldung für Betreuer des Zeltlagers"
 
