@@ -39,8 +39,8 @@ use std::io::{Read, Write};
 
 use actix_web::http::header::DispositionType;
 use actix_web::http::Method;
-use actix_web::middleware::{self, csrf, Middleware};
 use actix_web::middleware::identity::{CookieIdentityPolicy, IdentityService};
+use actix_web::middleware::{self, csrf, Middleware};
 use actix_web::*;
 use chrono::Duration;
 use futures::Future;
@@ -217,19 +217,19 @@ impl actix_web::fs::StaticFileConfig for StaticFilesConfig {
 
 struct HasRolePredicate {
 	role: auth::Roles,
-	// TODO filters
 }
 
 impl HasRolePredicate {
 	fn new(role: auth::Roles) -> Self {
-		Self {
-			role,
-		}
+		Self { role }
 	}
 }
 
 impl Middleware<AppState> for HasRolePredicate {
-	fn start(&self, req: &HttpRequest<AppState>) -> error::Result<middleware::Started> {
+	fn start(
+		&self,
+		req: &HttpRequest<AppState>,
+	) -> error::Result<middleware::Started> {
 		let role = self.role.clone();
 		let forbidden_site = forbidden(req)?;
 		let path = req.path().to_string();
@@ -244,8 +244,15 @@ impl Middleware<AppState> for HasRolePredicate {
 			} else {
 				// Not logged in
 				// Redirect to login site
-				Some(HttpResponse::Found().header("location", "/login")
-					.finish())
+				// TODO with redirect
+				Some(
+					HttpResponse::Found()
+						.header(
+							"location",
+							&format!("/login?redirect={}", req.path()),
+						)
+						.finish(),
+				)
 			}
 		});
 		Ok(middleware::Started::Future(Box::new(fut.from_err())))

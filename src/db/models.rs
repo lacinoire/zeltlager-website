@@ -292,8 +292,11 @@ impl Teilnehmer {
 		}
 		// Check house number
 		if !check_house_number(&res.hausnummer) {
-			bail!("Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
-				enthalten", res.hausnummer);
+			bail!(
+				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
+				 enthalten",
+				res.hausnummer
+			);
 		}
 		// Check birth date
 		let birthday = Date::from_utc(res.geburtsdatum, Utc);
@@ -407,8 +410,11 @@ impl Supervisor {
 		}
 		// Check house number
 		if !check_house_number(&res.hausnummer) {
-			bail!("Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
-				enthalten", res.hausnummer);
+			bail!(
+				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
+				 enthalten",
+				res.hausnummer
+			);
 		}
 		// Check Juleica Number
 		match res.juleica_nummer {

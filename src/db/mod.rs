@@ -193,11 +193,13 @@ impl Handler<DecreaseRateCounterMessage> for DbExecutor {
 		match entry_res {
 			Ok(entry) => {
 				diesel::update(&entry)
-						.set(counter.eq(counter - 1))
-						.execute(&self.connection)?;
+					.set(counter.eq(counter - 1))
+					.execute(&self.connection)?;
 				Ok(())
 			}
-			Err(Error::NotFound) => bail!("Ip to decrease rate counter for not found in db"),
+			Err(Error::NotFound) => {
+				bail!("Ip to decrease rate counter for not found in db")
+			}
 			Err(e) => Err(e.into()),
 		}
 	}
