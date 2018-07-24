@@ -15,7 +15,7 @@ Parkplatz Westfriedhof westliches Ende – Nähe Nederlingerstr.
 Rückkehr 10.08.2018, ca. 14:00 Uhr  
 Die Hin- und Rückreise erfolgt mit dem Bus.
 
-Für die Jugendlichen (7-15 Jahre) bieten wir ein abwechslungsreiches Programm bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen mit Lagerfeuer und Lagerwache, Nachtwanderung, Wellness-Tag, vielen Spielen auf dem Sportgelände, Lagerdisco, Gruselnacht, Lagerolympiade und vieles mehr wie Tischtennisplatten, Kicker und viele Gesellschafts/Brettspielen.
+Für die Jugendlichen (7–15 Jahre) bieten wir ein abwechslungsreiches Programm bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen mit Lagerfeuer und Lagerwache, Nachtwanderung, Wellness-Tag, vielen Spielen auf dem Sportgelände, Lagerdisco, Gruselnacht, Lagerolympiade und vieles mehr wie Tischtennisplatten, Kicker und viele Gesellschafts/Brettspielen.
 
 <div class="row">
 	<div class="col">
