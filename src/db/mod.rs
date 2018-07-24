@@ -137,7 +137,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 						.set(counter.eq(1))
 						.execute(&self.connection)?;
 					diesel::update(&entry)
-						.set(first_count.eq(now))
+						.set(first_count.eq(now.at_time_zone("utc")))
 						.execute(&self.connection)?;
 					Ok(true)
 				} else if entry.counter >= ::RATELIMIT_MAX_COUNTER {
@@ -156,7 +156,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 					.values((
 						ip_addr.eq(ip),
 						counter.eq(1),
-						first_count.eq(now),
+						first_count.eq(now.at_time_zone("utc")),
 					))
 					.execute(&self.connection)?;
 				Ok(true)
