@@ -4,3 +4,4 @@ target/
 # Config files
 config.toml
 .env
+secret.key

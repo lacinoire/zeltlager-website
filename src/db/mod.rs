@@ -256,7 +256,7 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 
 		// Fetch user from db
 		match users
-			.filter(username.eq(msg.username))
+			.filter(username.eq(&msg.username))
 			.first::<models::UserQueryResult>(&self.connection)
 		{
 			Ok(user) => {
@@ -266,9 +266,13 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 					Ok(None)
 				}
 			}
-			// TODO Maybe sleep a random amount of time to hide that the user
-			// exists?
-			Err(Error::NotFound) => Ok(None),
+			Err(Error::NotFound) => {
+				// Hash a random password so we don’t leak timing information
+				// if a user exists or not.
+				let pw = libpasta::hash_password(&msg.username);
+				let _ = libpasta::verify_password(&pw, &msg.username);
+				Ok(None)
+			}
 			Err(err) => Err(err.into()),
 		}
 	}

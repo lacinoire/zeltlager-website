@@ -19,6 +19,7 @@ extern crate libpasta;
 extern crate log;
 extern crate mime;
 extern crate pulldown_cmark;
+extern crate rand;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -34,7 +35,7 @@ extern crate toml;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 
 use actix_web::http::header::DispositionType;
 use actix_web::http::Method;
@@ -42,6 +43,7 @@ use actix_web::middleware::csrf;
 use actix_web::middleware::identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::*;
 use chrono::Duration;
+use rand::Rng;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
@@ -71,6 +73,7 @@ type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
 const DEFAULT_PREFIX: &str = "public";
 const DEFAULT_NAME: &str = "startseite";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
+const KEY_FILE: &str = "secret.key";
 
 fn cookie_maxtime() -> Duration {
 	Duration::minutes(30)
@@ -317,7 +320,7 @@ fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 		.body(content))
 }
 
-fn main() {
+fn main() -> Result<()> {
 	if env::var("RUST_LOG").is_err() {
 		// Default log level
 		env::set_var("RUST_LOG", "actix_web=info,zeltlager_website=info");
@@ -327,8 +330,19 @@ fn main() {
 	// Command line arguments
 	let args = Args::from_args();
 	if let Some(action) = args.action {
-		management::cmd_action(action).unwrap();
-		return;
+		management::cmd_action(action)?;
+		return Ok(());
+	}
+
+	// Get cookie master key
+	let mut key = [0; 32];
+	if let Ok(mut key_file) = File::open(KEY_FILE) {
+		key_file.read_exact(&mut key)?;
+	} else {
+		rand::thread_rng().fill(&mut key);
+		// Save in file
+		let mut key_file = File::create(KEY_FILE)?;
+		key_file.write_all(&key)?;
 	}
 
 	let mut sites = HashMap::new();
@@ -343,8 +357,7 @@ fn main() {
 	let mut content = String::new();
 	File::open("config.toml")
 		.unwrap()
-		.read_to_string(&mut content)
-		.unwrap();
+		.read_to_string(&mut content)?;
 	let config: Config =
 		toml::from_str(&content).expect("Failed to parse config.toml");
 
@@ -370,10 +383,8 @@ fn main() {
 	};
 
 	server::new(move || {
-		let key = [0; 32]; // TODO
 		let mut identity_policy = CookieIdentityPolicy::new(&key)
 			.name("user")
-			// TODO Max-time is ignored?
 			.max_age(cookie_maxtime())
 			.secure(state.config.secure);
 
@@ -420,9 +431,9 @@ fn main() {
 			.route("/{name}", Method::GET, ::sites)
 			.route("", Method::GET, ::sites)
 			.default_resource(|r| r.f(not_found))
-	}).bind(address)
-		.unwrap()
+	}).bind(address)?
 		.start();
 
 	let _ = sys.run();
+	Ok(())
 }
