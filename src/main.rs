@@ -160,6 +160,8 @@ pub struct Config {
 	bind_address: String,
 	/// A message which will be displayed on top of all basic templated sites.
 	global_message: Option<String>,
+	/// If this site is served over https.
+	///
 	/// If `true`, the authentication cookie can only be transfered over https.
 	#[serde(default = "get_true")]
 	secure: bool,

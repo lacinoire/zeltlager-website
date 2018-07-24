@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use actix_web::middleware::identity::RequestIdentity;
 use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use failure;
 use futures::{Future, IntoFuture};
 
@@ -89,7 +89,11 @@ pub fn login(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 
 fn set_logged_in(id: i32, req: &HttpRequest<AppState>) {
 	// Logged in: Store "user id|timeout"
-	req.remember(format!("{}|{}", id, Utc::now() + ::cookie_maxtime()));
+	req.remember(format!(
+		"{}|{}",
+		id,
+		(Utc::now() + ::cookie_maxtime()).format("%Y-%m-%d %H:%M:%S")
+	));
 }
 
 pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
@@ -161,7 +165,11 @@ pub fn logged_in_user(req: &HttpRequest<AppState>) -> Option<i32> {
 				s.splitn(2, '|').collect::<Vec<_>>().as_slice()
 			{
 				if let Ok(id) = id.parse::<i32>() {
-					if let Ok(timeout) = timeout.parse::<DateTime<Utc>>() {
+					if let Ok(timeout) = NaiveDateTime::parse_from_str(
+						timeout,
+						"%Y-%m-%d %H:%M:%S",
+					) {
+						let timeout = DateTime::<Utc>::from_utc(timeout, Utc);
 						return Some((id, timeout));
 					}
 					println!("time {}", timeout);
