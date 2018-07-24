@@ -65,10 +65,17 @@ title = "Impressum"
 description = "Impressum der Zeltlagerwebsite"
 
 [[sites]]
-name = "404"
-file_name = "404.md"
-title = "404 – Not Found"
-description = "404 – Not Found"
+name = "notfound"
+file_name = "NotFound.md"
+title = "404 – Nicht gefunden"
+description = "404 – Nicht gefunden"
+navbar_visible = false
+
+[[sites]]
+name = "forbidden"
+file_name = "Forbidden.md"
+title = "403 – Zugriff verweigert"
+description = "403 – Zugriff verweigert"
 navbar_visible = false
 
 [[sites]]
@@ -78,7 +85,7 @@ title = "Login"
 description = "Login der Zeltlagerwebsite"
 
 [[sites]]
-name = "bilder"
+name = "Bilder2018/"
 file_name = "Empty.txt"
 title = "Bilder"
 description = "Bilder aus dem Zeltlager 2018"

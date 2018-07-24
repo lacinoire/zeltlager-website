@@ -63,6 +63,7 @@ mod auth;
 mod basic;
 mod db;
 mod form;
+mod images;
 mod mail;
 mod management;
 mod signup;
@@ -230,15 +231,22 @@ impl HasRolePredicate {
 impl Middleware<AppState> for HasRolePredicate {
 	fn start(&self, req: &HttpRequest<AppState>) -> error::Result<middleware::Started> {
 		let role = self.role.clone();
+		let forbidden_site = forbidden(req)?;
+		let path = req.path().to_string();
 		let fut = auth::get_roles(req).map(move |r| {
 			if let Some(roles) = r {
 				if roles.contains(&role) {
-					return None;
+					None
+				} else {
+					warn!("Forbidden '{}'", path);
+					Some(forbidden_site)
 				}
+			} else {
+				// Not logged in
+				// Redirect to login site
+				Some(HttpResponse::Found().header("location", "/login")
+					.finish())
 			}
-			// Not logged in
-			// TODO content
-			Some(HttpResponse::Forbidden().body("Access denied"))
 		});
 		Ok(middleware::Started::Future(Box::new(fut.from_err())))
 	}
@@ -344,9 +352,18 @@ fn site(
 fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 	warn!("File not found '{}'", req.path());
 	let site =
-		req.state().sites["public"].get_site(&req.state().config, "404")?;
+		req.state().sites["public"].get_site(&req.state().config, "notfound")?;
 	let content = format!("{}", site);
 	Ok(HttpResponse::NotFound()
+		.content_type("text/html; charset=utf-8")
+		.body(content))
+}
+
+fn forbidden(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
+	let site =
+		req.state().sites["public"].get_site(&req.state().config, "forbidden")?;
+	let content = format!("{}", site);
+	Ok(HttpResponse::Forbidden()
 		.content_type("text/html; charset=utf-8")
 		.body(content))
 }
@@ -463,6 +480,7 @@ fn main() -> Result<()> {
 					r.h(fs::StaticFiles::with_config("Bilder2018", StaticFilesConfig)
 						.unwrap().default_handler(not_found))
 				})
+				.route("", Method::GET, ::images::render_images)
 				.default_resource(|r| r.f(not_found))
 			})
 			// Allow an empty name

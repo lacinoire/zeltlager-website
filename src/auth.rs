@@ -140,6 +140,8 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 											).to_string();
 								let res = req.state().db_addr.send(::db::DecreaseRateCounterMessage { ip } );
 								Box::new(res.from_err().and_then(|_|
+									// TODO Redirect somewhere else if there is
+									// a redirect argument.
 									Ok(HttpResponse::Found().header("location", "/").finish()))
 								)
 							}
@@ -180,13 +182,11 @@ pub fn logged_in_user(req: &HttpRequest<AppState>) -> Option<i32> {
 						let timeout = DateTime::<Utc>::from_utc(timeout, Utc);
 						return Some((id, timeout));
 					}
-					println!("time {}", timeout);
 				}
 			}
 			None
 		})
 		.and_then(|(id, timeout)| {
-			println!("Token expires at {}", timeout);
 			// Check if the token expired
 			if timeout < Utc::now() {
 				return None;

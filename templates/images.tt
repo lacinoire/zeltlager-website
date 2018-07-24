@@ -1,9 +1,43 @@
 <#@ template cleanws="true" #>
 <div class="row">
+	<#
+	use std::fs;
+	// List images
+	let files = match fs::read_dir(&self.name) {
+		Ok(files) => files,
+		Err(error) => { #>
+			Fehler: Bilder konnten nicht gefunden werden.
+			<# error!("Cannot read pictures in {} ({:?})", self.name, error);
+			return Ok(());
+		}
+	};
+	for (i, file) in files.enumerate() {
+		let file = match file {
+			Ok(file) => file,
+			Err(error) => {
+				error!("Cannot read picture from {} ({:?})", self.name, error);
+				continue;
+			}
+		};
+		let path = file.path();
+		if !path.is_file() {
+			continue;
+		}
+		match path.file_name() {
+			None => warn!("Cannot get filename of {:?} in {}", path, self.name),
+			Some(name) => {
+				match name.to_str() {
+					None => warn!("Filename {:?} in {} is not valid unicode",
+						path, self.name),
+					Some(name) => {
+			#>
 	<div class="col">
-		<img src="/static/img/ausstattung/AufenthaltszelteSonne.jpg">
+		<img src="static/<#= name #>">
 	</div>
-	<div class="col">
-		<img src="/static/img/ausstattung/AufenthaltszelteErpfting.jpg">
-	</div>
+	<# }}}}
+		if i % 2 == 0 && i != 0 { #>
+</div>
+<div class="row">
+		<# }
+	} #>
 </div>
