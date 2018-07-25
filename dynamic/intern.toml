@@ -36,12 +36,6 @@ description = "Anhang Selbstverpflichtungserklärung des FT Gern zur Prävention
 navbar_visible = false
 
 [[sites]]
-name = "login"
-file_name = "Login.html"
-title = "Login"
-description = "Login der Zeltlagerwebsite"
-
-[[sites]]
 name = "bilder-upload"
 file_name = "BilderUpload.html"
 title = "Bilder Upload"

@@ -30,11 +30,11 @@ pub struct SiteDescriptions {
 #[derive(Template)]
 #[TemplatePath = "templates/basic.tt"]
 #[derive(Debug)]
-pub struct Basic<'a> {
+pub struct Basic {
 	pub logged_in_roles: Option<Vec<Roles>>,
-	pub config: &'a ::Config,
-	pub all_sites: &'a SiteDescriptions,
-	pub current_site: &'a SiteDescription,
+	pub config: ::Config,
+	pub all_sites: SiteDescriptions,
+	pub current_site: SiteDescription,
 	pub content: String,
 }
 
@@ -46,12 +46,12 @@ impl SiteDescriptions {
 		Ok(toml::from_str(&content)?)
 	}
 
-	pub fn get_site<'a>(
-		&'a self,
-		config: &'a ::Config,
+	pub fn get_site(
+		&self,
+		config: ::Config,
 		name: &str,
 		logged_in_roles: Option<Vec<Roles>>,
-	) -> Result<Basic<'a>> {
+	) -> Result<Basic> {
 		// Check if this site exists
 		for site in &self.sites {
 			if site.name == name {
@@ -69,8 +69,8 @@ impl SiteDescriptions {
 				return Ok(Basic {
 					logged_in_roles,
 					config,
-					all_sites: self,
-					current_site: site,
+					all_sites: self.clone(),
+					current_site: site.clone(),
 					content,
 				});
 			}

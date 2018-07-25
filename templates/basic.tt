@@ -23,34 +23,44 @@
 			<span class="navbar-toggler-icon"></span>
 		</button>
 		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-			<div class="navbar-nav">
+			<ul class="navbar-nav mr-auto">
 			<# for site in &self.all_sites.sites {
 				if !site.navbar_visible {
 					continue;
 				}
-				match site.role {
+				match &site.role {
 					Some(role) => {
-						if !&self.logged_in_roles.unwrap_or(Vec::new()).contains(role) {
+						if !&self.logged_in_roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) {
 							continue;
 						}
 					}
 					None => {}
 				}
 				if site.name == self.current_site.name { #>
-				<a class="nav-item nav-link active" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
+				<li class="nav-item active"></li>
+					<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
+				</li>
 				<# } else { #>
-				<a class="nav-item nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #></a>
+				<li class="nav-item"></li>
+					<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #></a>
+				</li>
 				<# } #>
 			<# } #>
+			</ul>
+			<ul class="navbar-nav">
 			<# match &self.logged_in_roles { #>
 					<# Some(roles) => { #>
-						<a class="nav-item nav-link pull-right" href="/logout">Logout</a>
+						<li class="nav-item">
+							<a class="nav-item nav-link mr-auto" href="/logout">Logout</a>
+						</li>
 					<# } #>
 					<# None => { #>
-						<a class="nav-item nav-link pull-right" href="/login">Login</a>
+						<li class="nav-item">
+							<a class="nav-item nav-link mr-auto" href="/login">Login</a>
+						</li>
 					<# } #>
 			<# } #>
-			</div>
+			</ul>
 		</div>
 	</nav>
 

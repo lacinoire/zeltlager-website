@@ -66,7 +66,7 @@ fn render_login(
 	values: HashMap<String, String>,
 ) -> Result<HttpResponse> {
 	if let Ok(site) =
-		req.state().sites["public"].get_site(&req.state().config, "login")
+		req.state().sites["public"].get_site(req.state().config.clone(), "login", None)
 	{
 		let content = format!("{}", site);
 		let login = format!("{}", Login::new(values));

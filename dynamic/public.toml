@@ -83,6 +83,7 @@ name = "login"
 file_name = "Empty.txt"
 title = "Login"
 description = "Login der Zeltlagerwebsite"
+navbar_visible = false
 
 [[sites]]
 name = "Bilder2018/"

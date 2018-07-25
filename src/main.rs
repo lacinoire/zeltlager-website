@@ -45,6 +45,7 @@ use actix_web::middleware::{self, csrf, Middleware};
 use actix_web::*;
 use chrono::Duration;
 use futures::Future;
+use futures::IntoFuture;
 use rand::Rng;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
@@ -53,9 +54,7 @@ macro_rules! tryf {
 	($e:expr) => {
 		match $e {
 			Ok(e) => e,
-			Err(error) => {
-				return Box::new(::futures::future::err(error.into()))
-				}
+			Err(error) => return Box::new(::futures::future::err(error.into())),
 			}
 	};
 }
@@ -102,8 +101,8 @@ struct Args {
 enum Action {
 	#[structopt(
 		name = "adduser",
-		help = "Add a user to the database.\nIt will ask for the password on \
-		        the command line"
+		help = "Add a user to the database.\nIt will ask for the password on the \
+		        command line"
 	)]
 	AddUser {
 		#[structopt(name = "username", help = "Name of the added user")]
@@ -305,70 +304,81 @@ fn escape_html_attribute(s: &str) -> String {
 		.replace('"', "&quot;")
 }
 
-fn sites(req: HttpRequest<AppState>) -> Result<HttpResponse> {
-	{
-		let prefix;
-		let name;
-		if let Some(n) = req.match_info().get("name").and_then(|s| {
-			if s.is_empty() {
-				None
-			} else {
-				Some(s)
-			}
-		}) {
-			if let Some(p) = req.match_info().get("prefix") {
-				prefix = p;
-				name = n;
-			} else {
-				// Check if the name is actually a prefix
-				if req.state().sites.get(n).is_some() {
-					prefix = n;
-					name = DEFAULT_NAME;
-				} else {
-					prefix = DEFAULT_PREFIX;
-					name = n;
-				}
-			}
+fn sites(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+	let prefix: String;
+	let name: String;
+	if let Some(n) = req.match_info().get("name").and_then(|s| {
+		if s.is_empty() {
+			None
 		} else {
-			name = DEFAULT_NAME;
-			prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX);
+			Some(s)
 		}
-
-		if let Some(res) = site(&req, prefix, name) {
-			return Ok(res);
+	}) {
+		if let Some(p) = req.match_info().get("prefix") {
+			prefix = p.to_string();
+			name = n.to_string();
+		} else {
+			// Check if the name is actually a prefix
+			if req.state().sites.get(n).is_some() {
+				prefix = n.to_string();
+				name = DEFAULT_NAME.to_string();
+			} else {
+				prefix = DEFAULT_PREFIX.to_string();
+				name = n.to_string();
+			}
 		}
+	} else {
+		name = DEFAULT_NAME.to_string();
+		prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX).to_string();
 	}
-	not_found(&req)
+
+	let site_res = site(&req, &prefix, &name);
+	Box::new(site_res.and_then(move |site_opt| match site_opt {
+		Some(res) => Ok(res),
+		None => not_found(&req),
+	}))
 }
 
 fn site(
 	req: &HttpRequest<AppState>,
 	prefix: &str,
 	name: &str,
-) -> Option<HttpResponse> {
-	if let Some(site) =
-		req.state().sites.get(prefix).and_then(|site_descriptions| {
-			site_descriptions.get_site(&req.state().config, &name).ok()
-		}) {
-		let content = format!("{}", site);
+) -> BoxFuture<Option<HttpResponse>> {
+	// TODO nicht alles kopieren
+	if let Some(site_descriptions) = req.state().sites.get(prefix) {
+		let config = req.state().config.clone();
+		let site_descriptions = site_descriptions.clone();
+		let name = name.to_string();
+		Box::new(
+			auth::get_roles(req)
+				.and_then(move |res| {
+					site_descriptions.get_site(config, &name, res)
+				})
+				.map(|site| {
+					let content = format!("{}", site);
 
-		return Some(
-			HttpResponse::Ok()
-				.content_type("text/html; charset=utf-8")
-				.body(content),
-		);
+					Some(
+						HttpResponse::Ok()
+							.content_type("text/html; charset=utf-8")
+							.body(content),
+					)
+				}),
+		)
+	} else {
+		Box::new(Ok(None).into_future())
 	}
-	None
 }
 
 fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 	warn!("File not found '{}'", req.path());
 	let site =
-		req.state().sites["public"].get_site(&req.state().config, "notfound")?;
+		req.state().sites["public"].get_site(req.state().config.clone(), "notfound")?;
 	let content = format!("{}", site);
-	Ok(HttpResponse::NotFound()
-		.content_type("text/html; charset=utf-8")
-		.body(content))
+	Ok(
+		HttpResponse::NotFound()
+			.content_type("text/html; charset=utf-8")
+			.body(content),
+	)
 }
 
 fn forbidden(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
@@ -448,18 +458,17 @@ fn main() -> Result<()> {
 			.max_age(cookie_maxtime())
 			.secure(state.config.secure);
 
-		let mut app = App::with_state(state.clone())
-			.middleware(middleware::Logger::default());
+		let mut app =
+			App::with_state(state.clone()).middleware(middleware::Logger::default());
 
 		if let Some(ref domain) = state.config.domain {
 			// TODO Test
 			identity_policy = identity_policy.domain(domain.clone());
-			app =
-				app.middleware(csrf::CsrfFilter::new().allowed_origin(format!(
-					"http{}://{}",
-					if state.config.secure { "s" } else { "" },
-					domain,
-				)))
+			app = app.middleware(csrf::CsrfFilter::new().allowed_origin(format!(
+				"http{}://{}",
+				if state.config.secure { "s" } else { "" },
+				domain,
+			)))
 		}
 
 		app

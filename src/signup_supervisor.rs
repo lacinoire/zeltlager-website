@@ -44,7 +44,7 @@ fn render_signup(
 	values: HashMap<String, String>,
 ) -> Result<HttpResponse> {
 	if let Ok(site) = req.state().sites["intern"]
-		.get_site(&req.state().config, "betreuer-anmeldung")
+		.get_site(req.state().config.clone(), "betreuer-anmeldung", None)
 	{
 		let content = format!("{}", site);
 		let new_content = SignupSupervisor::new(req.state(), values);

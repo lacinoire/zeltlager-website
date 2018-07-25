@@ -95,7 +95,7 @@ fn render_signup(
 	values: HashMap<String, String>,
 ) -> BoxFuture<HttpResponse> {
 	if let Ok(site) =
-		req.state().sites["public"].get_site(&req.state().config, "anmeldung")
+		req.state().sites["public"].get_site(req.state().config.clone(), "anmeldung", None)
 	{
 		let content = format!("{}", site);
 		return Box::new(Signup::new(req.state(), values).and_then(
