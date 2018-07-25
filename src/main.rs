@@ -372,7 +372,7 @@ fn site(
 fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 	warn!("File not found '{}'", req.path());
 	let site =
-		req.state().sites["public"].get_site(req.state().config.clone(), "notfound")?;
+		req.state().sites["public"].get_site(req.state().config.clone(), "notfound", None)?;
 	let content = format!("{}", site);
 	Ok(
 		HttpResponse::NotFound()
@@ -383,7 +383,7 @@ fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 
 fn forbidden(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
 	let site =
-		req.state().sites["public"].get_site(&req.state().config, "forbidden")?;
+		req.state().sites["public"].get_site(req.state().config.clone(), "forbidden", None)?;
 	let content = format!("{}", site);
 	Ok(HttpResponse::Forbidden()
 		.content_type("text/html; charset=utf-8")

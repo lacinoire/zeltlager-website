@@ -5,3 +5,6 @@ target/
 config.toml
 .env
 secret.key
+
+# Picture Folder
+Bilder*/

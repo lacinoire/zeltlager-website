@@ -31,13 +31,8 @@
 						path, self.name),
 					Some(name) => {
 			#>
-	<div class="col">
-		<img src="static/<#= name #>">
-	</div>
+	<a href="static/<#= name #>" data-toggle="lightbox" data-gallery="image-gallery" class="col-lg-3 col-md-4 col-6 my-3">
+		<img src="static/<#= name #>" class="img-fluid card">
+	</a>
 	<# }}}}
-		if i % 2 == 0 && i != 0 { #>
-</div>
-<div class="row">
-		<# }
 	} #>
-</div>

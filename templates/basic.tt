@@ -10,8 +10,11 @@
 	<meta name="description" content="<#= self.current_site.description #>">
 	<link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css"/>
 	<link rel="stylesheet" href="/static/css/style.css"/>
+	<link rel="stylesheet" href="/static/css/ekko-lightbox.css"/>
 	<script src="/static/bootstrap/js/jquery-3.3.1.slim.min.js"></script>
 	<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+	<script src="/static/js/zeltlager.js"></script>
+	<script src="/static/js/ekko-lightbox.min.js"></script>
 
 	<link rel="icon" type="image/svg+xml" href="/static/img/icon.svg" sizes="any">
 </head>
@@ -30,8 +33,11 @@
 				}
 				match &site.role {
 					Some(role) => {
-						if !&self.logged_in_roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) {
-							continue;
+						if !&self.logged_in_roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) { #>
+							<li class="nav-item">
+								<a class="nav-item nav-link mr-auto" href="/">ROLE NOT MATCHED</a>
+							</li>
+							<# continue;
 						}
 					}
 					None => {}
