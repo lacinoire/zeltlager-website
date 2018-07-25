@@ -121,12 +121,12 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 			body.remove("password");
 
 			Box::new(rate_limit(&req).then(move |limit| -> BoxFuture<_> {
-				if limit.is_err() {
+				if let Err(error) = limit {
 					body.insert("error".to_string(), format!(
 						"Zu viele Login Anfragen. \
 						Probieren Sie es später noch einmal.",
 					));
-					info!("Rate limit exceeded");
+					info!("Rate limit exceeded ({:?})", error);
 					Box::new(render_login(req, body).into_future())
 				} else {
 					Box::new(db_addr.send(msg)

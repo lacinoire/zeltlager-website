@@ -131,7 +131,14 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		use diesel::dsl::insert_into;
 		use diesel::expression::dsl::now;
 
-		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
+		let parse_result = msg.ip.parse::<SocketAddr>();
+		let ip: IpNetwork;
+		match parse_result {
+			Ok(result) => ip = result.ip().into(),
+			Err(_) => {
+				ip = msg.ip.parse::<IpNetwork>()?;
+			}
+		}
 		let entry_res = rate_limiting
 			.find(ip)
 			.first::<models::RateLimiting>(&self.connection);
@@ -160,7 +167,6 @@ impl Handler<CheckRateMessage> for DbExecutor {
 				}
 			}
 			Err(Error::NotFound) => {
-				// TODO Work in UTC?
 				insert_into(rate_limiting)
 					.values((
 						ip_addr.eq(ip),
