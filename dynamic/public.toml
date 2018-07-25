@@ -9,6 +9,13 @@ title = "Startseite"
 description = "Startseite der Zeltlagerwebseite"
 
 [[sites]]
+name = "Bilder2018/"
+file_name = "Empty.txt"
+title = "Bilder"
+description = "Bilder aus dem Zeltlager 2018"
+role = "ImageDownload2018"
+
+[[sites]]
 name = "anmeldung"
 file_name = "Empty.txt"
 title = "Anmeldung"
@@ -84,10 +91,3 @@ file_name = "Empty.txt"
 title = "Login"
 description = "Login der Zeltlagerwebsite"
 navbar_visible = false
-
-[[sites]]
-name = "Bilder2018/"
-file_name = "Empty.txt"
-title = "Bilder"
-description = "Bilder aus dem Zeltlager 2018"
-role = "ImageDownload2018"

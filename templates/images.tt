@@ -30,9 +30,10 @@
 					None => warn!("Filename {:?} in {} is not valid unicode",
 						path, self.name),
 					Some(name) => {
+						if name != ".gitignore" {
 			#>
 	<a href="static/<#= name #>" data-toggle="lightbox" data-gallery="image-gallery" class="col-lg-3 col-md-4 col-6 my-3">
 		<img src="static/<#= name #>" class="img-fluid card">
 	</a>
-	<# }}}}
+	<# }}}}}
 	} #>

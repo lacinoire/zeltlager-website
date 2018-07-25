@@ -33,11 +33,8 @@
 				}
 				match &site.role {
 					Some(role) => {
-						if !&self.logged_in_roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) { #>
-							<li class="nav-item">
-								<a class="nav-item nav-link mr-auto" href="/">ROLE NOT MATCHED</a>
-							</li>
-							<# continue;
+						if !&self.logged_in_roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) {
+							continue;
 						}
 					}
 					None => {}
