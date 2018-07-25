@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 use std::env;
+use std::net::IpAddr;
 use std::net::SocketAddr;
 
 use actix::prelude::*;
@@ -136,7 +137,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		match parse_result {
 			Ok(result) => ip = result.ip().into(),
 			Err(_) => {
-				ip = msg.ip.parse::<IpNetwork>()?;
+				ip = msg.ip.parse::<IpAddr>()?.into();
 			}
 		}
 		let entry_res = rate_limiting
