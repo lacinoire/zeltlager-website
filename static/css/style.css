@@ -1,6 +1,13 @@
+.login-nav li {
+	font-weight: bold;
+}
+
 .container {
-	padding-top: 30px;
 	max-width: 80em;
+}
+
+body > .container {
+	padding-top: 30px;
 }
 
 img {

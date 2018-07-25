@@ -351,18 +351,16 @@ fn site(
 		let name = name.to_string();
 		Box::new(
 			auth::get_roles(req)
-				.and_then(move |res| {
-					site_descriptions.get_site(config, &name, res)
-				})
-				.map(|site| {
-					let content = format!("{}", site);
+				.map(move |res| {
+					site_descriptions.get_site(config, &name, res).ok()
+						.map(|site| {
+							let content = format!("{}", site);
 
-					Some(
-						HttpResponse::Ok()
-							.content_type("text/html; charset=utf-8")
-							.body(content),
-					)
-				}),
+							HttpResponse::Ok()
+								.content_type("text/html; charset=utf-8")
+								.body(content)
+						})
+				})
 		)
 	} else {
 		Box::new(Ok(None).into_future())

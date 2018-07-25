@@ -7,6 +7,7 @@ name = "startseite"
 file_name = "Betreuer.md"
 title = "Für Betreuer"
 description = "Für Betreuer des Zeltlagers"
+navbar_visible = false
 
 [[sites]]
 name = "betreuer-anmeldung"

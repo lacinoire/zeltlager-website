@@ -11,7 +11,7 @@
 			return Ok(());
 		}
 	};
-	for (i, file) in files.enumerate() {
+	for file in files {
 		let file = match file {
 			Ok(file) => file,
 			Err(error) => {

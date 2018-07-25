@@ -20,50 +20,52 @@
 </head>
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-light">
-		<a class="navbar-brand" href="/startseite"><img src="/static/img/icon.svg" width="40" height="40" alt="Logo"/></a>
-		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
-			aria-expanded="false" aria-label="Toggle navigation">
-			<span class="navbar-toggler-icon"></span>
-		</button>
-		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-			<ul class="navbar-nav mr-auto">
-			<# for site in &self.all_sites.sites {
-				if !site.navbar_visible {
-					continue;
-				}
-				match &site.role {
-					Some(role) => {
-						if !&self.logged_in_roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) {
-							continue;
-						}
+		<div class="container">
+			<a class="navbar-brand" href="/startseite"><img src="/static/img/icon.svg" width="40" height="40" alt="Logo"/></a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
+				aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+				<ul class="navbar-nav mr-auto">
+				<# for site in &self.all_sites.sites {
+					if !site.navbar_visible {
+						continue;
 					}
-					None => {}
-				}
-				if site.name == self.current_site.name { #>
-				<li class="nav-item active"></li>
-					<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
-				</li>
-				<# } else { #>
-				<li class="nav-item"></li>
-					<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #></a>
-				</li>
+					match &site.role {
+						Some(role) => {
+							if !&self.logged_in_roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) {
+								continue;
+							}
+						}
+						None => {}
+					}
+					if site.name == self.current_site.name { #>
+					<li class="nav-item active"></li>
+						<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #><span class="sr-only">(current)</span></a>
+					</li>
+					<# } else { #>
+					<li class="nav-item"></li>
+						<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #></a>
+					</li>
+					<# } #>
 				<# } #>
-			<# } #>
-			</ul>
-			<ul class="navbar-nav">
-			<# match &self.logged_in_roles { #>
-					<# Some(roles) => { #>
-						<li class="nav-item">
-							<a class="nav-item nav-link mr-auto" href="/logout">Logout</a>
-						</li>
-					<# } #>
-					<# None => { #>
-						<li class="nav-item">
-							<a class="nav-item nav-link mr-auto" href="/login">Login</a>
-						</li>
-					<# } #>
-			<# } #>
-			</ul>
+				</ul>
+				<ul class="navbar-nav login-nav">
+				<# match &self.logged_in_roles { #>
+						<# Some(_) => { #>
+							<li class="nav-item">
+								<a class="nav-item nav-link mr-auto text-info" href="/logout">Logout</a>
+							</li>
+						<# } #>
+						<# None => { #>
+							<li class="nav-item">
+								<a class="nav-item nav-link mr-auto text-info" href="/login">Login</a>
+							</li>
+						<# } #>
+				<# } #>
+				</ul>
+			</div>
 		</div>
 	</nav>
 
