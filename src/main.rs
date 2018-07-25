@@ -31,6 +31,7 @@ extern crate strum_macros;
 #[macro_use]
 extern crate t4rust_derive;
 extern crate toml;
+extern crate url;
 
 use std::collections::HashMap;
 use std::env;
@@ -243,13 +244,17 @@ impl Middleware<AppState> for HasRolePredicate {
 				}
 			} else {
 				// Not logged in
-				// Redirect to login site
-				// TODO with redirect
+				// Redirect to login site with redirect to original site
 				Some(
 					HttpResponse::Found()
 						.header(
 							"location",
-							&format!("/login?redirect={}", req.path()),
+							format!(
+								"/login?redirect={}",
+								url::form_urlencoded::byte_serialize(
+									path.as_bytes()
+								).collect::<String>()
+							).as_str(),
 						)
 						.finish(),
 				)

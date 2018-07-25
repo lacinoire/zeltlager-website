@@ -2,7 +2,7 @@
 
 use actix_web::{HttpRequest, HttpResponse};
 
-use {AppState, BoxFuture, Result};
+use {AppState, Result};
 
 #[derive(Template)]
 #[TemplatePath = "templates/images.tt"]

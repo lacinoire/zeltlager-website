@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 use actix_web::middleware::identity::RequestIdentity;
-use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse};
+use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Query};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use failure;
 use futures::{Future, IntoFuture};
@@ -79,11 +79,19 @@ fn render_login(
 	::not_found(&req)
 }
 
-pub fn login(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+#[derive(Deserialize)]
+pub struct LoginArgs { redirect: Option<String> }
+
+pub fn login((req, mut args): (HttpRequest<AppState>, Query<LoginArgs>))
+	-> Result<HttpResponse> {
 	if logged_in_user(&req).is_some() {
 		Ok(HttpResponse::Found().header("location", "/").finish())
 	} else {
-		render_login(req, HashMap::new())
+		let mut values = HashMap::new();
+		if let Some(redirect) = args.redirect.take() {
+			values.insert("redirect".to_string(), redirect);
+		}
+		render_login(req, values)
 	}
 }
 
@@ -107,6 +115,7 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		.limit(1024 * 5) // 5 kiB
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
+			let redirect = body.remove("redirect");
 			let msg = tryf!(::db::AuthenticateMessage::
 				from_hashmap(body.clone()));
 			body.remove("password");
@@ -139,10 +148,16 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 												.ok_or_else(|| format_err!("no ip detected"))
 											).to_string();
 								let res = req.state().db_addr.send(::db::DecreaseRateCounterMessage { ip } );
-								Box::new(res.from_err().and_then(|_|
-									// TODO Redirect somewhere else if there is
-									// a redirect argument.
-									Ok(HttpResponse::Found().header("location", "/").finish()))
+								Box::new(res.from_err().and_then(move |_|
+									// Redirect somewhere else if there is a
+									// redirect argument.
+									if let Some(redirect) = redirect {
+										let redirect = redirect.trim_left_matches('/');
+										let redirect = format!("/{}", redirect);
+										Ok(HttpResponse::Found().header("location", redirect.as_str()).finish())
+									} else {
+										Ok(HttpResponse::Found().header("location", "/").finish())
+									})
 								)
 							}
 							Ok(Ok(None)) => {
