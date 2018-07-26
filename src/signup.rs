@@ -199,7 +199,7 @@ fn signup_insert(
 								error_message
 							),
 						);
-						warn!("Error sending e-mail: {}", error);
+						warn!("Error sending e-mail: {:?}", error);
 						render_signup(req, body)
 					}
 					Ok(Ok(())) => {
