@@ -19,6 +19,7 @@ lettre_email = "0.8"
 libpasta = "0.1.0-rc2"
 log = "0.4"
 mime = "0.3"
+notify = "4"
 pulldown-cmark = { version = "0.1", default-features = false }
 rand = "0.5"
 serde = "1"

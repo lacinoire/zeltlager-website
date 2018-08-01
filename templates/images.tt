@@ -11,6 +11,7 @@
 			return Ok(());
 		}
 	};
+	let mut list = Vec::new();
 	for file in files {
 		let file = match file {
 			Ok(file) => file,
@@ -31,9 +32,18 @@
 						path, self.name),
 					Some(name) => {
 						if name != ".gitignore" {
-			#>
+							list.push(name.to_string());
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Sort the newest file ('largest' filename) first
+	list.sort_unstable_by(|a, b| a.cmp(b).reverse());
+	for name in &list { #>
 	<a href="static/<#= name #>" data-toggle="lightbox" data-gallery="image-gallery" class="col-lg-3 col-md-4 col-6 my-3">
-		<img src="static/<#= name #>" class="img-fluid card">
+		<img src="static/thumbs/<#= name #>" class="img-fluid card">
 	</a>
-	<# }}}}}
-	} #>
+	<# } #>

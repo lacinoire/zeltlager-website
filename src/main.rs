@@ -18,6 +18,7 @@ extern crate libpasta;
 #[macro_use]
 extern crate log;
 extern crate mime;
+extern crate notify;
 extern crate pulldown_cmark;
 extern crate rand;
 extern crate serde;
@@ -68,6 +69,7 @@ mod mail;
 mod management;
 mod signup;
 mod signup_supervisor;
+mod thumbs;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
@@ -449,6 +451,9 @@ fn main() -> Result<()> {
 		db_addr,
 		mail_addr,
 	};
+
+	// Start thumbnail creator
+	std::thread::spawn(|| thumbs::watch_thumbs("Bilder2018"));
 
 	server::new(move || {
 		let mut identity_policy = CookieIdentityPolicy::new(&key)
