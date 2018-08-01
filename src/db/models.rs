@@ -347,20 +347,18 @@ impl Supervisor {
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
 
 		let f_date = get_str!(map, "fuehrungszeugnis_auststellung")?;
-		let fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>;
-		if !f_date.is_empty() {
-			fuehrungszeugnis_auststellung = Some(try_parse_date(&f_date)?);
+		let fuehrungszeugnis_auststellung = if !f_date.is_empty() {
+			Some(try_parse_date(&f_date)?)
 		} else {
-			fuehrungszeugnis_auststellung = None;
-		}
+			None
+		};
 
 		let juleica_nummer_str = get_str!(map, "juleica_nummer")?;
-		let juleica_nummer: Option<String>;
-		if juleica_nummer_str.is_empty() {
-			juleica_nummer = None;
+		let juleica_nummer = if juleica_nummer_str.is_empty() {
+			None
 		} else {
-			juleica_nummer = Some(juleica_nummer_str);
-		}
+			Some(juleica_nummer_str)
+		};
 
 		let res = Self {
 			vorname: get_str!(map, "vorname")?,
@@ -417,17 +415,14 @@ impl Supervisor {
 			);
 		}
 		// Check Juleica Number
-		match res.juleica_nummer {
-			Some(ref jn) => {
-				if !check_only_numbers(&jn, 11) {
-					bail!(
-						"Ungültige Juleicanummer ({}, Länge ≠ 11 oder \
-						 Buchstaben drin)",
-						jn
-					)
-				}
+		if let Some(ref jn) = res.juleica_nummer {
+			if !check_only_numbers(&jn, 11) {
+				bail!(
+					"Ungültige Juleicanummer ({}, Länge ≠ 11 oder \
+					 Buchstaben drin)",
+					jn
+				)
 			}
-			None => {}
 		}
 		// Check birth date
 		let birthday = Date::from_utc(res.geburtsdatum, Utc);

@@ -122,10 +122,10 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 
 			Box::new(rate_limit(&req).then(move |limit| -> BoxFuture<_> {
 				if let Err(error) = limit {
-					body.insert("error".to_string(), format!(
+					body.insert("error".to_string(),
 						"Zu viele Login Anfragen. \
-						Probieren Sie es später noch einmal.",
-					));
+						Probieren Sie es später noch einmal.".to_string(),
+					);
 					info!("Rate limit exceeded ({:?})", error);
 					Box::new(render_login(req, body).into_future())
 				} else {
@@ -186,8 +186,8 @@ pub fn logout(req: HttpRequest<AppState>) -> HttpResponse {
 pub fn logged_in_user(req: &HttpRequest<AppState>) -> Option<i32> {
 	req.identity()
 		.and_then(|s| {
-			if let &[id, timeout] =
-				s.splitn(2, '|').collect::<Vec<_>>().as_slice()
+			if let [id, timeout] =
+				*s.splitn(2, '|').collect::<Vec<_>>().as_slice()
 			{
 				if let Ok(id) = id.parse::<i32>() {
 					if let Ok(timeout) = NaiveDateTime::parse_from_str(
@@ -214,7 +214,7 @@ pub fn logged_in_user(req: &HttpRequest<AppState>) -> Option<i32> {
 
 pub fn get_roles(req: &HttpRequest<AppState>) -> BoxFuture<Option<Vec<Roles>>> {
 	if let Some(user) = logged_in_user(req) {
-		Box::new(user_get_roles(req, user).map(|s| Some(s)))
+		Box::new(user_get_roles(req, user).map(Some))
 	} else {
 		Box::new(Ok(None).into_future())
 	}

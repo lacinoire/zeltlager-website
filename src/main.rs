@@ -319,15 +319,13 @@ fn sites(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		if let Some(p) = req.match_info().get("prefix") {
 			prefix = p.to_string();
 			name = n.to_string();
-		} else {
+		} else if req.state().sites.get(n).is_some() {
 			// Check if the name is actually a prefix
-			if req.state().sites.get(n).is_some() {
-				prefix = n.to_string();
-				name = DEFAULT_NAME.to_string();
-			} else {
-				prefix = DEFAULT_PREFIX.to_string();
-				name = n.to_string();
-			}
+			prefix = n.to_string();
+			name = DEFAULT_NAME.to_string();
+		} else {
+			prefix = DEFAULT_PREFIX.to_string();
+			name = n.to_string();
 		}
 	} else {
 		name = DEFAULT_NAME.to_string();
@@ -420,7 +418,7 @@ fn main() -> Result<()> {
 		sites.insert(
 			name.to_string(),
 			basic::SiteDescriptions::parse(&format!("{}.toml", name))
-				.expect(&format!("Failed to parse {}.toml", name)),
+				.unwrap_or_else(|e| panic!("Failed to parse {}.toml ({:?})", name, e)),
 		);
 	}
 
