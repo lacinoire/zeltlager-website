@@ -6,13 +6,13 @@ Im Rahmen unseres Ferienbetreuungsprogramms organisieren wir alljählich ein Jug
 
 Die Betreuung und Verpflegung übernimmt das bewährte Zeltlagerteam, das die Zelte bereits im Vorfeld aufbaut. Übernachtet wird in Mannschaftszelten, danebenstehen Aufenthaltszelte, eine mobile Gastroküche, eine 3-Sterne Sanitäranlage mit Warmwasserduschen, ein großes Sportgelände,Tischtennisplatten, Kicker und viele, viele Spiele zur Verfügung.
 
-Alle Ausflüge, Eintritte, Vollverpflegung, Fahrten, usw.sind im Preis von 210.- € enthalten. Außer einem kleinen Taschengeld für persönliche Mitbringsel entstehen keine weiteren Kosten. Dieses Jahr zelten wir vom 30.07.2018 bis zum 10.08.2018 auf dem Sportgelände des TV Erkheim.
+Alle Ausflüge, Eintritte, Vollverpflegung, Fahrten, usw.sind im Preis von 210.- € enthalten. Außer einem kleinen Taschengeld für persönliche Mitbringsel entstehen keine weiteren Kosten. Dieses Jahr zelten wir vom 29.07.2019 bis zum 09.08.2019 auf dem Sportgelände des SV Erpfting.
 
-Treffpunkt Abfahrt 30.07.2018  
-Parkplatz Westfriedhof westliches Ende – Nähe Nederlingerstr.  
-10:00 Uhr
+Treffpunkt Abfahrt 29.07.2019  
+Voraussichtlich Parkplatz Westfriedhof westliches Ende – Nähe Nederlingerstr.  
+Voraussichtlich 10:00 Uhr
 
-Rückkehr 10.08.2018, ca. 14:00 Uhr  
+Rückkehr 09.08.2019, voraussichtlich 14:00 Uhr  
 Die Hin- und Rückreise erfolgt mit dem Bus.
 
 Für die Jugendlichen (7–15 Jahre) bieten wir ein abwechslungsreiches Programm bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen mit Lagerfeuer und Lagerwache, Nachtwanderung, Wellness-Tag, vielen Spielen auf dem Sportgelände, Lagerdisco, Gruselnacht, Lagerolympiade und vieles mehr wie Tischtennisplatten, Kicker und viele Gesellschafts/Brettspielen.

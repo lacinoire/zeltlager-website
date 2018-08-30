@@ -8,7 +8,7 @@
 	<# } #>
 
 <h1 class="headline">
-	Betreueranmeldung für das Zeltlager 2018
+	Betreueranmeldung für das Zeltlager 2019
 </h1>
 
 <form style="padding-top: 10px" method="post" action="/intern/signup-supervisor-send">
