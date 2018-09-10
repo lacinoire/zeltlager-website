@@ -1,7 +1,9 @@
 # Zeltlager 2019 – Elterninfo
 
-Das Zeltlager 2019 findet vom Montag den 29.07.2019 bis zum Freitag den
-09.08.2019 auf dem Sportgelände des SV Erpfting statt. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
+Das Zeltlager 2019 findet vom Montag den 29.07.2019 bis zum Freitag den 09.08.2019 auf dem Sportgelände des SV Erpfting statt.
+Die Teilnehmergebühr beträgt 210 € und beinhaltet alle Kosten.
+Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag.
+Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
 
 Etwa 6 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten
 Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle
