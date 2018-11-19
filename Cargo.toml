@@ -10,23 +10,29 @@ bytes = "0.4"
 chrono = "0.4"
 diesel = { version = "1.2", features = ["chrono", "postgres", "network-address"] }
 dotenv = "0.13"
-env_logger = "0.5"
+env_logger = "0.6"
 failure = "0.1"
 futures = "0.1"
-ipnetwork = { version = "0.12.2" }
-lettre = "0.8"
-lettre_email = "0.8"
-libpasta = "0.1.0-rc2"
+ipnetwork = "0.12"
+lettre = "0.9"
+lettre_email = "0.9"
+scrypt = "0.2"
 log = "0.4"
 mime = "0.3"
+native-tls = "0.2"
 notify = "4"
-pulldown-cmark = { version = "0.1", default-features = false }
-rand = "0.5"
+pulldown-cmark = { version = "0.2", default-features = false }
+rand = "0.6"
+rpassword = "2"
 serde = "1"
 serde_derive = "1"
 structopt = "0.2"
-strum = "0.9.0"
-strum_macros = "0.9.0"
+strum = "0.11"
+strum_macros = "0.11"
 t4rust-derive = { git = "https://github.com/ReSpeak/t4rust.git" }
 toml = "0.4"
 url = "1"
+
+[patch.crates-io]
+lettre = { git = "https://github.com/lettre/lettre", rev = "c988b17" }
+lettre_email = { git = "https://github.com/lettre/lettre", rev = "c988b17" }

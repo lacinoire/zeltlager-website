@@ -6,7 +6,8 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::Connection;
 use dotenv::dotenv;
-use libpasta;
+use rpassword;
+use scrypt;
 
 use Result;
 
@@ -58,10 +59,11 @@ pub(crate) fn cmd_action(action: ::Action) -> Result<()> {
 				return Ok(());
 			}
 
-			let pw = libpasta::rpassword::prompt_password_stdout(
+			let pw = rpassword::prompt_password_stdout(
 				"Please enter the password: ",
 			).unwrap();
-			let pw = libpasta::hash_password(&pw);
+			let pw = scrypt::scrypt_simple(&pw, &::get_scrypt_params()).unwrap();
+			println!("Get {:?}", pw);
 			if exists {
 				diesel::update(users.filter(username.eq(&name)))
 					.set(password.eq(pw))

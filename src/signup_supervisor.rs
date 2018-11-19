@@ -12,8 +12,6 @@ use BoxFuture;
 use HttpRequest;
 use HttpResponse;
 
-use Result;
-
 #[derive(Template)]
 #[TemplatePath = "templates/signupSupervisor.tt"]
 #[derive(Debug)]
@@ -34,7 +32,7 @@ impl SignupSupervisor {
 	}
 }
 
-pub fn signup(req: HttpRequest<AppState>) -> Result<HttpResponse> {
+pub fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	render_signup(req, HashMap::new())
 }
 
@@ -42,19 +40,21 @@ pub fn signup(req: HttpRequest<AppState>) -> Result<HttpResponse> {
 fn render_signup(
 	req: HttpRequest<AppState>,
 	values: HashMap<String, String>,
-) -> Result<HttpResponse> {
-	if let Ok(site) = req.state().sites["intern"]
-		.get_site(req.state().config.clone(), "betreuer-anmeldung", None)
-	{
-		let content = format!("{}", site);
-		let new_content = SignupSupervisor::new(req.state(), values);
-		let content = content
-			.replace("<insert content here>", &format!("{}", new_content));
-		return Ok(HttpResponse::Ok()
-			.content_type("text/html; charset=utf-8")
-			.body(content));
-	}
-	::not_found(&req)
+) -> BoxFuture<HttpResponse> {
+	Box::new(::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
+		if let Ok(site) = req.state().sites["intern"].get_site(
+			req.state().config.clone(), "betreuer-anmeldung", res) {
+			let content = format!("{}", site);
+			let new_content = SignupSupervisor::new(req.state(), values);
+			let content = content
+				.replace("<insert content here>", &format!("{}", new_content));
+			Box::new(future::ok(HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body(content)))
+		} else {
+			::not_found(&req)
+		}
+	}))
 }
 
 /// show a success site.

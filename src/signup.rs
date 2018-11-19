@@ -79,7 +79,7 @@ pub fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		("eltern_mail", "@"),
 		("eltern_handynummer", "f"),
 		("strasse", "g"),
-		("hausnummer", "h"),
+		("hausnummer", "1"),
 		("ort", "i"),
 		("plz", "80000"),
 	];
@@ -94,24 +94,25 @@ fn render_signup(
 	req: HttpRequest<AppState>,
 	values: HashMap<String, String>,
 ) -> BoxFuture<HttpResponse> {
-	if let Ok(site) =
-		req.state().sites["public"].get_site(req.state().config.clone(), "anmeldung", None)
-	{
-		let content = format!("{}", site);
-		return Box::new(Signup::new(req.state(), values).and_then(
-			move |new_content| {
-				let content = content.replace(
-					"<insert content here>",
-					&format!("{}", new_content),
-				);
+	Box::new(::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
+		if let Ok(site) = req.state().sites["public"].get_site(
+			req.state().config.clone(), "anmeldung", res) {
+			let content = format!("{}", site);
+			return Box::new(Signup::new(req.state(), values).and_then(
+				move |new_content| {
+					let content = content.replace(
+						"<insert content here>",
+						&format!("{}", new_content),
+					);
 
-				Ok(HttpResponse::Ok()
-					.content_type("text/html; charset=utf-8")
-					.body(content))
-			},
-		));
-	}
-	Box::new(::not_found(&req).into_future().from_err())
+					Ok(HttpResponse::Ok()
+						.content_type("text/html; charset=utf-8")
+						.body(content))
+				},
+			));
+		}
+		Box::new(::not_found(&req).into_future().from_err())
+	}))
 }
 
 /// Check if too many members are already registered, then call `signup_insert`.

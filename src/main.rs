@@ -14,17 +14,18 @@ extern crate futures;
 extern crate ipnetwork;
 extern crate lettre;
 extern crate lettre_email;
-extern crate libpasta;
 #[macro_use]
 extern crate log;
 extern crate mime;
+extern crate native_tls;
 extern crate notify;
 extern crate pulldown_cmark;
 extern crate rand;
+extern crate rpassword;
+extern crate scrypt;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
 extern crate structopt;
 extern crate strum;
 #[macro_use]
@@ -45,8 +46,7 @@ use actix_web::middleware::identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::middleware::{self, csrf, Middleware};
 use actix_web::*;
 use chrono::Duration;
-use futures::Future;
-use futures::IntoFuture;
+use futures::{future, Future, IntoFuture};
 use rand::Rng;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
@@ -131,6 +131,8 @@ pub struct MailAddress {
 	address: String,
 }
 
+fn submission_port() -> u16 { 587 }
+
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct MailAccount {
@@ -140,6 +142,8 @@ pub struct MailAccount {
 	name: Option<String>,
 	/// Password to login to smtp.
 	password: String,
+	#[serde(default = "submission_port")]
+	port: u16,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -194,8 +198,8 @@ pub struct AppState {
 	mail_addr: actix::Addr<mail::MailExecutor>,
 }
 
-impl lettre_email::IntoMailbox for MailAddress {
-	fn into_mailbox(self) -> lettre_email::Mailbox {
+impl Into<lettre_email::Mailbox> for MailAddress {
+	fn into(self) -> lettre_email::Mailbox {
 		lettre_email::Mailbox {
 			name: self.name,
 			address: self.address,
@@ -233,21 +237,20 @@ impl Middleware<AppState> for HasRolePredicate {
 		req: &HttpRequest<AppState>,
 	) -> error::Result<middleware::Started> {
 		let role = self.role.clone();
-		let forbidden_site = forbidden(req)?;
+		let forbidden_site = forbidden(req);
 		let path = req.path().to_string();
-		let fut = auth::get_roles(req).map(move |r| {
+		let fut = auth::get_roles(req).and_then(move |r| -> BoxFuture<Option<HttpResponse>> {
 			if let Some(roles) = r {
 				if roles.contains(&role) {
-					None
+					Box::new(future::ok(None))
 				} else {
 					warn!("Forbidden '{}'", path);
-					Some(forbidden_site)
+					Box::new(forbidden_site.map(Some))
 				}
 			} else {
 				// Not logged in
 				// Redirect to login site with redirect to original site
-				Some(
-					HttpResponse::Found()
+				Box::new(future::ok(Some(HttpResponse::Found()
 						.header(
 							"location",
 							format!(
@@ -257,8 +260,7 @@ impl Middleware<AppState> for HasRolePredicate {
 								).collect::<String>()
 							).as_str(),
 						)
-						.finish(),
-				)
+						.finish())))
 			}
 		});
 		Ok(middleware::Started::Future(Box::new(fut.from_err())))
@@ -306,6 +308,10 @@ fn escape_html_attribute(s: &str) -> String {
 		.replace('"', "&quot;")
 }
 
+fn get_scrypt_params() -> scrypt::ScryptParams {
+	scrypt::ScryptParams::new(15, 8, 1).unwrap()
+}
+
 fn sites(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let prefix: String;
 	let name: String;
@@ -333,9 +339,11 @@ fn sites(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	}
 
 	let site_res = site(&req, &prefix, &name);
-	Box::new(site_res.and_then(move |site_opt| match site_opt {
-		Some(res) => Ok(res),
-		None => not_found(&req),
+	Box::new(site_res.and_then(move |site_opt| -> BoxFuture<HttpResponse> {
+		match site_opt {
+			Some(res) => Box::new(future::ok(res)),
+			None => not_found(&req),
+		}
 	}))
 }
 
@@ -367,25 +375,30 @@ fn site(
 	}
 }
 
-fn not_found(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
+fn not_found(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	warn!("File not found '{}'", req.path());
-	let site =
-		req.state().sites["public"].get_site(req.state().config.clone(), "notfound", None)?;
-	let content = format!("{}", site);
-	Ok(
-		HttpResponse::NotFound()
+	let state = req.state().clone();
+	Box::new(::auth::get_roles(&req).and_then(move |res| {
+		let site = state.sites["public"].get_site(
+			state.config.clone(), "notfound", res)?;
+		let content = format!("{}", site);
+		Ok(HttpResponse::NotFound()
 			.content_type("text/html; charset=utf-8")
-			.body(content),
-	)
+			.body(content))
+	}))
 }
 
-fn forbidden(req: &HttpRequest<AppState>) -> Result<HttpResponse> {
-	let site =
-		req.state().sites["public"].get_site(req.state().config.clone(), "forbidden", None)?;
-	let content = format!("{}", site);
-	Ok(HttpResponse::Forbidden()
-		.content_type("text/html; charset=utf-8")
-		.body(content))
+fn forbidden(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+	warn!("File not found '{}'", req.path());
+	let state = req.state().clone();
+	Box::new(::auth::get_roles(&req).and_then(move |res| {
+		let site = state.sites["public"].get_site(
+			state.config.clone(), "forbidden", res)?;
+		let content = format!("{}", site);
+		Ok(HttpResponse::NotFound()
+			.content_type("text/html; charset=utf-8")
+			.body(content))
+	}))
 }
 
 fn main() -> Result<()> {
@@ -496,7 +509,7 @@ fn main() -> Result<()> {
 			.route("/login", Method::GET, auth::login)
 			.route("/login", Method::POST, auth::login_send)
 			.route("/logout", Method::GET, auth::logout)
-			.scope("/Bilder2018", |scope| { scope
+			.scope("/Bilder2018/", |scope| { scope
 				.middleware(HasRolePredicate::new(auth::Roles::ImageDownload2018))
 				.resource("/static/{tail:.*}", |r| {
 					r.h(fs::StaticFiles::with_config("Bilder2018", StaticFilesConfig)
@@ -505,10 +518,12 @@ fn main() -> Result<()> {
 				.route("", Method::GET, ::images::render_images)
 				.default_resource(|r| r.f(not_found))
 			})
+			.route("/Bilder2018", Method::GET, |_: HttpRequest<AppState>|
+				HttpResponse::Found().header("location", "/Bilder2018/").finish())
 			// Allow an empty name
 			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)
 			.route("/{name}", Method::GET, ::sites)
-			.route("", Method::GET, ::sites)
+			.route("/", Method::GET, ::sites)
 			.default_resource(|r| r.f(not_found))
 	}).bind(address)?
 		.start();

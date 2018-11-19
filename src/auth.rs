@@ -8,10 +8,10 @@ use actix_web::middleware::identity::RequestIdentity;
 use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Query};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use failure;
-use futures::{Future, IntoFuture};
+use futures::{future, Future, IntoFuture};
 
 use form::Form;
-use {AppState, BoxFuture, Result};
+use {AppState, BoxFuture};
 
 #[derive(Clone, EnumString, Debug, Deserialize, PartialEq, Eq)]
 pub enum Roles {
@@ -64,28 +64,31 @@ fn rate_limit(req: &HttpRequest<AppState>) -> BoxFuture<()> {
 fn render_login(
 	req: HttpRequest<AppState>,
 	values: HashMap<String, String>,
-) -> Result<HttpResponse> {
-	if let Ok(site) =
-		req.state().sites["public"].get_site(req.state().config.clone(), "login", None)
-	{
-		let content = format!("{}", site);
-		let login = format!("{}", Login::new(values));
-		let content = content.replace("<insert content here>", &login);
+) -> BoxFuture<HttpResponse> {
+	Box::new(::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
+		if let Ok(site) = req.state().sites["public"].get_site(
+			req.state().config.clone(), "login", res)
+		{
+			let content = format!("{}", site);
+			let login = format!("{}", Login::new(values));
+			let content = content.replace("<insert content here>", &login);
 
-		return Ok(HttpResponse::Ok()
-			.content_type("text/html; charset=utf-8")
-			.body(content));
-	}
-	::not_found(&req)
+			Box::new(future::ok(HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body(content)))
+		} else {
+			::not_found(&req)
+		}
+	}))
 }
 
 #[derive(Deserialize)]
 pub struct LoginArgs { redirect: Option<String> }
 
 pub fn login((req, mut args): (HttpRequest<AppState>, Query<LoginArgs>))
-	-> Result<HttpResponse> {
+	-> BoxFuture<HttpResponse> {
 	if logged_in_user(&req).is_some() {
-		Ok(HttpResponse::Found().header("location", "/").finish())
+		Box::new(future::ok(HttpResponse::Found().header("location", "/").finish()))
 	} else {
 		let mut values = HashMap::new();
 		if let Some(redirect) = args.redirect.take() {
@@ -115,7 +118,7 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		.limit(1024 * 5) // 5 kiB
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
-			let redirect = body.remove("redirect");
+			let redirect = body.get("redirect").map(Clone::clone);
 			let msg = tryf!(::db::AuthenticateMessage::
 				from_hashmap(body.clone()));
 			body.remove("password");

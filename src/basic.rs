@@ -46,6 +46,7 @@ impl SiteDescriptions {
 		Ok(toml::from_str(&content)?)
 	}
 
+	/// `logged_in_roles` should be `None` if the user is not logged in.
 	pub fn get_site(
 		&self,
 		config: ::Config,

@@ -16,7 +16,7 @@ use diesel::prelude::*;
 use diesel::result::Error;
 use dotenv::dotenv;
 use ipnetwork::IpNetwork;
-use libpasta;
+use scrypt;
 
 use Result;
 
@@ -278,7 +278,7 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			.first::<models::UserQueryResult>(&self.connection)
 		{
 			Ok(user) => {
-				if libpasta::verify_password(&user.password, &msg.password) {
+				if scrypt::scrypt_check(&msg.password, &user.password).is_ok() {
 					Ok(Some(user.id))
 				} else {
 					Ok(None)
@@ -287,8 +287,9 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			Err(Error::NotFound) => {
 				// Hash a random password so we don’t leak timing information
 				// if a user exists or not.
-				let pw = libpasta::hash_password(&msg.username);
-				let _ = libpasta::verify_password(&pw, &msg.username);
+				let pw = scrypt::scrypt_simple(&msg.username,
+					&::get_scrypt_params()).unwrap();
+				let _ = scrypt::scrypt_check(&msg.password, &pw);
 				Ok(None)
 			}
 			Err(err) => Err(err.into()),
