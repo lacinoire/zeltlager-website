@@ -1,13 +1,20 @@
 # Zeltlager 2019 – Elterninfo
 
-Das Zeltlager 2019 findet vom Montag den 29.07.2019 bis zum Freitag den 09.08.2019 auf dem Sportgelände des SV Erpfting statt.
-Die Teilnehmergebühr beträgt 210 € und beinhaltet alle Kosten.
-Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag.
-Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
+Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Etwa 6 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten
-Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle
-Informationen. Der Elternabend wird ca. 1 Stunde dauern.
+Das Zeltlager findet dieses Jahr auf dem Sportgelände des SV Erpfting (nähe Landsberg a. Lech) statt.
+
+Abfahrt Montag den 29.07.2019 um 10:00 Uhr 
+Rückkehr Freitag den 09.08.2019 um ca. 14:00 Uhr
+auf dem Parkplatz Westfriedhof in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
+
+Die Hin- und Rückreise erfolgt mit modernen Reisebussen.
+
+Die Teilnehmergebühr beträgt 210 € und beinhaltet alle Kosten. Außer einem kleinen Taschengeld für persönliche Mitbringsel entstehen keine weiteren Kosten. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
+
+Die Betreuung und Verpflegung übernimmt das qualifizierte [Zeltlagerteam](ausstattung#team), das die Zelte bereits im Vorfeld aufbaut. Übernachtet wird in Mannschaftszelten, daneben stehen Aufenthaltszelte, eine mobile Gastroküche, eine Sanitäranlage mit Warmwasserduschen, ein großes Sportgelände und viele, viele Spiele zur Verfügung
+
+Etwa 4 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle Informationen. Der Elternabend wird ca. 1 Stunde dauern.
 
 Wir freuen uns schon auf das Zeltlager 2019.
 
@@ -17,31 +24,16 @@ Das Betreuerteam
 
 ### Spiele, Spaß und Abenteuer…
 
-Jedes Jahr habt ihr die Möglichkeit mit uns auf Reisen 😎 zu gehen. Für
-euch Kinder und Jugendliche zwischen 7 und 15 Jahren bieten wir ein
-Jugendzeltlager mit besonderen Reizen an.
+Spiele, Spaß und Abenteuer …
 
-Früher zehn und ab 2018 elf Tage lang tobt ihr euch bei verschiedenen
-Aktivitäten wie Fußball-, Tischtennis- und Schwedenschachturnieren, bei
-Lagerolympiade und Ostfriesenwettkampf und der alljährlichen Lager-Disco
-aus. Der Wettbewerb an sich steht aber im Hintergrund, da wir in erster
-Linie gemeinsam Spaß haben wollen.
+Jedes Jahr habt ihr die Möglichkeit mit uns auf Reisen 😎 zu gehen. Für euch Kinder und Jugendliche zwischen 7 und 15 Jahren bieten wir ein Jugendzeltlager an, bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen.
 
-Natürlich geht es in dieser Zeit auch mal besinnlich und ruhig zu.
-Schließlich wollen wir vorallem eine wundervolle Zeit zusammen verbringen
-und nebenbei allerlei Interessantes und Spannendes entdecken. Dabei sind
-wir Gäste bei befreundeten Sportvereinen und dürfen ihre Sportplätze
-nutzen. Abkühlung suchen wir in den naheliegenden Freibädern oder bei
-diversen Wasserschlachten am Lagerplatz. Selbstverständlich erkunden wir
-auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei
-Gruppenspielen wie „Das Perfekte Zelt“ euren Teamgeist beweisen oder ihr
-kämpft gegen die Betreuer bei „Schlag den Supervisor“. Natürlich lehren
-wir Euch während der Nachtwanderung/Gruselnacht ordentlich das
-„Fürchten“ und Lagerwachen am Lagerfeuer gehören ebenso dazu.
+Freut euch auf Lagerfeuer mit Lagerwache, Nachtwanderung, Wellness-Tag, vielen Spielen auf dem Sportgelände, Lagerdisco, Gruselnacht und viele tolle Gesellschafts- und Brettspiele.
+Auch könnt ihr Euch austoben bei verschiedenen Aktivitäten wie Fußball, Volleyball, Tischtennis und weiteren Ballspielen. Natürlich geht es in dieser Zeit auch mal besinnlich und ruhig zu. Schließlich wollen wir vor allem eine wundervolle Zeit zusammen verbringen und nebenbei allerlei Interessantes und Spannendes entdecken.
 
-Unser [Betreuerteam](team) plant im Vorfeld eure 11 Tage, damit das
-[Programm](programm) so abwechslungsreich, spannend, unterhaltsam
-und aufregend wie nur möglich wird.
+Abkühlung suchen wir in den naheliegenden Freibädern oder bei diversen Wasserschlachten am Lagerplatz. Selbstverständlich erkunden wir auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei Gruppenspielen wie „Das perfekte Zelt“ euren Teamgeist beweisen oder ihr kämpft gegen die Betreuer bei „Schlag den Supervisor“.
+
+Unser [Zeltlagerteam](ausstattung#team) plant im Vorfeld eure Zeltlagertage, damit sie so abwechslungsreich, spannend, unterhaltsam und aufregend wie nur möglich werden.
 
 Klickt euch durch und meldet euch an!
 

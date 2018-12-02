@@ -30,22 +30,23 @@ description = "Anmeldung für’s Zeltlager war erfolgreich"
 navbar_visible = false
 
 [[sites]]
-name = "programm"
-file_name = "Programm.md"
-title = "Programm"
-description = "Programm des Zeltlagers"
+name = "packliste"
+file_name = "Packliste.md"
+title = "Packliste"
+description = "Packliste für das Zeltlagers"
 
 [[sites]]
 name = "team"
 file_name = "Team.md"
 title = "Team"
 description = "Team des Zeltlagers"
+navbar_visible = false
 
 [[sites]]
 name = "ausstattung"
 file_name = "Ausstattung.md"
-title = "Ausstattung"
-description = "Ausstattung des Zeltlagers"
+title = "Ausstattung und Team"
+description = "Ausstattung und Team des Zeltlagers"
 
 [[sites]]
 name = "betreuer"
