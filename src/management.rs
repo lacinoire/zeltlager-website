@@ -63,7 +63,6 @@ pub(crate) fn cmd_action(action: ::Action) -> Result<()> {
 				"Please enter the password: ",
 			).unwrap();
 			let pw = scrypt::scrypt_simple(&pw, &::get_scrypt_params()).unwrap();
-			println!("Get {:?}", pw);
 			if exists {
 				diesel::update(users.filter(username.eq(&name)))
 					.set(password.eq(pw))

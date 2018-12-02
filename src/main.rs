@@ -156,6 +156,10 @@ pub struct Config {
 	/// E-Mail addresses which should also receive all signup-confirmation
 	/// mails.
 	additional_mail_receivers: Vec<MailAddress>,
+	/// If a member signs up with this mail address, the signup mail will only
+	/// be sent to this address, but not to additional receivers. The member
+	/// will also not be entered into the database.
+	test_mail: Option<String>,
 
 	/// The maximum allowed amount of members.
 	max_members: i64,

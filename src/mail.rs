@@ -77,9 +77,11 @@ impl Handler<SignupMessage> for MailExecutor {
 			.subject(subject)
 			.text(body);
 
-		// Send to additional receivers in bcc
-		for receiver in &self.config.additional_mail_receivers {
-			email_builder = email_builder.bcc(receiver.clone());
+		if self.config.test_mail.as_ref().map(|m| m != &msg.member.eltern_mail).unwrap_or(true) {
+			// Send to additional receivers in bcc
+			for receiver in &self.config.additional_mail_receivers {
+				email_builder = email_builder.bcc(receiver.clone());
+			}
 		}
 
 		let email = email_builder.build()?;

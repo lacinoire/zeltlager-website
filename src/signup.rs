@@ -115,7 +115,7 @@ fn render_signup(
 	}))
 }
 
-/// Check if too many members are already registered, then call `signup_insert`.
+/// Check if too many members are already registered, then call `signup_mail`.
 fn signup_check_count(
 	count: i64,
 	max_members: i64,
@@ -126,7 +126,10 @@ fn signup_check_count(
 	error_message: String,
 	req: HttpRequest<AppState>,
 ) -> BoxFuture<HttpResponse> {
-	if count >= max_members {
+	if req.state().config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
+		// Don't insert test signup into database
+		Box::new(signup_mail(&mail_addr, member, body, error_message, req))
+	} else if count >= max_members {
 		// Show error
 		body.insert(
 			"error".to_string(),
@@ -161,7 +164,7 @@ fn signup_check_count(
 							warn!("Error inserting into database: {}", error);
 							render_signup(req, body)
 						}
-						Ok(Ok(())) => signup_insert(
+						Ok(Ok(())) => signup_mail(
 							&mail_addr,
 							member,
 							body,
@@ -174,8 +177,8 @@ fn signup_check_count(
 	}
 }
 
-/// Insert the member into the database, write an email and show a success site.
-fn signup_insert(
+/// Write an email and show a success site.
+fn signup_mail(
 	mail_addr: &actix::Addr<mail::MailExecutor>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
