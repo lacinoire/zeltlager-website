@@ -29,9 +29,9 @@ Spiele, Spaß und Abenteuer …
 Jedes Jahr habt ihr die Möglichkeit mit uns auf Reisen 😎 zu gehen. Für euch Kinder und Jugendliche zwischen 7 und 15 Jahren bieten wir ein Jugendzeltlager an, bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen.
 
 Freut euch auf Lagerfeuer mit Lagerwache, Nachtwanderung, Wellness-Tag, vielen Spielen auf dem Sportgelände, Lagerdisco, Gruselnacht und viele tolle Gesellschafts- und Brettspiele.
-Auch könnt ihr Euch austoben bei verschiedenen Aktivitäten wie Fußball, Volleyball, Tischtennis und weiteren Ballspielen. Natürlich geht es in dieser Zeit auch mal besinnlich und ruhig zu. Schließlich wollen wir vor allem eine wundervolle Zeit zusammen verbringen und nebenbei allerlei Interessantes und Spannendes entdecken.
+Auch könnt ihr Euch austoben bei verschiedenen Aktivitäten wie Fußball, Volleyball, Tischtennis, weiteren Ballspielen und freier Zeit mit euren Freunden. Natürlich geht es in dieser Zeit auch mal besinnlich und ruhig zu. Schließlich wollen wir vor allem eine wundervolle Zeit zusammen verbringen und nebenbei allerlei Interessantes und Spannendes entdecken.
 
-Abkühlung suchen wir in den naheliegenden Freibädern oder bei diversen Wasserschlachten am Lagerplatz. Selbstverständlich erkunden wir auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei Gruppenspielen wie „Das perfekte Zelt“ euren Teamgeist beweisen oder ihr kämpft gegen die Betreuer bei „Schlag den Supervisor“.
+Abkühlung suchen wir in den naheliegenden Freibädern oder bei diversen Wasserschlachten am Lagerplatz. Selbstverständlich erkunden wir auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei Gruppenspielen wie „Das perfekte Zelt“ euren Teamgeist beweisen oder ihr kämpft gegen die Betreuer bei „Schlag den Supervisor“. Gemeinsam mit eurem Zelt bereitet ihr eine Vorführung für den großen Abschlussabend vor um den anderen zu zeigen, welches das beste Zelt am Zeltplatz ist 😉.
 
 Unser [Zeltlagerteam](ausstattung#team) plant im Vorfeld eure Zeltlagertage, damit sie so abwechslungsreich, spannend, unterhaltsam und aufregend wie nur möglich werden.
 
