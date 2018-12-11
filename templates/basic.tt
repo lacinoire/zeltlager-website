@@ -70,8 +70,8 @@
 			</div>
 		</div>
 	</nav>
-
-	<div class="container">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<div class="container">
 <#
 	// Show global message if there is one
 	if let Some(ref message) = self.config.global_message { #>
@@ -82,7 +82,8 @@
 
 <#= self.content #>
 
-	</div>
+		</div>
+	</meta>
 
 	<footer class="footer">
 		<div class="text-center">

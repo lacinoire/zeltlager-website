@@ -15,6 +15,11 @@ img {
 	padding: 5px;
 }
 
+.responsive-image {
+	width: 50vw;
+	height: auto;
+}
+
 h1 {
 	padding-top: 5px;
 	padding-bottom: 5px;

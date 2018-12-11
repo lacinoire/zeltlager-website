@@ -4,10 +4,10 @@
 
 <div class="row">
 	<div class="col">
-		<img src="/static/img/ausstattung/AufenthaltszelteSonne.jpg" alt="Aufenthaltszelte in der Sonne">
+		<img src="/static/img/ausstattung/AufenthaltszelteSonne.jpg" alt="Aufenthaltszelte in der Sonne" class="responsive-image">
 	</div>
 	<div class="col">
-		<img src="/static/img/ausstattung/AufenthaltszelteErpfting.jpg" alt="Aufenthaltszelte in Erpfting">
+		<img src="/static/img/ausstattung/AufenthaltszelteErpfting.jpg" alt="Aufenthaltszelte in Erpfting" class="responsive-image">
 	</div>
 </div>
 
@@ -15,10 +15,10 @@
 
 <div class="row">
 	<div class="col">
-		<img src="/static/img/ausstattung/ZelteErkheim.jpeg" alt="Zeltplatz in Erkheim">
+		<img src="/static/img/ausstattung/ZelteErkheim.jpeg" alt="Zeltplatz in Erkheim" class="responsive-image">
 	</div>
 	<div class="col">
-		<img src="/static/img/ausstattung/ZelteAbends.jpeg" alt="Zeltplatz am Abend">
+		<img src="/static/img/ausstattung/ZelteAbends.jpeg" alt="Zeltplatz am Abend" class="responsive-image">
 	</div>
 </div>
 
@@ -26,10 +26,10 @@
 
 <div class="row">
 	<div class="col">
-		<img src="/static/img/ausstattung/KuecheAußen.jpeg" alt="Unsere Kücheanhänger">
+		<img src="/static/img/ausstattung/KuecheAußen.jpeg" alt="Unsere Kücheanhänger" class="responsive-image">
 	</div>
 	<div class="col">
-		<img src="/static/img/ausstattung/KuecheInnen.jpeg" alt="Die Küche von Innen">
+		<img src="/static/img/ausstattung/KuecheInnen.jpeg" alt="Die Küche von Innen" class="responsive-image">
 	</div>
 </div>
 
@@ -39,10 +39,10 @@
 
 <div class="row">
 	<div class="col">
-		<img src="/static/img/team/TeamBrasilien.jpg" alt="Ü-Abend Brasilien">
+		<img src="/static/img/team/TeamBrasilien.jpg" alt="Ü-Abend Brasilien" class="responsive-image">
 	</div>
 	<div class="col">
-		<img src="/static/img/team/TeamKellner.jpg" alt="ü-Abend England">
+		<img src="/static/img/team/TeamKellner.jpg" alt="ü-Abend England" class="responsive-image">
 	</div>
 </div>
 
@@ -52,10 +52,10 @@ Die Zeltbetreuung setzt sich aus geschulten Betreuern zusammen, die im Besitz de
 
 <div class="row">
 	<div class="col">
-		<img src="/static/img/team/EssenBrotzeit.jpg" alt="Frische Brotzeit">
+		<img src="/static/img/team/EssenBrotzeit.jpg" alt="Frische Brotzeit" class="responsive-image">
 	</div>
 	<div class="col">
-		<img src="/static/img/team/TeamThomas.jpg" alt="Unser Koch Thomas">
+		<img src="/static/img/team/TeamThomas.jpg" alt="Unser Koch Thomas" class="responsive-image">
 	</div>
 </div>
 
