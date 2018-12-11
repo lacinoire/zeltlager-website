@@ -44,7 +44,7 @@ Eure Supervisor 😃
 
 <div class="row">
 	<div class="col">
-		<img src="/static/img/programm/SpieleSonne.jpg" alt="Menschenketten in der Sonne" class="responsive-image"
+		<img src="/static/img/programm/SpieleSonne.jpg" alt="Menschenketten in der Sonne" class="responsive-image">
 	</div>
 	<div class="col">
 		<img src="/static/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness" class="responsive-image">
