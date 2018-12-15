@@ -1,6 +1,0 @@
-format_strings = true
-hard_tabs = true
-imports_indent = "Block"
-max_width = 80
-reorder_imports = true
-use_try_shorthand = true

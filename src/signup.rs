@@ -4,11 +4,11 @@ use std::collections::HashMap;
 
 use actix;
 use actix_web::*;
-use db;
 use failure;
 use form::Form;
 use futures::{future, Future, IntoFuture};
-use mail;
+
+use {db, discourse, mail};
 use AppState;
 use BoxFuture;
 use HttpRequest;
@@ -121,14 +121,15 @@ fn signup_check_count(
 	max_members: i64,
 	db_addr: &actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
+	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
 	error_message: String,
 	req: HttpRequest<AppState>,
 ) -> BoxFuture<HttpResponse> {
 	if req.state().config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
-		// Don't insert test signup into database
-		Box::new(signup_mail(&mail_addr, member, body, error_message, req))
+		// Don't insert test signup into database and discourse
+		Box::new(signup_mail(&mail_addr, None, member, body, error_message, req))
 	} else if count >= max_members {
 		// Show error
 		body.insert(
@@ -166,6 +167,7 @@ fn signup_check_count(
 						}
 						Ok(Ok(())) => signup_mail(
 							&mail_addr,
+							disc_addr,
 							member,
 							body,
 							error_message,
@@ -180,51 +182,65 @@ fn signup_check_count(
 /// Write an email and show a success site.
 fn signup_mail(
 	mail_addr: &actix::Addr<mail::MailExecutor>,
+	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
 	error_message: String,
 	req: HttpRequest<AppState>,
 ) -> BoxFuture<HttpResponse> {
+	// Signup to discourse
+	let fut = if let Some(addr) = disc_addr {
+		signup_discourse(&addr, member.clone())
+	} else {
+		Box::new(future::ok(()))
+	};
+
 	// Write an e-mail
-	Box::new(
-		mail_addr
-			.send(mail::SignupMessage { member })
-			.from_err::<failure::Error>()
-			.then(move |result| -> BoxFuture<HttpResponse> {
-				match result {
-					Err(error) | Ok(Err(error)) => {
-						// Show error and prefilled form
-						body.insert(
-							"error".to_string(),
-							format!(
-								"Ihre Daten wurden erfolgreich \
-								 gespeichert.\nEs ist leider ein Fehler beim \
-								 E-Mail senden aufgetreten.\n{}",
-								error_message
-							),
-						);
-						warn!("Error sending e-mail: {:?}", error);
-						render_signup(req, body)
-					}
-					Ok(Ok(())) => {
-						// Redirect to success site
-						Box::new(future::ok(
-							HttpResponse::Found()
-								.header(
-									http::header::LOCATION,
-									"anmeldung-erfolgreich",
-								)
-								.finish(),
-						))
-					}
+	Box::new(mail_addr
+		.send(mail::SignupMessage { member })
+		.from_err::<failure::Error>()
+		.then(move |result| -> BoxFuture<HttpResponse> {
+			match result {
+				Err(error) | Ok(Err(error)) => {
+					// Show error and prefilled form
+					body.insert(
+						"error".to_string(),
+						format!(
+							"Ihre Daten wurden erfolgreich \
+							 gespeichert.\nEs ist leider ein Fehler beim \
+							 E-Mail senden aufgetreten.\n{}",
+							error_message
+						),
+					);
+					error!("Error sending e-mail: {:?}", error);
+					render_signup(req, body)
 				}
-			}),
+				Ok(Ok(())) => {
+					// Redirect to success site
+					Box::new(future::ok(
+						HttpResponse::Found()
+							.header(
+								http::header::LOCATION,
+								"anmeldung-erfolgreich",
+							)
+							.finish(),
+					))
+				}
+			}
+		})
+		.then(|r| fut.then(move |dr| {
+			if let Err(e) = dr {
+				error!("Failed to signup to discourse: {:?}", e);
+			}
+			r
+		}))
 	)
 }
 
 pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let db_addr = req.state().db_addr.clone();
 	let mail_addr = req.state().mail_addr.clone();
+	let disc_addr = req.state().disc_addr.clone();
 	let error_message = req.state().config.error_message.clone();
 	let max_members = req.state().config.max_members;
 	let db_addr2 = db_addr.clone();
@@ -257,8 +273,23 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 						render_signup(req, body)
 					}
 					Ok(Ok(count)) => signup_check_count(count, max_members,
-						&db_addr2, mail_addr, member, body, error_message, req),
+						&db_addr2, mail_addr, disc_addr, member, body,
+						error_message, req),
 				}})
 		)})
 		.responder()
+}
+
+/// Add to discourse group
+fn signup_discourse(
+	disc_addr: &actix::Addr<discourse::DiscourseExecutor>,
+	member: db::models::Teilnehmer,
+) -> BoxFuture<()> {
+	// Write an e-mail
+	Box::new(
+		disc_addr
+			.send(discourse::SignupMessage { member })
+			.from_err::<failure::Error>()
+			.and_then(|r| r)
+	)
 }

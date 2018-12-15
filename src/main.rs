@@ -21,6 +21,7 @@ extern crate native_tls;
 extern crate notify;
 extern crate pulldown_cmark;
 extern crate rand;
+extern crate reqwest;
 extern crate rpassword;
 extern crate scrypt;
 extern crate serde;
@@ -63,6 +64,7 @@ macro_rules! tryf {
 mod auth;
 mod basic;
 mod db;
+mod discourse;
 mod form;
 mod images;
 mod mail;
@@ -148,6 +150,21 @@ pub struct MailAccount {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+pub struct DiscourseConfig {
+	/// The api endpoint, something like `https://discourse.example.com`.
+	endpoint: String,
+	/// The api token.
+	token: String,
+	/// The username for the api.
+	username: String,
+	/// Add new users to this group.
+	group: String,
+	/// Subscribe new users to this category.
+	category: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
 	/// The sender of emails
 	sender_mail: MailAddress,
@@ -185,6 +202,9 @@ pub struct Config {
 	/// If set, it restricts the authentication cookie to a domain
 	/// and protects against csrf using the referer and origin header.
 	domain: Option<String>,
+
+	/// The configuration of the discourse integration.
+	discourse: Option<DiscourseConfig>,
 }
 
 fn get_true() -> bool {
@@ -200,6 +220,7 @@ pub struct AppState {
 	config: Config,
 	db_addr: actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
+	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
 }
 
 impl Into<lettre_email::Mailbox> for MailAddress {
@@ -459,12 +480,21 @@ fn main() -> Result<()> {
 		mail::MailExecutor::new(config2.clone())
 	});
 
+	// Start some parallel discourse executors
+	let disc_addr = if let Some(config) = &config.discourse {
+		let config2 = config.clone();
+		Some(actix::SyncArbiter::start(4, move || {
+			discourse::DiscourseExecutor::new(config2.clone()).unwrap()
+		}))
+	} else { None };
+
 	let address = config.bind_address.clone();
 	let state = AppState {
 		sites,
 		config,
 		db_addr,
 		mail_addr,
+		disc_addr,
 	};
 
 	// Start thumbnail creator

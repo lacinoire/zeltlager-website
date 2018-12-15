@@ -155,7 +155,7 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 									// Redirect somewhere else if there is a
 									// redirect argument.
 									if let Some(redirect) = redirect {
-										let redirect = redirect.trim_left_matches('/');
+										let redirect = redirect.trim_start_matches('/');
 										let redirect = format!("/{}", redirect);
 										Ok(HttpResponse::Found().header("location", redirect.as_str()).finish())
 									} else {
