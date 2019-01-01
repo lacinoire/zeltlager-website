@@ -7,12 +7,12 @@
 }
 
 body > .container {
-	padding-top: 30px;
+	padding-top: 1.875rem; /* 30 px */
 }
 
 img {
 	max-width: 36em;
-	padding: 5px;
+	padding: .3125rem; /* 5px */
 }
 
 .responsive-image {
@@ -21,8 +21,8 @@ img {
 }
 
 h1 {
-	padding-top: 5px;
-	padding-bottom: 5px;
+	padding-top: .3125rem;
+	padding-bottom: .3125rem;
 	color: navy;
 }
 
@@ -40,13 +40,13 @@ h1 {
 }
 
 html {
-	margin: 0px;
+	margin: 0;
 	height: 100%;
 	width: 100%;
 }
 
 body {
-	margin: 0px;
+	margin: 0;
 	min-height: 100%;
 	width: 100%;
 }
@@ -64,4 +64,18 @@ body {
 
 .login-form input {
 	margin-bottom: 1em;
+}
+
+@media only screen and (max-width: 1000px) {
+  .navbar-nav .nav-link {
+		font-size: 2rem;
+	}
+}
+
+.navbar-brand {
+	padding: .3125rem;
+}
+
+.navbar-toggler {
+  padding: .75rem .75rem;
 }
