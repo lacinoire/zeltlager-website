@@ -196,6 +196,7 @@ fn signup_mail(
 	};
 
 	// Write an e-mail
+	let mail = member.eltern_mail.clone();
 	Box::new(mail_addr
 		.send(mail::SignupMessage { member })
 		.from_err::<failure::Error>()
@@ -212,7 +213,7 @@ fn signup_mail(
 							error_message
 						),
 					);
-					error!("Error sending e-mail: {:?}", error);
+					error!("Error sending e-mail to {:?}: {:?}", mail, error);
 					render_signup(req, body)
 				}
 				Ok(Ok(())) => {

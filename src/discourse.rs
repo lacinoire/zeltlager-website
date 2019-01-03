@@ -69,7 +69,6 @@ impl DiscourseExecutor {
 
 	fn client(&self) -> reqwest::Client {
 		reqwest::ClientBuilder::new()
-			.proxy(reqwest::Proxy::all("http://localhost:8080").unwrap())
 			.build().unwrap()
 	}
 
