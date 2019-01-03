@@ -111,3 +111,27 @@ impl Handler<SignupMessage> for MailExecutor {
 		Ok(())
 	}
 }
+
+pub fn check_parsable(mail_addr: &str) -> Result<()> {
+	EmailBuilder::new()
+		.to((mail_addr, mail_addr))
+		.from(mail_addr)
+		.bcc(mail_addr)
+		.subject("subj")
+		.text("text")
+		.build()?;
+	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::check_parsable;
+
+	#[test]
+	fn test_parse_mails() {
+		let mails = &["x@abc.de",  "a.b@d.e", "my.long-mail_address@even-longer-domain.ending"];
+		for &m in mails {
+			check_parsable(m).unwrap();
+		}
+	}
+}

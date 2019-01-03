@@ -292,6 +292,19 @@ impl Middleware<AppState> for HasRolePredicate {
 	}
 }
 
+impl Config {
+	fn validate(&self) -> Result<()> {
+		mail::check_parsable(&self.sender_mail.address)?;
+		for r in &self.additional_mail_receivers {
+			mail::check_parsable(&r.address)?;
+		}
+		if let Some(addr) = &self.test_mail {
+			mail::check_parsable(&addr)?;
+		}
+		Ok(())
+	}
+}
+
 /// Escapes a string so it can be put into html (between tags).
 ///
 /// # Escapes
@@ -466,6 +479,7 @@ fn main() -> Result<()> {
 		.read_to_string(&mut content)?;
 	let config: Config =
 		toml::from_str(&content).expect("Failed to parse config.toml");
+	config.validate().unwrap();
 
 	let sys = actix::System::new(env!("CARGO_PKG_NAME"));
 
