@@ -1,7 +1,7 @@
 <#@ template cleanws="true" #>
 Sehr geehrte/r <#= self.member.eltern_name #>,
 
-<# if self.member.geschlecht == Gender::Male { #>Ihr Sohn<# } else { #>Ihre Tocher<# } #> <#= self.member.vorname #> wurde zum Zeltlager angemeldet.
+<# if self.member.geschlecht == Gender::Male { #>Ihr Sohn<# } else { #>Ihre Tochter<# } #> <#= self.member.vorname #> wurde zum Zeltlager angemeldet.
 Überweisen Sie bitte 210.- Euro an die unten stehende Bankverbindung.
 Nur durch die Überweisung ist ihr Kind verbindlich angemeldet und der Teilnehmerplatz reserviert.
 
