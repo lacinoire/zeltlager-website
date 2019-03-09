@@ -24,6 +24,7 @@ extern crate rand;
 extern crate reqwest;
 extern crate rpassword;
 extern crate scrypt;
+extern crate sentry;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -205,6 +206,9 @@ pub struct Config {
 
 	/// The configuration of the discourse integration.
 	discourse: Option<DiscourseConfig>,
+
+	/// The sentry DSN.
+	sentry: Option<String>,
 }
 
 fn get_true() -> bool {
@@ -480,6 +484,13 @@ fn main() -> Result<()> {
 	let config: Config =
 		toml::from_str(&content).expect("Failed to parse config.toml");
 	config.validate().unwrap();
+
+	// Start sentry
+	let _sentry_guard;
+	if let Some(s) = &config.sentry {
+		_sentry_guard = sentry::init(s.as_str());
+		sentry::integrations::panic::register_panic_handler();
+	}
 
 	let sys = actix::System::new(env!("CARGO_PKG_NAME"));
 

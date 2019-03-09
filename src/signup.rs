@@ -7,6 +7,7 @@ use actix_web::*;
 use failure;
 use form::Form;
 use futures::{future, Future, IntoFuture};
+use sentry::integrations::failure::capture_error;
 
 use {db, discourse, mail};
 use AppState;
@@ -214,6 +215,7 @@ fn signup_mail(
 						),
 					);
 					error!("Error sending e-mail to {:?}: {:?}", mail, error);
+					capture_error(&format_err!("Error sending e-mail to {:?}: {:?}", mail, error));
 					render_signup(req, body)
 				}
 				Ok(Ok(())) => {
@@ -232,6 +234,7 @@ fn signup_mail(
 		.then(|r| fut.then(move |dr| {
 			if let Err(e) = dr {
 				error!("Failed to signup to discourse: {:?}", e);
+				capture_error(&format_err!("Failed to signup to discourse: {:?}", e));
 			}
 			r
 		}))
@@ -271,6 +274,7 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 							Es ist ein Datenbank-Fehler aufgetreten.\n{}",
 							error_message));
 						warn!("Error inserting into database: {}", error);
+						capture_error(&format_err!("Error inserting {:?} into database: {:?}", member.eltern_mail, error));
 						render_signup(req, body)
 					}
 					Ok(Ok(count)) => signup_check_count(count, max_members,

@@ -11,6 +11,7 @@ use AppState;
 use BoxFuture;
 use HttpRequest;
 use HttpResponse;
+use sentry::integrations::failure::capture_error;
 
 #[derive(Template)]
 #[TemplatePath = "templates/signupSupervisor.tt"]
@@ -106,6 +107,9 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 								),
 							);
 							warn!("Error inserting into database: {}", error);
+							capture_error(&format_err!("Error inserting {} {} \
+								into database: {:?}", supervisor.vorname,
+								supervisor.nachname, error));
 							Box::new(render_signup(req, body).into_future())
 						}
 						Ok(Ok(())) => signup_success(),
