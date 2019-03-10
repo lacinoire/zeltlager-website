@@ -338,6 +338,19 @@ impl Teilnehmer {
 
 		Ok(res)
 	}
+
+	pub fn trim(&mut self) {
+		self.vorname = self.vorname.trim().into();
+		self.nachname = self.nachname.trim().into();
+		self.eltern_name = self.eltern_name.trim().into();
+		self.eltern_mail = self.eltern_mail.trim().into();
+		self.eltern_handynummer = self.eltern_handynummer.trim().into();
+		self.strasse = self.strasse.trim().into();
+		self.hausnummer = self.hausnummer.trim().into();
+		self.ort = self.ort.trim().into();
+		self.plz = self.plz.trim().into();
+		self.besonderheiten = self.besonderheiten.trim().into();
+	}
 }
 
 impl Supervisor {

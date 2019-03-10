@@ -1,12 +1,15 @@
 //! Automatically create thumbnails for pictures in a folder.
 
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::process::Command;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
 use notify::{Watcher, RecursiveMode, watcher};
+use sentry::integrations::failure::capture_error;
 
 use Result;
 
@@ -16,6 +19,7 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 
 	if let Err(e) = scan_files(&path) {
 		error!("Error when scanning files: {:?}", e);
+		capture_error(&format_err!("Error when scanning files: {:?}", e));
 	}
 
 	// Create a watcher object, delivering debounced events.
@@ -30,9 +34,11 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 		match rx.recv() {
 			Ok(_) => if let Err(e) = scan_files(&path) {
 				error!("Error when scanning files: {:?}", e);
+				capture_error(&format_err!("Error when scanning files: {:?}", e));
 			}
 			Err(e) => {
 				error!("Watch error: {:?}", e);
+				capture_error(&format_err!("Watch error: {:?}", e));
 				break;
 			}
 		}
@@ -40,10 +46,10 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 }
 
 fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
+	let path = path.as_ref();
 	// Search for files where we need a thumbnail
-	let files = fs::read_dir(&path)?;
-	for file in files {
-		let file = file?;
+	let files = fs::read_dir(path)?.map(|e| e.map_err(|e| e.into())).collect::<Result<Vec<_>>>()?;
+	for file in &files {
 		let file_path = file.path();
 		if !file_path.is_file() {
 			continue;
@@ -59,7 +65,8 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 						if name != ".gitignore" {
 							// Check if there is a thumbnail for it
 							if let Err(e) = create_thumb(&path, name) {
-								warn!("Failed to create thumbnail for {} ({:?})", name, e);
+								warn!("Failed to create thumbnail for {}: {:?}", name, e);
+								capture_error(&format_err!("Failed to create thumbnail for {}: {:?}", name, e));
 							}
 						}
 					}
@@ -67,6 +74,19 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 			}
 		}
 	}
+
+	// TODO Remove outdated thumbnails
+	for file in fs::read_dir(&path.join("thumbs"))? {
+		let file = file?;
+		let name = file.file_name();
+		if !files.iter().any(|f| f.file_name() == name) {
+			if let Err(e) = fs::remove_file(file.path()) {
+				warn!("Failed to remove outdated thumbnail {:?}: {:?}", name, e);
+				capture_error(&format_err!("Failed to remove outdated thumbnail {:?}: {:?}", name, e));
+			}
+		}
+	}
+
 	Ok(())
 }
 
@@ -77,18 +97,54 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 	if !thumbs_path.exists() {
 		fs::create_dir(&thumbs_path)?;
 	}
-	// Check if thumbnail exists already
-	if thumbs_path.join(file).exists() {
-		return Ok(());
+	let orig_file = path.join(file);
+	let thumb_file = thumbs_path.join(file);
+	// Check if thumbnail exists already and it is newer than the source image
+	let orig_meta = orig_file.metadata()?;
+	if let Ok(thumb_meta) = thumb_file.metadata() {
+		let mut is_newer = false;
+		if let Ok(orig_t) = orig_meta.modified() {
+			if let Ok(thumb_t) = thumb_meta.modified() {
+				if thumb_t.duration_since(orig_t).is_ok() {
+					// Thumbnail exists and is newer
+					is_newer = true
+				}
+			}
+		}
+
+		// This function is not available on linux
+		if let Ok(orig_t) = orig_meta.created() {
+			// When copying or renaming files, the modification time is
+			// preserved so we have to look at the creation time too.
+			if let Ok(thumb_t) = thumb_meta.created() {
+				if thumb_t.duration_since(orig_t).is_err() {
+					is_newer = false;
+				}
+			}
+		}
+
+		#[cfg(unix)] {
+			let orig_t = orig_meta.ctime();
+			let thumb_t = thumb_meta.ctime();
+			if orig_t > thumb_t {
+				is_newer = false;
+			}
+		}
+
+		// Thumbnail exists and is newer in modification and
+		// creation time.
+		if is_newer {
+			return Ok(());
+		}
 	}
 
 	// Check if we can scale it down
 	let proc = Command::new("convert")
-		.args(&[path.join(file).to_str()
+		.args(&[orig_file.to_str()
 				.ok_or_else(|| format_err!("Path is not valid unicode"))?,
 			"-resize",
 			"300x300",
-			thumbs_path.join(file).to_str()
+			thumb_file.to_str()
 				.ok_or_else(|| format_err!("Path is not valid unicode"))?
 		])
 		.status()?;

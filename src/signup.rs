@@ -254,7 +254,7 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		.limit(1024 * 5) // 5 kiB
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
-			let member = match db::models::Teilnehmer::
+			let mut member = match db::models::Teilnehmer::
 				from_hashmap(body.clone()) {
 				Ok(member) => member,
 				Err(error) => {
@@ -264,6 +264,9 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 					return Box::new(render_signup(req, body).into_future());
 				}
 			};
+
+			// Remove spaces
+			member.trim();
 
 			Box::new(db_addr.send(db::CountMemberMessage)
 				.from_err::<failure::Error>()
