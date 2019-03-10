@@ -45,7 +45,7 @@ macro_rules! check_empty {
 	}
 }
 
-#[derive(Clone, Debug, Insertable, Queryable)]
+#[derive(Clone, Debug, Insertable, Serialize, Queryable)]
 #[table_name = "teilnehmer"]
 pub struct Teilnehmer {
 	pub vorname: String,
@@ -202,7 +202,7 @@ pub fn check_house_number(text: &str) -> bool {
 	text.find(|c: char| c.is_digit(10)).is_some()
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression, Serialize)]
 #[sql_type = "Text"]
 pub enum Gender {
 	Male,

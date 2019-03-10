@@ -42,7 +42,6 @@ impl Actor for DbExecutor {
 pub struct CheckRateMessage {
 	pub ip: String,
 }
-
 impl Message for CheckRateMessage {
 	type Result = Result<bool>;
 }
@@ -50,21 +49,23 @@ impl Message for CheckRateMessage {
 pub struct SignupMessage {
 	pub member: models::Teilnehmer,
 }
-
 impl Message for SignupMessage {
 	type Result = Result<()>;
+}
+
+pub struct DownloadMembersMessage;
+impl Message for DownloadMembersMessage {
+	type Result = Result<Vec<models::Teilnehmer>>;
 }
 
 pub struct SignupSupervisorMessage {
 	pub supervisor: models::Supervisor,
 }
-
 impl Message for SignupSupervisorMessage {
 	type Result = Result<()>;
 }
 
 pub struct CountMemberMessage;
-
 impl Message for CountMemberMessage {
 	type Result = Result<i64>;
 }
@@ -73,7 +74,6 @@ pub struct AuthenticateMessage {
 	pub username: String,
 	pub password: String,
 }
-
 impl Message for AuthenticateMessage {
 	type Result = Result<Option<i32>>;
 }
@@ -81,7 +81,6 @@ impl Message for AuthenticateMessage {
 pub struct DecreaseRateCounterMessage {
 	pub ip: String,
 }
-
 impl Message for DecreaseRateCounterMessage {
 	type Result = Result<()>;
 }
@@ -227,6 +226,29 @@ impl Handler<SignupMessage> for DbExecutor {
 			.execute(&self.connection)?;
 
 		Ok(())
+	}
+}
+
+impl Handler<DownloadMembersMessage> for DbExecutor {
+	type Result = Result<Vec<models::Teilnehmer>>;
+
+	fn handle(
+		&mut self,
+		_: DownloadMembersMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::teilnehmer;
+		use self::schema::teilnehmer::*;
+		pub const ALL_COLUMNS_BUT_ID: (vorname, nachname, geburtsdatum,
+			geschlecht, schwimmer, vegetarier, tetanus_impfung, eltern_name,
+			eltern_mail, eltern_handynummer, strasse, hausnummer, ort, plz,
+			besonderheiten, agb) = (vorname, nachname, geburtsdatum,
+			geschlecht, schwimmer, vegetarier, tetanus_impfung, eltern_name,
+			eltern_mail, eltern_handynummer, strasse, hausnummer, ort, plz,
+			besonderheiten, agb);
+
+		Ok(teilnehmer::table.select(ALL_COLUMNS_BUT_ID)
+		   .load::<models::Teilnehmer>(&self.connection)?)
 	}
 }
 

@@ -4,6 +4,7 @@ extern crate actix;
 extern crate actix_web;
 extern crate bytes;
 extern crate chrono;
+extern crate csv;
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
@@ -62,6 +63,7 @@ macro_rules! tryf {
 	};
 }
 
+mod admin;
 mod auth;
 mod basic;
 mod db;
@@ -431,7 +433,9 @@ fn not_found(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 }
 
 fn forbidden(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
-	warn!("File not found '{}'", req.path());
+	// This gets printed sometimes without a request being forbidden because
+	// we need the request.
+	warn!("Forbidden '{}'", req.path());
 	let state = req.state().clone();
 	Box::new(::auth::get_roles(&req).and_then(move |res| {
 		let site = state.sites["public"].get_site(
@@ -574,11 +578,19 @@ fn main() -> Result<()> {
 					r.h(fs::StaticFiles::with_config("Bilder2018", StaticFilesConfig)
 						.unwrap().default_handler(not_found))
 				})
-				.route("", Method::GET, ::images::render_images)
+				.route("", Method::GET, images::render_images)
 				.default_resource(|r| r.f(not_found))
 			})
 			.route("/Bilder2018", Method::GET, |_: HttpRequest<AppState>|
 				HttpResponse::Found().header("location", "/Bilder2018/").finish())
+			.scope("/admin/", |scope| { scope
+				.middleware(HasRolePredicate::new(auth::Roles::Admin))
+				.route("", Method::GET, admin::render_admin)
+				.route("/teilnehmer.csv", Method::GET, admin::download_members_csv)
+				.default_resource(|r| r.f(not_found))
+			})
+			.route("/admin", Method::GET, |_: HttpRequest<AppState>|
+				HttpResponse::Found().header("location", "/admin/").finish())
 			// Allow an empty name
 			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)
 			.route("/{name}", Method::GET, ::sites)

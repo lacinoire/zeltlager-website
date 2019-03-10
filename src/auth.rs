@@ -15,6 +15,7 @@ use {AppState, BoxFuture};
 
 #[derive(Clone, EnumString, Debug, Deserialize, PartialEq, Eq)]
 pub enum Roles {
+	Admin,
 	ImageDownload2018,
 	ImageUpload,
 }
@@ -69,11 +70,17 @@ fn render_login(
 		if let Ok(site) = req.state().sites["public"].get_site(
 			req.state().config.clone(), "login", res)
 		{
+			let mut resp = if values.contains_key("error") {
+				HttpResponse::Unauthorized()
+			} else {
+				HttpResponse::Ok()
+			};
+
 			let content = format!("{}", site);
 			let login = format!("{}", Login::new(values));
 			let content = content.replace("<insert content here>", &login);
 
-			Box::new(future::ok(HttpResponse::Ok()
+			Box::new(future::ok(resp
 				.content_type("text/html; charset=utf-8")
 				.body(content)))
 		} else {
@@ -88,7 +95,8 @@ pub struct LoginArgs { redirect: Option<String> }
 pub fn login((req, mut args): (HttpRequest<AppState>, Query<LoginArgs>))
 	-> BoxFuture<HttpResponse> {
 	if logged_in_user(&req).is_some() {
-		Box::new(future::ok(HttpResponse::Found().header("location", "/").finish()))
+		let redir = args.redirect.as_ref().map(|s| s.as_str()).unwrap_or("/");
+		Box::new(future::ok(HttpResponse::Found().header("location", redir).finish()))
 	} else {
 		let mut values = HashMap::new();
 		if let Some(redirect) = args.redirect.take() {

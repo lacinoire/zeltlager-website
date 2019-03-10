@@ -30,10 +30,10 @@ pub fn render_images(
 		})
 		.map(|site| {
 			let content = format!("{}", site);
-		let images = format!(
-			"{}",
-			Images::new("Bilder 2018".to_string(), "Bilder2018".to_string())
-		);
+			let images = format!(
+				"{}",
+				Images::new("Bilder 2018".to_string(), "Bilder2018".to_string())
+			);
 			let content = content.replace("<insert content here>", &images);
 
 			HttpResponse::Ok()

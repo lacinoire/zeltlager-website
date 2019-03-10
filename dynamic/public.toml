@@ -10,6 +10,13 @@ description = "Startseite der Zeltlagerwebseite"
 navbar_visible = false
 
 [[sites]]
+name = "admin/"
+file_name = "Admin.md"
+title = "Admin"
+description = "Administration des Zeltlagers"
+role = "Admin"
+
+[[sites]]
 name = "Bilder2018/"
 file_name = "Empty.txt"
 title = "Bilder"

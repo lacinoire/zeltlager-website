@@ -8,6 +8,7 @@ actix = "0.7"
 actix-web = "0.7"
 bytes = "0.4"
 chrono = "0.4"
+csv = "1"
 diesel = { version = "1.2", features = ["chrono", "postgres", "network-address"] }
 dotenv = "0.13"
 env_logger = "0.6"
