@@ -3,7 +3,7 @@
 	// Show error if there is one
 	if let Some(error) = self.values.get("error") { #>
 <div class="alert alert-danger" role="alert">
-	<#= ::escape_html_body(error).replace("\n", "<br>") #>
+	<#= crate::escape_html_body(error).replace("\n", "<br>") #>
 </div>
 	<# }
 #>
@@ -18,7 +18,7 @@
 		Passwort anzeigen
 	</label>
 	<# if let Some(redirect) = self.values.get("redirect") { #>
-	<input name="redirect" type="hidden" value="<#= ::escape_html_attribute(redirect) #>">
+	<input name="redirect" type="hidden" value="<#= crate::escape_html_attribute(redirect) #>">
 	<# } #>
 	<button class="form-control here btn-primary" type="submit">Anmelden</button>
 </form>

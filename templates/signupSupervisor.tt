@@ -3,7 +3,7 @@
 	// Show error if there is one
 	if let Some(error) = self.values.get("error") { #>
 <div class="alert alert-danger" role="alert">
-	<#= ::escape_html_body(error).replace("\n", "<br>") #>
+	<#= crate::escape_html_body(error).replace("\n", "<br>") #>
 </div>
 	<# } #>
 
@@ -106,7 +106,7 @@
 	<div class="form-group form-row">
 		<label for="besonderheiten" class="col-4 col-form-label">Besonderheiten</label>
 		<div class="col-8">
-			<textarea id="besonderheiten" name="besonderheiten" cols="40" rows="5" class="form-control" aria-describedby="besonderheitenHelpBlock"><#= ::escape_html_body(self.values.get("besonderheiten").unwrap_or(&String::new())) #></textarea>
+			<textarea id="besonderheiten" name="besonderheiten" cols="40" rows="5" class="form-control" aria-describedby="besonderheitenHelpBlock"><#= crate::escape_html_body(self.values.get("besonderheiten").unwrap_or(&String::new())) #></textarea>
 			<span id="besonderheitenHelpBlock" class="form-text text-muted">Allergien, Krankheiten, Medikamente, Eigenheiten, etc.</span>
 		</div>
 	</div>

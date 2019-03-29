@@ -56,8 +56,8 @@ pub(crate) fn cmd_action(action: Action) -> Result<()> {
 				return Ok(());
 			}
 
-			let pw = rpassword::prompt_password_stdout(
-				"Please enter the password: ",
+			let pw = rpassword::read_password_from_tty(
+				Some("Please enter the password: "),
 			).unwrap();
 			let pw = scrypt::scrypt_simple(&pw, &crate::get_scrypt_params()).unwrap();
 			if exists {
