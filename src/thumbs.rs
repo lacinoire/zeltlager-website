@@ -11,7 +11,7 @@ use std::time::Duration;
 use notify::{Watcher, RecursiveMode, watcher};
 use sentry::integrations::failure::capture_error;
 
-use Result;
+use crate::Result;
 
 pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 	// Create a channel to receive the events.

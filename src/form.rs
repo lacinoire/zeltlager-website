@@ -28,7 +28,7 @@ pub trait Form {
 	/// string.
 	fn opt_val(&self, name: &str) -> String {
 		if let Some(val) = self.get_values().get(name) {
-			format!(" value=\"{}\"", ::escape_html_attribute(val))
+			format!(" value=\"{}\"", crate::escape_html_attribute(val))
 		} else {
 			String::new()
 		}

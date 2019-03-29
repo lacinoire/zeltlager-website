@@ -1,42 +1,17 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 
-extern crate actix;
-extern crate actix_web;
-extern crate bytes;
-extern crate chrono;
-extern crate csv;
 #[macro_use]
 extern crate diesel;
-extern crate dotenv;
-extern crate env_logger;
 #[macro_use]
 extern crate failure;
-extern crate futures;
-extern crate ipnetwork;
-extern crate lettre;
-extern crate lettre_email;
 #[macro_use]
 extern crate log;
-extern crate mime;
-extern crate native_tls;
-extern crate notify;
-extern crate pulldown_cmark;
-extern crate rand;
-extern crate reqwest;
-extern crate rpassword;
-extern crate scrypt;
-extern crate sentry;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate structopt;
-extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 #[macro_use]
 extern crate t4rust_derive;
-extern crate toml;
-extern crate url;
 
 use std::collections::HashMap;
 use std::env;
@@ -422,7 +397,7 @@ fn site(
 fn not_found(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	warn!("File not found '{}'", req.path());
 	let state = req.state().clone();
-	Box::new(::auth::get_roles(&req).and_then(move |res| {
+	Box::new(auth::get_roles(&req).and_then(move |res| {
 		let site = state.sites["public"].get_site(
 			state.config.clone(), "notfound", res)?;
 		let content = format!("{}", site);
@@ -437,7 +412,7 @@ fn forbidden(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	// we need the request.
 	warn!("Forbidden '{}'", req.path());
 	let state = req.state().clone();
-	Box::new(::auth::get_roles(&req).and_then(move |res| {
+	Box::new(auth::get_roles(&req).and_then(move |res| {
 		let site = state.sites["public"].get_site(
 			state.config.clone(), "forbidden", res)?;
 		let content = format!("{}", site);
@@ -592,9 +567,9 @@ fn main() -> Result<()> {
 			.route("/admin", Method::GET, |_: HttpRequest<AppState>|
 				HttpResponse::Found().header("location", "/admin/").finish())
 			// Allow an empty name
-			.route("/{prefix}/{name:[^/]*}", Method::GET, ::sites)
-			.route("/{name}", Method::GET, ::sites)
-			.route("/", Method::GET, ::sites)
+			.route("/{prefix}/{name:[^/]*}", Method::GET, crate::sites)
+			.route("/{name}", Method::GET, crate::sites)
+			.route("/", Method::GET, crate::sites)
 			.default_resource(|r| r.f(not_found))
 	}).bind(address)?
 		.start();

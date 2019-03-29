@@ -6,11 +6,11 @@ use lettre::{Transport, SmtpClient};
 use lettre_email::EmailBuilder;
 use native_tls::TlsConnector;
 
-use db::models::{Gender, Teilnehmer};
-use Result;
+use crate::db::models::{Gender, Teilnehmer};
+use crate::Result;
 
 pub struct MailExecutor {
-	config: ::Config,
+	config: crate::Config,
 }
 
 impl Actor for MailExecutor {
@@ -40,7 +40,7 @@ struct Body<'a> {
 }
 
 impl MailExecutor {
-	pub fn new(config: ::Config) -> Self {
+	pub fn new(config: crate::Config) -> Self {
 		Self { config }
 	}
 }

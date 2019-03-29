@@ -1,10 +1,11 @@
 //! Admin tools.
+
 use actix_web::{HttpRequest, HttpResponse};
 use actix_web::http::header::CONTENT_DISPOSITION;
-use auth;
 use futures::Future;
 
-use {db, AppState, BoxFuture};
+use crate::auth;
+use crate::{db, AppState, BoxFuture};
 
 pub fn render_admin(
 	req: HttpRequest<AppState>,

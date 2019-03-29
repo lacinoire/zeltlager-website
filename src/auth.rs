@@ -7,11 +7,10 @@ use std::collections::HashMap;
 use actix_web::middleware::identity::RequestIdentity;
 use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Query};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use failure;
 use futures::{future, Future, IntoFuture};
 
-use form::Form;
-use {AppState, BoxFuture};
+use crate::form::Form;
+use crate::{auth, db, AppState, BoxFuture};
 
 #[derive(Clone, EnumString, Debug, Deserialize, PartialEq, Eq)]
 pub enum Roles {
@@ -46,7 +45,7 @@ fn rate_limit(req: &HttpRequest<AppState>) -> BoxFuture<()> {
 			.remote()
 			.ok_or_else(|| format_err!("no ip detected"))
 	).to_string();
-	let res = req.state().db_addr.send(::db::CheckRateMessage { ip });
+	let res = req.state().db_addr.send(db::CheckRateMessage { ip });
 	Box::new(res.from_err().and_then(|db_result| match db_result {
 		Ok(result) => {
 			if result {
@@ -66,7 +65,7 @@ fn render_login(
 	req: HttpRequest<AppState>,
 	values: HashMap<String, String>,
 ) -> BoxFuture<HttpResponse> {
-	Box::new(::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
+	Box::new(auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
 		if let Ok(site) = req.state().sites["public"].get_site(
 			req.state().config.clone(), "login", res)
 		{
@@ -84,7 +83,7 @@ fn render_login(
 				.content_type("text/html; charset=utf-8")
 				.body(content)))
 		} else {
-			::not_found(&req)
+			crate::not_found(&req)
 		}
 	}))
 }
@@ -111,7 +110,7 @@ fn set_logged_in(id: i32, req: &HttpRequest<AppState>) {
 	req.remember(format!(
 		"{}|{}",
 		id,
-		(Utc::now() + ::cookie_maxtime()).format("%Y-%m-%d %H:%M:%S")
+		(Utc::now() + crate::cookie_maxtime()).format("%Y-%m-%d %H:%M:%S")
 	));
 }
 
@@ -127,7 +126,7 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
 			let redirect = body.get("redirect").map(Clone::clone);
-			let msg = tryf!(::db::AuthenticateMessage::
+			let msg = tryf!(db::AuthenticateMessage::
 				from_hashmap(body.clone()));
 			body.remove("password");
 
@@ -158,7 +157,7 @@ pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 												.remote()
 												.ok_or_else(|| format_err!("no ip detected"))
 											).to_string();
-								let res = req.state().db_addr.send(::db::DecreaseRateCounterMessage { ip } );
+								let res = req.state().db_addr.send(db::DecreaseRateCounterMessage { ip } );
 								Box::new(res.from_err().and_then(move |_|
 									// Redirect somewhere else if there is a
 									// redirect argument.
@@ -236,7 +235,7 @@ pub fn user_get_roles(
 	user: i32,
 ) -> BoxFuture<Vec<Roles>> {
 	let db_addr = req.state().db_addr.clone();
-	let msg = ::db::GetRolesMessage { user };
+	let msg = db::GetRolesMessage { user };
 	Box::new(
 		db_addr
 			.send(msg)

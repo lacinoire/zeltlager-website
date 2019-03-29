@@ -1,15 +1,12 @@
 use std::io::Write;
 use std::{env, io};
 
-use diesel;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::Connection;
 use dotenv::dotenv;
-use rpassword;
-use scrypt;
 
-use Result;
+use crate::{db, Action, Result};
 
 fn ask_username() -> String {
 	print!("Enter username: ");
@@ -27,8 +24,8 @@ fn confirm(msg: &str) -> bool {
 	["y", "Y", "yes", "Yes", "YES"].contains(&name.trim())
 }
 
-pub(crate) fn cmd_action(action: ::Action) -> Result<()> {
-	use db::schema::users::dsl::*;
+pub(crate) fn cmd_action(action: Action) -> Result<()> {
+	use crate::db::schema::users::dsl::*;
 
 	dotenv().ok();
 	let database_url = env::var("DATABASE_URL").map_err(|e| {
@@ -39,7 +36,7 @@ pub(crate) fn cmd_action(action: ::Action) -> Result<()> {
 	})?;
 	let connection = PgConnection::establish(&database_url)?;
 	match action {
-		::Action::AddUser {
+		Action::AddUser {
 			username: name,
 			force,
 		} => {
@@ -62,22 +59,22 @@ pub(crate) fn cmd_action(action: ::Action) -> Result<()> {
 			let pw = rpassword::prompt_password_stdout(
 				"Please enter the password: ",
 			).unwrap();
-			let pw = scrypt::scrypt_simple(&pw, &::get_scrypt_params()).unwrap();
+			let pw = scrypt::scrypt_simple(&pw, &crate::get_scrypt_params()).unwrap();
 			if exists {
 				diesel::update(users.filter(username.eq(&name)))
 					.set(password.eq(pw))
 					.execute(&connection)?;
 			} else {
-				let user = ::db::models::User {
+				let user = db::models::User {
 					username: name,
 					password: pw,
 				};
-				diesel::insert_into(::db::schema::users::table)
+				diesel::insert_into(db::schema::users::table)
 					.values(&user)
 					.execute(&connection)?;
 			}
 		}
-		::Action::DelUser { username: name } => {
+		Action::DelUser { username: name } => {
 			let name = name.unwrap_or_else(ask_username);
 			let count = diesel::delete(users.filter(username.eq(&name)))
 				.execute(&connection)?;

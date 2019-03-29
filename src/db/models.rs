@@ -13,7 +13,7 @@ use super::schema::betreuer;
 use super::schema::rate_limiting;
 use super::schema::teilnehmer;
 use super::schema::users;
-use Result;
+use crate::Result;
 
 macro_rules! get_bool {
 	($map:ident, $key:expr) => {

@@ -10,15 +10,13 @@ use std::net::SocketAddr;
 
 use actix::prelude::*;
 use chrono::Utc;
-use diesel;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
 use dotenv::dotenv;
 use ipnetwork::IpNetwork;
-use scrypt;
 
-use Result;
+use crate::{auth, Result};
 
 macro_rules! get_str {
 	($map:ident, $key:expr) => {
@@ -102,7 +100,7 @@ pub struct GetRolesMessage {
 }
 
 impl Message for GetRolesMessage {
-	type Result = Result<Vec<::auth::Roles>>;
+	type Result = Result<Vec<auth::Roles>>;
 }
 
 impl DbExecutor {
@@ -146,7 +144,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		match entry_res {
 			Ok(entry) => {
 				if entry.first_count
-					<= Utc::now().naive_utc() - ::ratelimit_duration()
+					<= Utc::now().naive_utc() - crate::ratelimit_duration()
 				{
 					// reset counter and grant request
 					diesel::update(&entry)
@@ -156,7 +154,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 						.set(first_count.eq(now.at_time_zone("utc")))
 						.execute(&self.connection)?;
 					Ok(true)
-				} else if entry.counter >= ::RATELIMIT_MAX_COUNTER {
+				} else if entry.counter >= crate::RATELIMIT_MAX_COUNTER {
 					// limit reached
 					Ok(false)
 				} else {
@@ -310,7 +308,7 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 				// Hash a random password so we don’t leak timing information
 				// if a user exists or not.
 				let pw = scrypt::scrypt_simple(&msg.username,
-					&::get_scrypt_params()).unwrap();
+					&crate::get_scrypt_params()).unwrap();
 				let _ = scrypt::scrypt_check(&msg.password, &pw);
 				Ok(None)
 			}
@@ -320,7 +318,7 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 }
 
 impl Handler<GetRolesMessage> for DbExecutor {
-	type Result = Result<Vec<::auth::Roles>>;
+	type Result = Result<Vec<auth::Roles>>;
 
 	fn handle(
 		&mut self,
@@ -338,7 +336,7 @@ impl Handler<GetRolesMessage> for DbExecutor {
 				// Convert to enum
 				res.drain(..)
 					.map(|r| r.role.parse())
-					.collect::<::std::result::Result<_, ::strum::ParseError>>()
+					.collect::<::std::result::Result<_, strum::ParseError>>()
 					.map_err(|e| e.into())
 			}
 			Err(err) => Err(err.into()),

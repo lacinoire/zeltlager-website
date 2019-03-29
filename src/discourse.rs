@@ -1,10 +1,9 @@
 use actix::prelude::*;
 use rand::Rng;
-use reqwest;
 use reqwest::multipart::Form;
 
-use db::models::Teilnehmer;
-use Result;
+use crate::db::models::Teilnehmer;
+use crate::Result;
 
 #[derive(Deserialize, Debug, Clone)]
 struct UserCreateResponse {
@@ -31,7 +30,7 @@ struct UserResponse { id: usize }
 struct SignupResponse { user_id: usize }
 
 pub struct DiscourseExecutor {
-	config: ::DiscourseConfig,
+	config: crate::DiscourseConfig,
 	group_id: usize,
 	category_id: usize,
 }
@@ -49,7 +48,7 @@ impl Message for SignupMessage {
 }
 
 impl DiscourseExecutor {
-	pub fn new(config: ::DiscourseConfig) -> Result<Self> {
+	pub fn new(config: crate::DiscourseConfig) -> Result<Self> {
 		let mut res = Self { config, group_id: 0, category_id: 0 };
 		// Find group id
 		let mut response = res.request_get(&format!("groups/{}", res.config.group))?;
@@ -131,7 +130,7 @@ impl Handler<SignupMessage> for DiscourseExecutor {
 			user_id = res.user.id;
 		} else {
 			// Create new user
-			let pass = ::rand::thread_rng().gen::<usize>();
+			let pass = rand::thread_rng().gen::<usize>();
 			let add = Form::new()
 				.text("api_key", self.config.token.clone())
 				.text("api_username", self.config.username.clone())

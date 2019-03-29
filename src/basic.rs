@@ -6,9 +6,8 @@ use std::path::Path;
 
 use pulldown_cmark::{html, Parser};
 
-use {toml, Result};
-
-use auth::Roles;
+use crate::Result;
+use crate::auth::Roles;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct SiteDescription {
@@ -16,7 +15,7 @@ pub struct SiteDescription {
 	pub file_name: String,
 	pub title: String,
 	pub description: String,
-	#[serde(default = "::get_true")]
+	#[serde(default = "crate::get_true")]
 	pub navbar_visible: bool,
 	pub role: Option<Roles>,
 }
@@ -32,7 +31,7 @@ pub struct SiteDescriptions {
 #[derive(Debug)]
 pub struct Basic {
 	pub logged_in_roles: Option<Vec<Roles>>,
-	pub config: ::Config,
+	pub config: crate::Config,
 	pub all_sites: SiteDescriptions,
 	pub current_site: SiteDescription,
 	pub content: String,
@@ -49,7 +48,7 @@ impl SiteDescriptions {
 	/// `logged_in_roles` should be `None` if the user is not logged in.
 	pub fn get_site(
 		&self,
-		config: ::Config,
+		config: crate::Config,
 		name: &str,
 		logged_in_roles: Option<Vec<Roles>>,
 	) -> Result<Basic> {

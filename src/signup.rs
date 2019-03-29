@@ -1,19 +1,16 @@
 //! The signup template.
+
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use actix;
 use actix_web::*;
-use failure;
-use form::Form;
 use futures::{future, Future, IntoFuture};
 use sentry::integrations::failure::capture_error;
+use t4rust_derive::Template;
 
-use {db, discourse, mail};
-use AppState;
-use BoxFuture;
-use HttpRequest;
-use HttpResponse;
+use crate::{db, discourse, mail, AppState, BoxFuture, HttpRequest,
+	HttpResponse};
+use crate::form::Form;
 
 #[derive(Template)]
 #[TemplatePath = "templates/signup.tt"]
@@ -32,7 +29,7 @@ impl Form for Signup {
 
 impl Signup {
 	pub fn new(
-		state: &::AppState,
+		state: &AppState,
 		values: HashMap<String, String>,
 	) -> BoxFuture<Self> {
 		let max_members = state.config.max_members;
@@ -40,7 +37,7 @@ impl Signup {
 		Box::new(
 			state
 				.db_addr
-				.send(::db::CountMemberMessage)
+				.send(db::CountMemberMessage)
 				.from_err::<::failure::Error>()
 				.then(move |result| match result {
 					Err(error) | Ok(Err(error)) => {
@@ -95,7 +92,7 @@ fn render_signup(
 	req: HttpRequest<AppState>,
 	values: HashMap<String, String>,
 ) -> BoxFuture<HttpResponse> {
-	Box::new(::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
+	Box::new(crate::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
 		if let Ok(site) = req.state().sites["public"].get_site(
 			req.state().config.clone(), "anmeldung", res) {
 			let content = format!("{}", site);
@@ -112,7 +109,7 @@ fn render_signup(
 				},
 			));
 		}
-		Box::new(::not_found(&req).into_future().from_err())
+		Box::new(crate::not_found(&req).into_future().from_err())
 	}))
 }
 

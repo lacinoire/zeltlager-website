@@ -1,10 +1,10 @@
 //! Display images from a folder.
 
 use actix_web::{HttpRequest, HttpResponse};
-use auth;
 use futures::Future;
 
-use {AppState, BoxFuture};
+use crate::auth;
+use crate::{AppState, BoxFuture};
 
 #[derive(Template)]
 #[TemplatePath = "templates/images.tt"]

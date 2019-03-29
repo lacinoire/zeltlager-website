@@ -1,17 +1,15 @@
 //! The signup template.
+
 use std::borrow::Cow;
 use std::collections::HashMap;
 
 use actix_web::*;
-use db;
-use failure;
-use form::Form;
 use futures::{future, Future, IntoFuture};
-use AppState;
-use BoxFuture;
-use HttpRequest;
-use HttpResponse;
 use sentry::integrations::failure::capture_error;
+use t4rust_derive::Template;
+
+use crate::{db, AppState, BoxFuture, HttpRequest, HttpResponse};
+use crate::form::Form;
 
 #[derive(Template)]
 #[TemplatePath = "templates/signupSupervisor.tt"]
@@ -28,7 +26,7 @@ impl Form for SignupSupervisor {
 }
 
 impl SignupSupervisor {
-	pub fn new(_state: &::AppState, values: HashMap<String, String>) -> Self {
+	pub fn new(_state: &AppState, values: HashMap<String, String>) -> Self {
 		Self { values }
 	}
 }
@@ -42,7 +40,7 @@ fn render_signup(
 	req: HttpRequest<AppState>,
 	values: HashMap<String, String>,
 ) -> BoxFuture<HttpResponse> {
-	Box::new(::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
+	Box::new(crate::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
 		if let Ok(site) = req.state().sites["intern"].get_site(
 			req.state().config.clone(), "betreuer-anmeldung", res) {
 			let content = format!("{}", site);
@@ -53,7 +51,7 @@ fn render_signup(
 				.content_type("text/html; charset=utf-8")
 				.body(content)))
 		} else {
-			::not_found(&req)
+			crate::not_found(&req)
 		}
 	}))
 }
