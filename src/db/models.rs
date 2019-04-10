@@ -66,7 +66,7 @@ pub struct Teilnehmer {
 	pub agb: bool,
 }
 
-#[derive(Clone, Debug, Insertable, Queryable)]
+#[derive(Clone, Debug, Insertable, Serialize, Queryable)]
 #[table_name = "betreuer"]
 pub struct Supervisor {
 	pub vorname: String,

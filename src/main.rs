@@ -562,6 +562,7 @@ fn main() -> Result<()> {
 				.middleware(HasRolePredicate::new(auth::Roles::Admin))
 				.route("", Method::GET, admin::render_admin)
 				.route("/teilnehmer.csv", Method::GET, admin::download_members_csv)
+				.route("/betreuer.csv", Method::GET, admin::download_betreuer_csv)
 				.default_resource(|r| r.f(not_found))
 			})
 			.route("/admin", Method::GET, |_: HttpRequest<AppState>|

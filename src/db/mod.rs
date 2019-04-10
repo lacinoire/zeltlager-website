@@ -56,6 +56,11 @@ impl Message for DownloadMembersMessage {
 	type Result = Result<Vec<models::Teilnehmer>>;
 }
 
+pub struct DownloadBetreuerMessage;
+impl Message for DownloadBetreuerMessage {
+	type Result = Result<Vec<models::Supervisor>>;
+}
+
 pub struct SignupSupervisorMessage {
 	pub supervisor: models::Supervisor,
 }
@@ -247,6 +252,31 @@ impl Handler<DownloadMembersMessage> for DbExecutor {
 
 		Ok(teilnehmer::table.select(ALL_COLUMNS_BUT_ID)
 		   .load::<models::Teilnehmer>(&self.connection)?)
+	}
+}
+
+impl Handler<DownloadBetreuerMessage> for DbExecutor {
+	type Result = Result<Vec<models::Supervisor>>;
+
+	fn handle(
+		&mut self,
+		_: DownloadBetreuerMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::betreuer;
+		use self::schema::betreuer::*;
+		pub const ALL_COLUMNS_BUT_ID: (vorname, nachname, geburtsdatum,
+			geschlecht, juleica_nummer, mail,
+			handynummer, strasse, hausnummer, ort, plz, besonderheiten, agb,
+			selbsterklaerung, fuehrungszeugnis_auststellung,
+			fuehrungszeugnis_eingesehen) = (vorname, nachname, geburtsdatum,
+			geschlecht, juleica_nummer, mail,
+			handynummer, strasse, hausnummer, ort, plz, besonderheiten, agb,
+			selbsterklaerung, fuehrungszeugnis_auststellung,
+			fuehrungszeugnis_eingesehen);
+
+		Ok(betreuer::table.select(ALL_COLUMNS_BUT_ID)
+		   .load::<models::Supervisor>(&self.connection)?)
 	}
 }
 
