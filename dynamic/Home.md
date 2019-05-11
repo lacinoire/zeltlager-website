@@ -2,7 +2,7 @@
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet dieses Jahr auf dem Sportgelände des SV Erpfting (nähe Landsberg a. Lech) statt.
+Das Zeltlager findet dieses Jahr auf dem Sportgelände des SV Salamander Türkheim statt.
 
 Abfahrt Montag den 29.07.2019 um 10:00 Uhr 
 Rückkehr Freitag den 09.08.2019 um ca. 14:00 Uhr
