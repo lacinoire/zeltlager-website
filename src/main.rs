@@ -52,7 +52,7 @@ mod signup_supervisor;
 mod thumbs;
 
 type Result<T> = std::result::Result<T, failure::Error>;
-type BoxFuture<T> = Box<futures::Future<Item = T, Error = failure::Error>>;
+type BoxFuture<T> = Box<dyn futures::Future<Item = T, Error = failure::Error>>;
 
 const DEFAULT_PREFIX: &str = "public";
 const DEFAULT_NAME: &str = "startseite";

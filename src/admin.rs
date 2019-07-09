@@ -45,7 +45,9 @@ pub fn download_members_csv(
 				Ok(Ok(members)) => {
 					let mut res = Vec::new();
 					{
-						let mut writer = csv::Writer::from_writer(&mut res);
+						let mut writer = csv::WriterBuilder::new()
+							.delimiter(b'|')
+							.from_writer(&mut res);
 						for t in members {
 							writer.serialize(t)?;
 						}
@@ -84,7 +86,9 @@ pub fn download_betreuer_csv(
 				Ok(Ok(betreuer)) => {
 					let mut res = Vec::new();
 					{
-						let mut writer = csv::Writer::from_writer(&mut res);
+						let mut writer = csv::WriterBuilder::new()
+							.delimiter(b'|')
+							.from_writer(&mut res);
 						for t in betreuer {
 							writer.serialize(t)?;
 						}
