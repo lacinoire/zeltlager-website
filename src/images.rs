@@ -23,16 +23,17 @@ impl Images {
 
 pub fn render_images(
 	req: HttpRequest<AppState>,
+	name: &'static str,
 ) -> BoxFuture<HttpResponse> {
 	Box::new(auth::get_roles(&req)
 		.and_then(move |res| {
-			req.state().sites["public"].get_site(req.state().config.clone(), "Bilder2018/", res)
+			req.state().sites["public"].get_site(req.state().config.clone(), &format!("{}/", name), res)
 		})
-		.map(|site| {
+		.map(move |site| {
 			let content = format!("{}", site);
 			let images = format!(
 				"{}",
-				Images::new("Bilder 2018".to_string(), "Bilder2018".to_string())
+				Images::new("Bilder".to_string(), name.to_string())
 			);
 			let content = content.replace("<insert content here>", &images);
 

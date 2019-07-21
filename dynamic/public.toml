@@ -24,6 +24,13 @@ description = "Bilder aus dem Zeltlager 2018"
 role = "ImageDownload2018"
 
 [[sites]]
+name = "Bilder2019/"
+file_name = "Empty.txt"
+title = "Bilder"
+description = "Bilder aus dem Zeltlager 2019"
+role = "ImageDownload2019"
+
+[[sites]]
 name = "anmeldung"
 file_name = "Empty.txt"
 title = "Anmeldung"

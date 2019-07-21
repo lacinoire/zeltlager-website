@@ -12,10 +12,11 @@ use futures::{future, Future, IntoFuture};
 use crate::form::Form;
 use crate::{auth, db, AppState, BoxFuture};
 
-#[derive(Clone, EnumString, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, EnumString, Debug, Deserialize, PartialEq, Eq)]
 pub enum Roles {
 	Admin,
 	ImageDownload2018,
+	ImageDownload2019,
 	ImageUpload,
 }
 

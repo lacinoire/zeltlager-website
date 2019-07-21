@@ -59,6 +59,11 @@ const DEFAULT_NAME: &str = "startseite";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
 const KEY_FILE: &str = "secret.key";
 
+static IMAGE_YEARS: &[(&str, auth::Roles)] = &[
+	("Bilder2018", auth::Roles::ImageDownload2018),
+	("Bilder2019", auth::Roles::ImageDownload2019),
+];
+
 fn cookie_maxtime() -> Duration {
 	Duration::minutes(30)
 }
@@ -502,7 +507,10 @@ fn main() -> Result<()> {
 	};
 
 	// Start thumbnail creator
-	std::thread::spawn(|| thumbs::watch_thumbs("Bilder2018"));
+	for (name, _) in IMAGE_YEARS {
+		let name = *name;
+		std::thread::spawn(move || thumbs::watch_thumbs(name));
+	}
 
 	server::new(move || {
 		let mut identity_policy = CookieIdentityPolicy::new(&key)
@@ -523,7 +531,7 @@ fn main() -> Result<()> {
 			)))
 		}
 
-		app
+		app = app
 			.middleware(IdentityService::new(identity_policy))
 			// Register static file handler as resource. If it is registered as
 			// handler, it will be overwritten by resources.
@@ -546,18 +554,25 @@ fn main() -> Result<()> {
 			)
 			.route("/login", Method::GET, auth::login)
 			.route("/login", Method::POST, auth::login_send)
-			.route("/logout", Method::GET, auth::logout)
-			.scope("/Bilder2018/", |scope| { scope
-				.middleware(HasRolePredicate::new(auth::Roles::ImageDownload2018))
-				.resource("/static/{tail:.*}", |r| {
-					r.h(fs::StaticFiles::with_config("Bilder2018", StaticFilesConfig)
-						.unwrap().default_handler(not_found))
+			.route("/logout", Method::GET, auth::logout);
+
+		for (name, role) in IMAGE_YEARS {
+			let name = *name;
+			app = app
+				.scope(&format!("/{}/", name), move |scope| { scope
+					.middleware(HasRolePredicate::new(*role))
+					.resource("/static/{tail:.*}", move |r| {
+						r.h(fs::StaticFiles::with_config(name, StaticFilesConfig)
+							.unwrap().default_handler(not_found))
+					})
+					.route("", Method::GET, move |r| images::render_images(r, name))
+					.default_resource(|r| r.f(not_found))
 				})
-				.route("", Method::GET, images::render_images)
-				.default_resource(|r| r.f(not_found))
-			})
-			.route("/Bilder2018", Method::GET, |_: HttpRequest<AppState>|
-				HttpResponse::Found().header("location", "/Bilder2018/").finish())
+				.route(&format!("/{}", name), Method::GET, move |_: HttpRequest<AppState>|
+					HttpResponse::Found().header("location", format!("/{}/", name)).finish());
+		}
+
+		app
 			.scope("/admin/", |scope| { scope
 				.middleware(HasRolePredicate::new(auth::Roles::Admin))
 				.route("", Method::GET, admin::render_admin)
