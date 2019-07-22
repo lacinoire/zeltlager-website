@@ -62,7 +62,8 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 					None => warn!("Filename {:?} is not valid unicode",
 						file_path),
 					Some(name) => {
-						if name != ".gitignore" {
+						let lower_name = name.to_lowercase();
+						if lower_name.ends_with(".jpg") || lower_name.ends_with(".png") {
 							// Check if there is a thumbnail for it
 							if let Err(e) = create_thumb(&path, name) {
 								warn!("Failed to create thumbnail for {}: {:?}", name, e);
