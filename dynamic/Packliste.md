@@ -27,4 +27,4 @@ KEINE Wertsachen mitnehmen!
 
 Alle Kleidungsstücke, sowie die Liege und der Schlafsack deutlich mit Namen kennzeichnen. Wir empfehlen einen Wäschestift zur Beschriftung der Etiketten.
 
-![Zelte von innen](/static/img/ausstattung/ZelteInnen.jpg)
+![Zeltplatz in Erkheim](/static/img/ausstattung/ZelteErkheim.jpeg)

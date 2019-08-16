@@ -31,9 +31,22 @@
 	<div class="col">
 		<img src="/static/img/ausstattung/KuecheInnen.jpeg" alt="Die Küche von Innen" class="responsive-image">
 	</div>
+	<div class="col">
+		<img src="/static/img/ausstattung/Kueche1.jpg" alt="Die Küche von Innen" class="responsive-image">
+	</div>
+	<div class="col">
+		<img src="/static/img/ausstattung/Kueche2.jpg" alt="Die Küche von Innen" class="responsive-image">
+	</div>
+	<div class="col">
+		<img src="/static/img/ausstattung/Kueche3.jpg" alt="Die Küche von Innen" class="responsive-image">
+	</div>
+	<div class="col">
+		<img src="/static/img/ausstattung/Kueche4.jpg" alt="Die Küche von Innen" class="responsive-image">
+	</div>
 </div>
 
 <a name="team">
+
 # Das Zeltlagerteam
 </a>
 
