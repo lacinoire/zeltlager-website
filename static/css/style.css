@@ -13,6 +13,7 @@ body > .container {
 img {
 	max-width: 36em;
 	padding: .3125rem; /* 5px */
+	image-orientation: from-image;
 }
 
 .responsive-image {
@@ -67,7 +68,7 @@ body {
 }
 
 @media only screen and (max-width: 1000px) {
-  .navbar-nav .nav-link {
+	.navbar-nav .nav-link {
 		font-size: 2rem;
 	}
 }
@@ -77,5 +78,16 @@ body {
 }
 
 .navbar-toggler {
-  padding: .75rem .75rem;
+	padding: .75rem .75rem;
+}
+
+/* Lightbox */
+.ekko-lightbox-item {
+	text-align: center;
+}
+
+.ekko-lightbox-item > img {
+	width: auto !important;
+	max-width: 100%;
+	max-height: 100%;
 }
