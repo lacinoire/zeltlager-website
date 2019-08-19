@@ -17,6 +17,7 @@ table! {
         selbsterklaerung -> Bool,
         fuehrungszeugnis_auststellung -> Nullable<Date>,
         fuehrungszeugnis_eingesehen -> Nullable<Date>,
+        anmeldedatum -> Timestamptz,
     }
 }
 
@@ -54,6 +55,7 @@ table! {
         plz -> Text,
         besonderheiten -> Text,
         agb -> Bool,
+        anmeldedatum -> Timestamptz,
     }
 }
 

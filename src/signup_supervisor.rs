@@ -2,6 +2,7 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::io::Write;
 
 use actix_web::*;
 use futures::{future, Future, IntoFuture};
@@ -69,6 +70,8 @@ fn signup_success() -> BoxFuture<HttpResponse> {
 pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let db_addr = req.state().db_addr.clone();
 	let error_message = req.state().config.error_message.clone();
+	let log_file = req.state().config.log_file.clone();
+	let log_mutex = req.state().log_mutex.clone();
 
 	// Get the body of the request
 	req.clone().urlencoded()
@@ -110,7 +113,35 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 								supervisor.nachname, error));
 							Box::new(render_signup(req, body).into_future())
 						}
-						Ok(Ok(())) => signup_success(),
+						Ok(Ok(())) => {
+							if let Some(log_file) = log_file {
+								let res: Result<_, Error> = (|| {
+									let _lock = log_mutex.lock().unwrap();
+									let mut file = std::fs::OpenOptions::new()
+										.create(true)
+										.append(true)
+										.open(log_file)?;
+									writeln!(file, "Betreuer: {}", serde_json::to_string(&supervisor)?)?;
+
+									Ok(())
+								})();
+
+								if let Err(error) = res {
+									body.insert(
+										"error".to_string(),
+										format!(
+											"Es ist ein Fehler beim Speichern \
+											 aufgetreten.\n{}",
+											error_message
+										),
+									);
+									warn!("Failed to log new supervisor: {:?}", error);
+									return render_signup(req, body);
+								}
+							}
+
+							signup_success()
+						}
 					}
 				}),
 		)})

@@ -17,6 +17,8 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use actix_web::http::header::DispositionType;
 use actix_web::http::Method;
@@ -191,6 +193,9 @@ pub struct Config {
 
 	/// The sentry DSN.
 	sentry: Option<String>,
+
+	/// Path to a log file to log signups.
+	log_file: Option<PathBuf>,
 }
 
 fn get_true() -> bool {
@@ -207,6 +212,8 @@ pub struct AppState {
 	db_addr: actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
 	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
+	/// Used to lock access to the log file.
+	log_mutex: Arc<Mutex<()>>,
 }
 
 impl Into<lettre_email::Mailbox> for MailAddress {
@@ -415,7 +422,6 @@ fn not_found(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 fn forbidden(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	// This gets printed sometimes without a request being forbidden because
 	// we need the request.
-	warn!("Forbidden '{}'", req.path());
 	let state = req.state().clone();
 	Box::new(auth::get_roles(&req).and_then(move |res| {
 		let site = state.sites["public"].get_site(
@@ -504,6 +510,7 @@ fn main() -> Result<()> {
 		db_addr,
 		mail_addr,
 		disc_addr,
+		log_mutex: Arc::new(Mutex::new(())),
 	};
 
 	// Start thumbnail creator

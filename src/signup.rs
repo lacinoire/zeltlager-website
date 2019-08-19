@@ -2,6 +2,9 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::io::Write;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use actix_web::*;
 use futures::{future, Future, IntoFuture};
@@ -123,6 +126,8 @@ fn signup_check_count(
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
 	error_message: String,
+	log_file: Option<PathBuf>,
+	log_mutex: Arc<Mutex<()>>,
 	req: HttpRequest<AppState>,
 ) -> BoxFuture<HttpResponse> {
 	if req.state().config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
@@ -160,17 +165,45 @@ fn signup_check_count(
 									error_message
 								),
 							);
-							warn!("Error inserting into database: {}", error);
+							warn!("Error inserting into database: {:?}", error);
 							render_signup(req, body)
 						}
-						Ok(Ok(())) => signup_mail(
-							&mail_addr,
-							disc_addr,
-							member,
-							body,
-							error_message,
-							req,
-						),
+						Ok(Ok(())) => {
+							if let Some(log_file) = log_file {
+								let res: Result<_, Error> = (|| {
+									let _lock = log_mutex.lock().unwrap();
+									let mut file = std::fs::OpenOptions::new()
+										.create(true)
+										.append(true)
+										.open(log_file)?;
+									writeln!(file, "Teilnehmer: {}", serde_json::to_string(&member)?)?;
+
+									Ok(())
+								})();
+
+								if let Err(error) = res {
+									body.insert(
+										"error".to_string(),
+										format!(
+											"Es ist ein Fehler beim Speichern \
+											 aufgetreten.\n{}",
+											error_message
+										),
+									);
+									warn!("Failed to log new member: {:?}", error);
+									return render_signup(req, body);
+								}
+							}
+
+							signup_mail(
+								&mail_addr,
+								disc_addr,
+								member,
+								body,
+								error_message,
+								req,
+							)
+						}
 					}
 				}),
 		)
@@ -244,6 +277,8 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let disc_addr = req.state().disc_addr.clone();
 	let error_message = req.state().config.error_message.clone();
 	let max_members = req.state().config.max_members;
+	let log_file = req.state().config.log_file.clone();
+	let log_mutex = req.state().log_mutex.clone();
 	let db_addr2 = db_addr.clone();
 
 	// Get the body of the request
@@ -279,7 +314,7 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 					}
 					Ok(Ok(count)) => signup_check_count(count, max_members,
 						&db_addr2, mail_addr, disc_addr, member, body,
-						error_message, req),
+						error_message, log_file, log_mutex, req),
 				}})
 		)})
 		.responder()
