@@ -2,6 +2,7 @@ use actix::prelude::*;
 use rand::Rng;
 use reqwest::multipart::Form;
 
+use crate::config::DiscourseConfig;
 use crate::db::models::Teilnehmer;
 use crate::Result;
 
@@ -30,7 +31,7 @@ struct UserResponse { id: usize }
 struct SignupResponse { user_id: usize }
 
 pub struct DiscourseExecutor {
-	config: crate::DiscourseConfig,
+	config: DiscourseConfig,
 	group_id: usize,
 	category_id: usize,
 }
@@ -48,7 +49,7 @@ impl Message for SignupMessage {
 }
 
 impl DiscourseExecutor {
-	pub fn new(config: crate::DiscourseConfig) -> Result<Self> {
+	pub fn new(config: DiscourseConfig) -> Result<Self> {
 		let mut res = Self { config, group_id: 0, category_id: 0 };
 		// Find group id
 		let mut response = res.request_get(&format!("groups/{}", res.config.group))?;

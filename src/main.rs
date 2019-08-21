@@ -17,7 +17,6 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use actix_web::http::header::DispositionType;
@@ -28,7 +27,6 @@ use actix_web::*;
 use chrono::Duration;
 use futures::{future, Future, IntoFuture};
 use rand::Rng;
-use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
 macro_rules! tryf {
@@ -43,6 +41,7 @@ macro_rules! tryf {
 mod admin;
 mod auth;
 mod basic;
+mod config;
 mod db;
 mod discourse;
 mod form;
@@ -52,6 +51,8 @@ mod management;
 mod signup;
 mod signup_supervisor;
 mod thumbs;
+
+use config::{Config, MailAddress};
 
 type Result<T> = std::result::Result<T, failure::Error>;
 type BoxFuture<T> = Box<dyn futures::Future<Item = T, Error = failure::Error>>;
@@ -72,143 +73,14 @@ fn cookie_maxtime() -> Duration {
 fn ratelimit_duration() -> Duration {
 	Duration::days(1)
 }
-
-#[derive(StructOpt, Debug)]
-#[structopt(
-	raw(
-		global_settings = "&[AppSettings::ColoredHelp, \
-		                   AppSettings::VersionlessSubcommands]"
-	)
-)]
-struct Args {
-	#[structopt(subcommand, help = "Default action is to start the server")]
-	action: Option<Action>,
-}
-
-#[derive(StructOpt, Debug)]
-#[structopt(name = "action")]
-enum Action {
-	#[structopt(
-		name = "adduser",
-		help = "Add a user to the database.\nIt will ask for the password on the \
-		        command line"
-	)]
-	AddUser {
-		#[structopt(name = "username", help = "Name of the added user")]
-		username: Option<String>,
-		#[structopt(
-			name = "force",
-			long = "force",
-			short = "f",
-			help = "Overwrite password of user without asking"
-		)]
-		force: bool,
-	},
-	#[structopt(name = "deluser", help = "Remove a user from the database")]
-	DelUser {
-		#[structopt(name = "username", help = "Name of the user to delete")]
-		username: Option<String>,
-	},
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct MailAddress {
-	name: Option<String>,
-	address: String,
-}
-
-fn submission_port() -> u16 { 587 }
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct MailAccount {
-	/// Host for smtp.
-	host: String,
-	/// Username to login to smtp.
-	name: Option<String>,
-	/// Password to login to smtp.
-	password: String,
-	#[serde(default = "submission_port")]
-	port: u16,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct DiscourseConfig {
-	/// The api endpoint, something like `https://discourse.example.com`.
-	endpoint: String,
-	/// The api token.
-	token: String,
-	/// The username for the api.
-	username: String,
-	/// Add new users to this group.
-	group: String,
-	/// Subscribe new users to this category.
-	category: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct Config {
-	/// The sender of emails
-	sender_mail: MailAddress,
-	sender_mail_account: MailAccount,
-
-	/// E-Mail addresses which should also receive all signup-confirmation
-	/// mails.
-	additional_mail_receivers: Vec<MailAddress>,
-	/// If a member signs up with this mail address, the signup mail will only
-	/// be sent to this address, but not to additional receivers. The member
-	/// will also not be entered into the database.
-	test_mail: Option<String>,
-
-	/// The maximum allowed amount of members.
-	max_members: i64,
-	/// The message which will be shown when the maximum number of members is
-	/// reached.
-	max_members_reached: String,
-	/// An error message, which will be displayed on generic errors.
-	///
-	/// Put here something like: Please write us an e-mail.
-	error_message: String,
-	/// Address to bind to.
-	#[serde(default = "default_bind_address")]
-	bind_address: String,
-	/// A message which will be displayed on top of all basic templated sites.
-	global_message: Option<String>,
-	/// If this site is served over https.
-	///
-	/// If `true`, the authentication cookie can only be transfered over https.
-	#[serde(default = "get_true")]
-	secure: bool,
-	/// This should be the domain the server.
-	///
-	/// If set, it restricts the authentication cookie to a domain
-	/// and protects against csrf using the referer and origin header.
-	domain: Option<String>,
-
-	/// The configuration of the discourse integration.
-	discourse: Option<DiscourseConfig>,
-
-	/// The sentry DSN.
-	sentry: Option<String>,
-
-	/// Path to a log file to log signups.
-	log_file: Option<PathBuf>,
-}
-
 fn get_true() -> bool {
 	true
-}
-fn default_bind_address() -> String {
-	String::from("127.0.0.1:8080")
 }
 
 #[derive(Clone)]
 pub struct AppState {
 	sites: HashMap<String, basic::SiteDescriptions>,
-	config: Config,
+	config: config::Config,
 	db_addr: actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
 	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
@@ -441,7 +313,7 @@ fn main() -> Result<()> {
 	env_logger::init();
 
 	// Command line arguments
-	let args = Args::from_args();
+	let args = config::Args::from_args();
 	if let Some(action) = args.action {
 		management::cmd_action(action)?;
 		return Ok(());

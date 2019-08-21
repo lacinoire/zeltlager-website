@@ -311,7 +311,7 @@ impl Teilnehmer {
 			);
 		}
 
-		if years < 5 {
+		if years < 7 {
 			bail!(
 				"Ihr Kind ist leider zu jung (Geburtsdatum {}).\nDas \
 				 Zeltlager ist für Kinder und Jugendliche zwischen 7 und 15 \

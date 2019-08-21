@@ -8,6 +8,7 @@ use pulldown_cmark::{html, Parser};
 
 use crate::Result;
 use crate::auth::Roles;
+use crate::config::Config;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct SiteDescription {
@@ -31,7 +32,7 @@ pub struct SiteDescriptions {
 #[derive(Debug)]
 pub struct Basic {
 	pub logged_in_roles: Option<Vec<Roles>>,
-	pub config: crate::Config,
+	pub config: Config,
 	pub all_sites: SiteDescriptions,
 	pub current_site: SiteDescription,
 	pub content: String,
@@ -48,7 +49,7 @@ impl SiteDescriptions {
 	/// `logged_in_roles` should be `None` if the user is not logged in.
 	pub fn get_site(
 		&self,
-		config: crate::Config,
+		config: Config,
 		name: &str,
 		logged_in_roles: Option<Vec<Roles>>,
 	) -> Result<Basic> {

@@ -6,7 +6,8 @@ use diesel::prelude::*;
 use diesel::Connection;
 use dotenv::dotenv;
 
-use crate::{db, Action, Result};
+use crate::{db, Result};
+use crate::config::Action;
 
 fn ask_username() -> String {
 	print!("Enter username: ");
