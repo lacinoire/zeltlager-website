@@ -29,6 +29,8 @@ pub mod models;
 // Generate with `diesel print-schema > src/db/schema.rs`
 pub mod schema;
 
+diesel_migrations::embed_migrations!();
+
 pub struct DbExecutor {
 	connection: PgConnection,
 }
@@ -108,6 +110,11 @@ impl Message for GetRolesMessage {
 	type Result = Result<Vec<auth::Roles>>;
 }
 
+pub struct RunMigrationsMessage;
+impl Message for RunMigrationsMessage {
+	type Result = Result<()>;
+}
+
 impl DbExecutor {
 	pub fn new() -> Result<Self> {
 		dotenv().ok();
@@ -118,7 +125,27 @@ impl DbExecutor {
 			)
 		})?;
 		let connection = PgConnection::establish(&database_url)?;
+
 		Ok(Self { connection })
+	}
+}
+
+impl Handler<RunMigrationsMessage> for DbExecutor {
+	type Result = Result<()>;
+
+	fn handle(
+		&mut self,
+		_: RunMigrationsMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		let mut s = Vec::new();
+		embedded_migrations::run_with_output(&self.connection, &mut s)?;
+		let s = std::str::from_utf8(&s)?;
+		if !s.is_empty() {
+			info!("Run database migrations: {}", s);
+		}
+
+		Ok(())
 	}
 }
 

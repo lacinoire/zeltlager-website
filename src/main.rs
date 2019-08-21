@@ -3,6 +3,8 @@
 #[macro_use]
 extern crate diesel;
 #[macro_use]
+extern crate diesel_migrations;
+#[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate log;
@@ -361,6 +363,9 @@ fn main() -> Result<()> {
 	let db_addr = actix::SyncArbiter::start(4, move || {
 		db::DbExecutor::new().expect("Failed to create db executor")
 	});
+
+	// Run database migrations
+	let _migrate_future = db_addr.send(db::RunMigrationsMessage);
 
 	// Start some parallel mail executors
 	let config2 = config.clone();

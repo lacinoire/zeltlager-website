@@ -5,6 +5,7 @@ target/
 config.toml
 .env
 secret.key
+zeltlager.log
 
 # Picture Folder
 Bilder*/

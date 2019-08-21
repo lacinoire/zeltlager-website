@@ -11,6 +11,7 @@ bytes = "0.4"
 chrono = "0.4"
 csv = "1"
 diesel = { version = "1.2", features = ["chrono", "postgres", "network-address"] }
+diesel_migrations = "1.4"
 dotenv = "0.14"
 env_logger = "0.6"
 failure = "0.1"
