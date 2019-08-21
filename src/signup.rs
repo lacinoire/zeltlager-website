@@ -277,6 +277,7 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let disc_addr = req.state().disc_addr.clone();
 	let error_message = req.state().config.error_message.clone();
 	let max_members = req.state().config.max_members;
+	let birthday_date = req.state().config.birthday_date.clone();
 	let log_file = req.state().config.log_file.clone();
 	let log_mutex = req.state().log_mutex.clone();
 	let db_addr2 = db_addr.clone();
@@ -287,7 +288,7 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
 			let mut member = match db::models::Teilnehmer::
-				from_hashmap(body.clone()) {
+				from_hashmap(body.clone(), &birthday_date) {
 				Ok(member) => member,
 				Err(error) => {
 					// Show error and prefilled form

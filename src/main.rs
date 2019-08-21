@@ -80,7 +80,7 @@ fn get_true() -> bool {
 #[derive(Clone)]
 pub struct AppState {
 	sites: HashMap<String, basic::SiteDescriptions>,
-	config: config::Config,
+	config: Config,
 	db_addr: actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
 	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
@@ -166,6 +166,7 @@ impl Config {
 		if let Some(addr) = &self.test_mail {
 			mail::check_parsable(&addr)?;
 		}
+		db::models::get_birthday_date(&self.birthday_date);
 		Ok(())
 	}
 }

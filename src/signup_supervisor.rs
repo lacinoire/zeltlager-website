@@ -70,6 +70,7 @@ fn signup_success() -> BoxFuture<HttpResponse> {
 pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 	let db_addr = req.state().db_addr.clone();
 	let error_message = req.state().config.error_message.clone();
+	let birthday_date = req.state().config.birthday_date.clone();
 	let log_file = req.state().config.log_file.clone();
 	let log_mutex = req.state().log_mutex.clone();
 
@@ -79,7 +80,7 @@ pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		.from_err()
 		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
 			let supervisor = match db::models::Supervisor::
-				from_hashmap(body.clone()) {
+				from_hashmap(body.clone(), &birthday_date) {
 				Ok(supervisor) => supervisor,
 				Err(error) => {
 					// Show error and prefilled form

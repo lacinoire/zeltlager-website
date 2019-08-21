@@ -177,11 +177,24 @@ pub fn try_parse_gender(s: &str) -> Result<Gender> {
 	}
 }
 
-pub fn years_old(date: Date<Utc>) -> i32 {
+pub fn get_birthday_date(birthday_date: &str) -> Date<Utc> {
+	let date = NaiveDate::parse_from_str(&format!("0000-{}", birthday_date), "%Y-%m-%d")
+		.expect("Date has wrong format");
+	let mut date = Date::<Utc>::from_utc(date, Utc);
+
+	// Set the right year
 	let now = Utc::now().date();
-	let mut years = now.year() - date.year();
-	if now.month() < date.month()
-		|| (now.month() == date.month() && now.day() < date.day())
+	date = date.with_year(now.year()).unwrap();
+	if date < now {
+		date = date.with_year(now.year() + 1).unwrap();
+	}
+	date
+}
+
+pub fn years_old(date: Date<Utc>, birthday_date: &Date<Utc>) -> i32 {
+	let mut years = birthday_date.year() - date.year();
+	if birthday_date.month() < date.month()
+		|| (birthday_date.month() == date.month() && birthday_date.day() < date.day())
 	{
 		years -= 1;
 	}
@@ -240,7 +253,7 @@ impl FromSql<Text, Pg> for Gender {
 }
 
 impl Teilnehmer {
-	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
+	pub fn from_hashmap(mut map: HashMap<String, String>, birthday_date: &str) -> Result<Self> {
 		let date = get_str!(map, "geburtsdatum")?;
 		let geburtsdatum = try_parse_date(&date)?;
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
@@ -301,7 +314,7 @@ impl Teilnehmer {
 		// Check birth date
 		let birthday = Date::from_utc(res.geburtsdatum, Utc);
 		let now = Utc::now().date();
-		let years = years_old(birthday);
+		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
 			bail!(
 				"Sind Sie sicher, dass {} das Geburtsdatum Ihres Kindes \
@@ -313,7 +326,7 @@ impl Teilnehmer {
 
 		if years < 7 {
 			bail!(
-				"Ihr Kind ist leider zu jung (Geburtsdatum {}).\nDas \
+				"Ihr Kind ist zu jung (Geburtsdatum {}).\nDas \
 				 Zeltlager ist für Kinder und Jugendliche zwischen 7 und 15 \
 				 Jahren.",
 				res.geburtsdatum.format("%d.%m.%Y")
@@ -321,7 +334,7 @@ impl Teilnehmer {
 		}
 		if years > 15 {
 			bail!(
-				"Ihr Kind ist leider zu alt um als Teilnehmer beim Zeltlager \
+				"Ihr Kind ist zu alt um als Teilnehmer beim Zeltlager \
 				 mitzufahren (Geburtsdatum {}).\nWir suchen immer nach \
 				 motivierten Betreuern (ab 16 Jahren), die auf das Zeltlager \
 				 mitfahren.\nInfos dazu finden Sie auf der \
@@ -354,7 +367,7 @@ impl Teilnehmer {
 }
 
 impl Supervisor {
-	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self> {
+	pub fn from_hashmap(mut map: HashMap<String, String>, birthday_date: &str) -> Result<Self> {
 		let date = get_str!(map, "geburtsdatum")?;
 		let geburtsdatum = try_parse_date(&date)?;
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
@@ -440,7 +453,7 @@ impl Supervisor {
 		// Check birth date
 		let birthday = Date::from_utc(res.geburtsdatum, Utc);
 		let now = Utc::now().date();
-		let years = years_old(birthday);
+		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
 			bail!(
 				"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben \

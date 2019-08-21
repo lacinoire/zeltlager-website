@@ -18,25 +18,25 @@ pub struct Args {
 #[derive(StructOpt, Debug)]
 #[structopt(name = "action")]
 pub enum Action {
-	#[structopt(
-		name = "adduser",
-		help = "Add a user to the database.\nIt will ask for the password on the \
-		        command line"
-	)]
+	/// Add a user to the database.
+	/// It will ask for the password on the command line.
+	#[structopt(name = "adduser")]
 	AddUser {
 		#[structopt(name = "username", help = "Name of the added user")]
 		username: Option<String>,
+		/// Overwrite password of user without asking
 		#[structopt(
 			name = "force",
 			long = "force",
 			short = "f",
-			help = "Overwrite password of user without asking"
 		)]
 		force: bool,
 	},
-	#[structopt(name = "deluser", help = "Remove a user from the database")]
+	/// Remove a user from the database
+	#[structopt(name = "deluser")]
 	DelUser {
-		#[structopt(name = "username", help = "Name of the user to delete")]
+		/// Name of the user to delete
+		#[structopt(name = "username")]
 		username: Option<String>,
 	},
 }
@@ -95,6 +95,10 @@ pub struct Config {
 
 	/// The maximum allowed amount of members.
 	pub max_members: i64,
+	/// The month and day to check the age of a member when signing up.
+	///
+	/// This should be in the format `mm-dd`.
+	pub birthday_date: String,
 	/// The message which will be shown when the maximum number of members is
 	/// reached.
 	pub max_members_reached: String,
