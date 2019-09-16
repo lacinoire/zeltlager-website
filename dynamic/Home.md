@@ -1,11 +1,11 @@
-# Zeltlager 2019 – Elterninfo
+# Zeltlager 2020 – Elterninfo
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet dieses Jahr auf dem Sportgelände des SV Salamander Türkheim statt.
+Das Zeltlager findet dieses Jahr auf dem Sportgelände des SV Erpfting statt.
 
-Abfahrt Montag den 29.07.2019 um 10:00 Uhr 
-Rückkehr Freitag den 09.08.2019 um ca. 14:00 Uhr
+Abfahrt Montag den 25.07.2020 um 10:00 Uhr  
+Rückkehr Freitag den 07.08.2020 um ca. 14:00 Uhr  
 auf dem Parkplatz Westfriedhof in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
 
 Die Hin- und Rückreise erfolgt mit modernen Reisebussen.
@@ -16,7 +16,7 @@ Die Betreuung und Verpflegung übernimmt das qualifizierte [Zeltlagerteam](ausst
 
 Etwa 4 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle Informationen. Der Elternabend wird ca. 1 Stunde dauern.
 
-Wir freuen uns schon auf das Zeltlager 2019.
+Wir freuen uns schon auf das Zeltlager 2020.
 
 Das Betreuerteam
 
