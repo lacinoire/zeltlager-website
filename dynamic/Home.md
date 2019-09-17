@@ -4,7 +4,7 @@ Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder
 
 Das Zeltlager findet dieses Jahr auf dem Sportgelände des SV Erpfting statt.
 
-Abfahrt Montag den 25.07.2020 um 10:00 Uhr  
+Abfahrt Montag den 27.07.2020 um 10:00 Uhr  
 Rückkehr Freitag den 07.08.2020 um ca. 14:00 Uhr  
 auf dem Parkplatz Westfriedhof in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
 
