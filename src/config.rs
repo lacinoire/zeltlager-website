@@ -1,42 +1,32 @@
 use std::path::PathBuf;
 
-use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
-#[structopt(
-	raw(
-		global_settings = "&[AppSettings::ColoredHelp, \
-		                   AppSettings::VersionlessSubcommands]"
-	)
-)]
 pub struct Args {
-	#[structopt(subcommand, help = "Default action is to start the server")]
+	/// Default action is to start the server
+	#[structopt(subcommand)]
 	pub action: Option<Action>,
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "action")]
 pub enum Action {
 	/// Add a user to the database.
 	/// It will ask for the password on the command line.
 	#[structopt(name = "adduser")]
 	AddUser {
-		#[structopt(name = "username", help = "Name of the added user")]
+		/// Name of the added user
+		#[structopt()]
 		username: Option<String>,
 		/// Overwrite password of user without asking
-		#[structopt(
-			name = "force",
-			long = "force",
-			short = "f",
-		)]
+		#[structopt(long, short)]
 		force: bool,
 	},
 	/// Remove a user from the database
 	#[structopt(name = "deluser")]
 	DelUser {
 		/// Name of the user to delete
-		#[structopt(name = "username")]
+		#[structopt()]
 		username: Option<String>,
 	},
 }

@@ -241,6 +241,7 @@ pub fn user_get_roles(
 		db_addr
 			.send(msg)
 			.from_err::<failure::Error>()
-			.and_then(|r| r),
+			.and_then(|r| r)
+			.map_err(|e| format_err!("Failed to get user roles: {:?}", e)),
 	)
 }
