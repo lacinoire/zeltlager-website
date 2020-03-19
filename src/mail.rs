@@ -74,8 +74,10 @@ impl Handler<SignupMessage> for MailExecutor {
 				msg.member.eltern_mail.clone(),
 				msg.member.eltern_name.clone(),
 			))
+			.header(("Content-Transfer-Encoding", "8bit"))
 			.from(self.config.sender_mail.clone())
-			.subject(subject)
+			// Subject has to be encoded specially for UTF-8
+			.subject(format!("=?utf-8?B?{}?=", base64::encode(subject.as_bytes())))
 			.text(body);
 
 		if self.config.test_mail.as_ref().map(|m| m != &msg.member.eltern_mail).unwrap_or(true) {

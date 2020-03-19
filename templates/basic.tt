@@ -17,12 +17,12 @@
 	<script src="/static/js/zeltlager.js"></script>
 	<script src="/static/js/ekko-lightbox.min.js"></script>
 
-	<link rel="icon" type="image/svg+xml" href="/static/img/icon.svg" sizes="any">
+	<link rel="icon" type="image/svg+xml" href="/static/img/Icon.svg" sizes="any">
 </head>
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-light">
 		<div class="container">
-			<a class="navbar-brand" href="/startseite"><img src="/static/img/icon.svg" width="40" height="40" alt="Logo"/></a>
+			<a class="navbar-brand" href="/startseite"><img src="/static/img/MeinZeltlager.svg" height="60" style="padding: 0;" alt="Logo"/></a>
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
 				aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
@@ -86,10 +86,7 @@
 
 	<footer class="footer">
 		<div class="text-center">
-			<span class="text-muted"><a href="https://github.com/lacinoire/zeltlager-website" class="text-muted">Programmiert von Caro und Sebastian</a>
-				&nbsp;&nbsp;&nbsp;&nbsp;
-				Zelt-Icon <a href="https://freesvgclipart.com/clipart/cartoon-tipi-tent-with-red-flag/" class="text-muted">qubodup</a>
-			</span>
+			<span class="text-muted"><a href="https://github.com/lacinoire/zeltlager-website" class="text-muted">Programmiert von Caro und Sebastian</a></span>
 		</div>
 	</footer>
 </body>

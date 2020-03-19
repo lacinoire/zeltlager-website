@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 actix = "0.7"
 actix-web = "0.7"
+base64 = "0.12"
 chrono = "0.4"
 csv = "1"
 diesel = { version = "1.2", features = ["chrono", "postgres", "network-address"] }
@@ -23,17 +24,17 @@ log = "0.4"
 mime = "0.3"
 native-tls = "0.2"
 notify = "4"
-pulldown-cmark = { version = "0.6", default-features = false }
+pulldown-cmark = { version = "0.7", default-features = false }
 rand = "0.7"
 reqwest = "0.9"
 rpassword = "4"
-sentry = "0.17"
+sentry = "0.18"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
 structopt = { version = "0.3", default-features = false }
 strum = "0.16"
 strum_macros = "0.16"
-t4rust-derive = "0.1.3"
+t4rust-derive = "0.2"
 toml = "0.5"
 url = "2"
