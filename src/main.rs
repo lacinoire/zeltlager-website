@@ -67,6 +67,7 @@ const KEY_FILE: &str = "secret.key";
 static IMAGE_YEARS: &[(&str, auth::Roles)] = &[
 	("Bilder2018", auth::Roles::ImageDownload2018),
 	("Bilder2019", auth::Roles::ImageDownload2019),
+	("Bilder2020", auth::Roles::ImageDownload2020),
 ];
 
 fn cookie_maxtime() -> Duration {

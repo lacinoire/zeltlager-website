@@ -17,6 +17,7 @@ pub enum Roles {
 	Admin,
 	ImageDownload2018,
 	ImageDownload2019,
+	ImageDownload2020,
 	ImageUpload,
 }
 
