@@ -1,14 +1,15 @@
 use actix::prelude::*;
+use anyhow::Result;
 use lettre::smtp::authentication::Credentials;
 use lettre::smtp::client::net::{DEFAULT_TLS_PROTOCOLS, ClientTlsParameters};
 use lettre::smtp::ClientSecurity;
 use lettre::{Transport, SmtpClient};
 use lettre_email::EmailBuilder;
 use native_tls::TlsConnector;
+use t4rust_derive::Template;
 
 use crate::config::Config;
 use crate::db::models::{Gender, Teilnehmer};
-use crate::Result;
 
 pub struct MailExecutor {
 	config: Config,

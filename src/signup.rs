@@ -6,13 +6,13 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use actix_identity::Identity;
 use actix_web::*;
-use futures::{future, Future, IntoFuture};
-use sentry::integrations::failure::capture_error;
+use anyhow::Result;
+use log::{error, warn};
 use t4rust_derive::Template;
 
-use crate::{db, discourse, mail, AppState, BoxFuture, HttpRequest,
-	HttpResponse};
+use crate::{db, mail, State, HttpRequest, HttpResponse};
 use crate::form::Form;
 
 #[derive(Template)]
@@ -31,43 +31,39 @@ impl Form for Signup {
 }
 
 impl Signup {
-	pub fn new(
-		state: &AppState,
+	pub async fn new(
+		state: &State,
 		values: HashMap<String, String>,
-	) -> BoxFuture<Self> {
+	) -> Result<Self> {
 		let max_members = state.config.max_members;
 		let reached_max_members = state.config.max_members_reached.clone();
-		Box::new(
-			state
-				.db_addr
-				.send(db::CountMemberMessage)
-				.from_err::<::failure::Error>()
-				.then(move |result| match result {
-					Err(error) | Ok(Err(error)) => {
-						error!(
-							"Failed to get current member count: {:?}",
-							error
-						);
-						Err(error)
-					}
-					Ok(Ok(count)) => Ok(Self {
-						values,
-						reached_max_members: if count >= max_members {
-							Some(reached_max_members)
-						} else {
-							None
-						},
-					}),
-				}),
-		)
+		match state.db_addr.send(db::CountMemberMessage).await.map_err(|e| e.into()) {
+			Err(error) | Ok(Err(error)) => {
+				error!(
+					"Failed to get current member count: {:?}",
+					error
+				);
+				Err(error)
+			}
+			Ok(Ok(count)) => Ok(Self {
+				values,
+				reached_max_members: if count >= max_members {
+					Some(reached_max_members)
+				} else {
+					None
+				},
+			}),
+		}
 	}
 }
 
-pub fn signup(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
-	render_signup(req, HashMap::new())
+#[get("/anmeldung")]
+pub async fn signup(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
+	render_signup(&**state, &id, &req, HashMap::new()).await
 }
 
-pub fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+#[get("/anmeldung-test")]
+pub async fn signup_test(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
 	let map = vec![
 		("vorname", "a"),
 		("nachname", "b"),
@@ -85,54 +81,66 @@ pub fn signup_test(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		("plz", "80000"),
 	];
 
-	let map = map.iter().map(|&(a, b)| (a.to_string(), b.to_string()));
+	let map = map.iter().map(|(a, b)| (a.to_string(), b.to_string()));
 
-	render_signup(req, map.collect())
+	render_signup(&**state, &id, &req, map.collect()).await
 }
 
 /// Return the signup site with the prefilled `values`.
-fn render_signup(
-	req: HttpRequest<AppState>,
+async fn render_signup(
+	state: &State,
+	id: &Identity,
+	req: &HttpRequest,
 	values: HashMap<String, String>,
-) -> BoxFuture<HttpResponse> {
-	Box::new(crate::auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
-		if let Ok(site) = req.state().sites["public"].get_site(
-			req.state().config.clone(), "anmeldung", res) {
-			let content = format!("{}", site);
-			return Box::new(Signup::new(req.state(), values).and_then(
-				move |new_content| {
-					let content = content.replace(
-						"<insert content here>",
-						&format!("{}", new_content),
-					);
-
-					Ok(HttpResponse::Ok()
-						.content_type("text/html; charset=utf-8")
-						.body(content))
-				},
-			));
+) -> HttpResponse {
+	let roles = match crate::auth::get_roles(state, id).await {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get roles: {}", e);
+			return crate::error_response(state);
 		}
-		Box::new(crate::not_found(&req).into_future().from_err())
-	}))
+	};
+	if let Ok(site) = state.sites["public"].get_site(
+		state.config.clone(), "anmeldung", roles) {
+		let content = format!("{}", site);
+		let new_content = match Signup::new(state, values).await {
+			Ok(r) => r,
+			Err(e) => {
+				error!("Failed to create signup: {}", e);
+				return crate::error_response(state);
+			}
+		};
+		let content = content.replace(
+			"<insert content here>",
+			&format!("{}", new_content),
+		);
+
+		HttpResponse::Ok()
+			.content_type("text/html; charset=utf-8")
+			.body(content)
+	} else {
+		crate::not_found(state, id, req).await
+	}
 }
 
 /// Check if too many members are already registered, then call `signup_mail`.
-fn signup_check_count(
+async fn signup_check_count(
 	count: i64,
 	max_members: i64,
 	db_addr: &actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
-	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
 	error_message: String,
 	log_file: Option<PathBuf>,
 	log_mutex: Arc<Mutex<()>>,
-	req: HttpRequest<AppState>,
-) -> BoxFuture<HttpResponse> {
-	if req.state().config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
+	state: &State,
+	id: &Identity,
+	req: &HttpRequest,
+) -> HttpResponse {
+	if state.config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
 		// Don't insert test signup into database and discourse
-		Box::new(signup_mail(&mail_addr, None, member, body, error_message, req))
+		signup_mail(&mail_addr, member, body, error_message, state, id, req).await
 	} else if count >= max_members {
 		// Show error
 		body.insert(
@@ -145,192 +153,158 @@ fn signup_check_count(
 			"Already too many members registered (from {})",
 			member.eltern_mail
 		);
-		render_signup(req, body)
+		render_signup(state, id, req, body).await
 	} else {
-		Box::new(
-			db_addr
-				.send(db::SignupMessage {
-					member: member.clone(),
-				})
-				.from_err::<failure::Error>()
-				.then(move |result| -> BoxFuture<HttpResponse> {
-					match result {
-						Err(error) | Ok(Err(error)) => {
-							// Show error and prefilled form
-							body.insert(
-								"error".to_string(),
-								format!(
-									"Es ist ein Datenbank-Fehler \
-									 aufgetreten.\n{}",
-									error_message
-								),
-							);
-							warn!("Error inserting into database: {:?}", error);
-							render_signup(req, body)
-						}
-						Ok(Ok(())) => {
-							if let Some(log_file) = log_file {
-								let res: Result<_, Error> = (|| {
-									let _lock = log_mutex.lock().unwrap();
-									let mut file = std::fs::OpenOptions::new()
-										.create(true)
-										.append(true)
-										.open(log_file)?;
-									writeln!(file, "Teilnehmer: {}", serde_json::to_string(&member)?)?;
+		match db_addr.send(db::SignupMessage {
+				member: member.clone(),
+			}).await {
+			Err(error) => {
+				warn!("Error inserting into database: {:?}", error);
+			}
+			Ok(Err(error)) => {
+				warn!("Error inserting into database: {:?}", error);
+			}
+			Ok(Ok(())) => {
+				if let Some(log_file) = log_file {
+					let res: Result<_, Error> = (|| {
+						let _lock = log_mutex.lock().unwrap();
+						let mut file = std::fs::OpenOptions::new()
+							.create(true)
+							.append(true)
+							.open(log_file)?;
+						writeln!(file, "Teilnehmer: {}", serde_json::to_string(&member)?)?;
 
-									Ok(())
-								})();
+						Ok(())
+					})();
 
-								if let Err(error) = res {
-									body.insert(
-										"error".to_string(),
-										format!(
-											"Es ist ein Fehler beim Speichern \
-											 aufgetreten.\n{}",
-											error_message
-										),
-									);
-									warn!("Failed to log new member: {:?}", error);
-									return render_signup(req, body);
-								}
-							}
-
-							signup_mail(
-								&mail_addr,
-								disc_addr,
-								member,
-								body,
-								error_message,
-								req,
-							)
-						}
+					if let Err(error) = res {
+						body.insert(
+							"error".to_string(),
+							format!(
+								"Es ist ein Fehler beim Speichern \
+								 aufgetreten.\n{}",
+								error_message
+							),
+						);
+						warn!("Failed to log new member: {:?}", error);
+						return render_signup(state, id, req, body).await;
 					}
-				}),
-		)
+				}
+
+				return signup_mail(
+					&mail_addr,
+					member,
+					body,
+					error_message,
+					state,
+					id,
+					req,
+				).await;
+			}
+		}
+
+		// Show error and prefilled form
+		body.insert(
+			"error".to_string(),
+			format!(
+				"Es ist ein Datenbank-Fehler \
+			 	 aufgetreten.\n{}",
+				error_message
+			),
+		);
+		render_signup(state, id, req, body).await
 	}
 }
 
 /// Write an email and show a success site.
-fn signup_mail(
+async fn signup_mail(
 	mail_addr: &actix::Addr<mail::MailExecutor>,
-	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
 	member: db::models::Teilnehmer,
 	mut body: HashMap<String, String>,
 	error_message: String,
-	req: HttpRequest<AppState>,
-) -> BoxFuture<HttpResponse> {
-	// Signup to discourse
-	let fut = if let Some(addr) = disc_addr {
-		signup_discourse(&addr, member.clone())
-	} else {
-		Box::new(future::ok(()))
-	};
-
+	state: &State,
+	id: &Identity,
+	req: &HttpRequest,
+) -> HttpResponse {
 	// Write an e-mail
 	let mail = member.eltern_mail.clone();
-	Box::new(mail_addr
-		.send(mail::SignupMessage { member })
-		.from_err::<failure::Error>()
-		.then(move |result| -> BoxFuture<HttpResponse> {
-			match result {
-				Err(error) | Ok(Err(error)) => {
-					// Show error and prefilled form
-					body.insert(
-						"error".to_string(),
-						format!(
-							"Ihre Daten wurden erfolgreich \
-							 gespeichert.\nEs ist leider ein Fehler beim \
-							 E-Mail senden aufgetreten.\n{}",
-							error_message
-						),
-					);
-					error!("Error sending e-mail to {:?}: {:?}", mail, error);
-					capture_error(&format_err!("Error sending e-mail to {:?}: {:?}", mail, error));
-					render_signup(req, body)
-				}
-				Ok(Ok(())) => {
-					// Redirect to success site
-					Box::new(future::ok(
-						HttpResponse::Found()
-							.header(
-								http::header::LOCATION,
-								"anmeldung-erfolgreich",
-							)
-							.finish(),
-					))
-				}
-			}
-		})
-		.then(|r| fut.then(move |dr| {
-			if let Err(e) = dr {
-				error!("Failed to signup to discourse: {:?}", e);
-				capture_error(&format_err!("Failed to signup to discourse: {:?}", e));
-			}
-			r
-		}))
-	)
+	match mail_addr.send(mail::SignupMessage { member }).await {
+		Err(error) => {
+			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+		}
+		Ok(Err(error)) => {
+			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+		}
+		Ok(Ok(())) => {
+			// Redirect to success site
+			return HttpResponse::Found()
+				.header(
+					http::header::LOCATION,
+					"anmeldung-erfolgreich",
+				)
+				.finish();
+		}
+	}
+
+	// Show error and prefilled form
+	body.insert(
+		"error".to_string(),
+		format!(
+			"Ihre Daten wurden erfolgreich \
+			 gespeichert.\nEs ist leider ein Fehler beim \
+			 E-Mail senden aufgetreten.\n{}",
+			error_message
+		),
+	);
+	render_signup(state, id, req, body).await
 }
 
-pub fn signup_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
-	let db_addr = req.state().db_addr.clone();
-	let mail_addr = req.state().mail_addr.clone();
-	let disc_addr = req.state().disc_addr.clone();
-	let error_message = req.state().config.error_message.clone();
-	let max_members = req.state().config.max_members;
-	let birthday_date = req.state().config.birthday_date.clone();
-	let log_file = req.state().config.log_file.clone();
-	let log_mutex = req.state().log_mutex.clone();
+#[post("/signup-send")]
+pub async fn signup_send(state: web::Data<State>, id: Identity, req: HttpRequest,
+	mut body: web::Form<HashMap<String, String>>) -> HttpResponse {
+	let db_addr = state.db_addr.clone();
+	let mail_addr = state.mail_addr.clone();
+	let error_message = state.config.error_message.clone();
+	let max_members = state.config.max_members;
+	let birthday_date = state.config.birthday_date.clone();
+	let log_file = state.config.log_file.clone();
+	let log_mutex = state.log_mutex.clone();
 	let db_addr2 = db_addr.clone();
 
 	// Get the body of the request
-	req.clone().urlencoded()
-		.limit(1024 * 5) // 5 kiB
-		.from_err()
-		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
-			let mut member = match db::models::Teilnehmer::
-				from_hashmap(body.clone(), &birthday_date) {
-				Ok(member) => member,
-				Err(error) => {
-					// Show error and prefilled form
-					body.insert("error".to_string(), format!("{}", error));
-					warn!("Error handling form content: {}", error);
-					return Box::new(render_signup(req, body).into_future());
-				}
-			};
+	let mut member = match db::models::Teilnehmer::
+		from_hashmap(body.clone(), &birthday_date) {
+		Ok(member) => member,
+		Err(error) => {
+			// Show error and prefilled form
+			body.insert("error".to_string(), format!("{}", error));
+			warn!("Error handling form content: {}", error);
+			return render_signup(&**state, &id, &req, body.into_inner()).await;
+		}
+	};
 
-			// Remove spaces
-			member.trim();
+	// Remove spaces
+	member.trim();
 
-			Box::new(db_addr.send(db::CountMemberMessage)
-				.from_err::<failure::Error>()
-				.then(move |result| -> BoxFuture<HttpResponse> { match result {
-					Err(error) | Ok(Err(error)) => {
-						// Show error and prefilled form
-						body.insert("error".to_string(), format!("\
-							Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-							error_message));
-						warn!("Error inserting into database: {}", error);
-						capture_error(&format_err!("Error inserting {:?} into database: {:?}", member.eltern_mail, error));
-						render_signup(req, body)
-					}
-					Ok(Ok(count)) => signup_check_count(count, max_members,
-						&db_addr2, mail_addr, disc_addr, member, body,
-						error_message, log_file, log_mutex, req),
-				}})
-		)})
-		.responder()
-}
-
-/// Add to discourse group
-fn signup_discourse(
-	disc_addr: &actix::Addr<discourse::DiscourseExecutor>,
-	member: db::models::Teilnehmer,
-) -> BoxFuture<()> {
-	// Write an e-mail
-	Box::new(
-		disc_addr
-			.send(discourse::SignupMessage { member })
-			.from_err::<failure::Error>()
-			.and_then(|r| r)
-	)
+	match db_addr.send(db::CountMemberMessage).await {
+		Err(error) => {
+			// Show error and prefilled form
+			body.insert("error".to_string(), format!("\
+				Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+				error_message));
+			warn!("Error inserting into database: {}", error);
+			render_signup(&**state, &id, &req, body.into_inner()).await
+		}
+		Ok(Err(error)) => {
+			// Show error and prefilled form
+			body.insert("error".to_string(), format!("\
+				Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+				error_message));
+			warn!("Error inserting into database: {}", error);
+			render_signup(&**state, &id, &req, body.into_inner()).await
+		}
+		Ok(Ok(count)) => signup_check_count(count, max_members,
+			&db_addr2, mail_addr, member, body.into_inner(),
+			error_message, log_file, log_mutex, &**state, &id, &req).await,
+	}
 }

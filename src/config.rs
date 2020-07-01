@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use serde::Deserialize;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]

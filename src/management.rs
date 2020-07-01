@@ -1,12 +1,13 @@
 use std::io::Write;
 use std::{env, io};
 
+use anyhow::{format_err, Result};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::Connection;
 use dotenv::dotenv;
 
-use crate::{db, Result};
+use crate::db;
 use crate::config::Action;
 
 fn ask_username() -> String {

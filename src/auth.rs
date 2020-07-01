@@ -4,13 +4,17 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use actix_web::middleware::identity::RequestIdentity;
-use actix_web::{AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Query};
+use actix_identity::Identity;
+use actix_web::*;
+use anyhow::{bail, format_err, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use futures::{future, Future, IntoFuture};
+use log::{error, info, warn};
+use serde::Deserialize;
+use strum_macros::EnumString;
+use t4rust_derive::Template;
 
 use crate::form::Form;
-use crate::{auth, db, AppState, BoxFuture};
+use crate::{auth, db, State};
 
 #[derive(Clone, Copy, EnumString, Debug, Deserialize, PartialEq, Eq)]
 pub enum Roles {
@@ -41,162 +45,167 @@ impl Login {
 	}
 }
 
-fn rate_limit(req: &HttpRequest<AppState>) -> BoxFuture<()> {
-	let ip = tryf!(
-		req.connection_info()
-			.remote()
-			.ok_or_else(|| format_err!("no ip detected"))
-	).to_string();
-	let res = req.state().db_addr.send(db::CheckRateMessage { ip });
-	Box::new(res.from_err().and_then(|db_result| match db_result {
+async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
+	let ip = req.connection_info()
+		.remote()
+		.ok_or_else(|| format_err!("no ip detected"))?
+		.to_string();
+	match state.db_addr.send(db::CheckRateMessage { ip }).await {
 		Ok(result) => {
-			if result {
+			if result? {
 				Ok(())
 			} else {
 				bail!("Rate limit exceeded");
 			}
 		}
 		Err(msg) => bail!(msg),
-	}))
+	}
 }
 
 /// Return the login site with the prefilled `values`.
 ///
 /// The `values` can contain the `username` and an `error`.
-fn render_login(
-	req: HttpRequest<AppState>,
+async fn render_login(
+	state: &State,
+	id: &Identity,
+	req: &HttpRequest,
 	values: HashMap<String, String>,
-) -> BoxFuture<HttpResponse> {
-	Box::new(auth::get_roles(&req).and_then(move |res| -> BoxFuture<HttpResponse> {
-		if let Ok(site) = req.state().sites["public"].get_site(
-			req.state().config.clone(), "login", res)
-		{
-			let mut resp = if values.contains_key("error") {
-				HttpResponse::Unauthorized()
-			} else {
-				HttpResponse::Ok()
-			};
-
-			let content = format!("{}", site);
-			let login = format!("{}", Login::new(values));
-			let content = content.replace("<insert content here>", &login);
-
-			Box::new(future::ok(resp
-				.content_type("text/html; charset=utf-8")
-				.body(content)))
-		} else {
-			crate::not_found(&req)
+) -> HttpResponse {
+	let roles = match auth::get_roles(state, id).await {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get roles: {}", e);
+			return crate::error_response(state);
 		}
-	}))
+	};
+	if let Ok(site) = state.sites["public"].get_site(
+		state.config.clone(), "login", roles)
+	{
+		let mut resp = if values.contains_key("error") {
+			HttpResponse::Unauthorized()
+		} else {
+			HttpResponse::Ok()
+		};
+
+		let content = format!("{}", site);
+		let content = content.replace("<insert content here>", &format!("{}", Login::new(values)));
+
+		resp
+			.content_type("text/html; charset=utf-8")
+			.body(content)
+	} else {
+		crate::not_found(state, id, req).await
+	}
 }
 
 #[derive(Deserialize)]
 pub struct LoginArgs { redirect: Option<String> }
 
-pub fn login((req, mut args): (HttpRequest<AppState>, Query<LoginArgs>))
-	-> BoxFuture<HttpResponse> {
-	if logged_in_user(&req).is_some() {
+#[get("/login")]
+pub async fn login(state: web::Data<State>, id: Identity, req: HttpRequest, mut args: web::Query<LoginArgs>) -> HttpResponse {
+	if logged_in_user(&id).is_some() {
 		let redir = args.redirect.as_ref().map(|s| s.as_str()).unwrap_or("/");
-		Box::new(future::ok(HttpResponse::Found().header("location", redir).finish()))
+		HttpResponse::Found().header("location", redir).finish()
 	} else {
 		let mut values = HashMap::new();
 		if let Some(redirect) = args.redirect.take() {
 			values.insert("redirect".to_string(), redirect);
 		}
-		render_login(req, values)
+		render_login(&state, &id, &req, values).await
 	}
 }
 
-fn set_logged_in(id: i32, req: &HttpRequest<AppState>) {
+fn set_logged_in(id: i32, identity: &Identity) {
 	// Logged in: Store "user id|timeout"
-	req.remember(format!(
+	identity.remember(format!(
 		"{}|{}",
 		id,
 		(Utc::now() + crate::cookie_maxtime()).format("%Y-%m-%d %H:%M:%S")
 	));
 }
 
-pub fn login_send(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+#[post("/login")]
+pub async fn login_send(state: web::Data<State>, req: HttpRequest, identity: Identity,
+	mut body: web::Form<HashMap<String, String>>) -> HttpResponse {
 	// Search user in database
-	let db_addr = req.state().db_addr.clone();
-	let error_message = req.state().config.error_message.clone();
+	let db_addr = state.db_addr.clone();
+	let error_message = state.config.error_message.clone();
 
-	Box::new(
-		// Check rate limit
-		req.clone().urlencoded()
-		.limit(1024 * 5) // 5 kiB
-		.from_err()
-		.and_then(move |mut body: HashMap<_, _>| -> BoxFuture<_> {
-			let redirect = body.get("redirect").map(Clone::clone);
-			let msg = tryf!(db::AuthenticateMessage::
-				from_hashmap(body.clone()));
-			body.remove("password");
+	// Check rate limit
+	let redirect = body.get("redirect").map(Clone::clone);
+	let msg = match db::AuthenticateMessage::from_hashmap(body.clone()) {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get authentication message: {}", e);
+			return crate::error_response(&**state);
+		}
+	};
+	body.remove("password");
 
-			Box::new(rate_limit(&req).then(move |limit| -> BoxFuture<_> {
-				if let Err(error) = limit {
-					body.insert("error".to_string(),
-						"Zu viele Login Anfragen. \
-						Probieren Sie es später noch einmal.".to_string(),
-					);
-					info!("Rate limit exceeded ({:?})", error);
-					Box::new(render_login(req, body).into_future())
-				} else {
-					Box::new(db_addr.send(msg)
-						.from_err::<failure::Error>()
-						.then(move |result| -> BoxFuture<HttpResponse> { match result {
-							Err(error) | Ok(Err(error)) => {
-								// Show error and prefilled form
-								body.insert("error".to_string(), format!(
-									"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-									error_message));
-								warn!("Error by auth message: {}", error);
-								Box::new(render_login(req, body).into_future())
-							}
-							Ok(Ok(Some(id))) => {
-								set_logged_in(id, &req);
-								let ip = tryf!(
-											req.connection_info()
-												.remote()
-												.ok_or_else(|| format_err!("no ip detected"))
-											).to_string();
-								let res = req.state().db_addr.send(db::DecreaseRateCounterMessage { ip } );
-								Box::new(res.from_err().and_then(move |_|
-									// Redirect somewhere else if there is a
-									// redirect argument.
-									if let Some(redirect) = redirect {
-										let redirect = redirect.trim_start_matches('/');
-										let redirect = format!("/{}", redirect);
-										Ok(HttpResponse::Found().header("location", redirect.as_str()).finish())
-									} else {
-										Ok(HttpResponse::Found().header("location", "/").finish())
-									})
-								)
-							}
-							Ok(Ok(None)) => {
-								// Wrong username or password
-								// Show error and prefilled form
-								body.insert("error".to_string(),
-									"Falsches Passwort oder falscher Benutzername"
-									.to_string());
-								Box::new(render_login(req, body).into_future())
-							}
-						}}))
+	if let Err(error) = rate_limit(&**state, &req).await {
+		body.insert("error".to_string(),
+			"Zu viele Login Anfragen. \
+			Probieren Sie es später noch einmal.".to_string(),
+		);
+		info!("Rate limit exceeded ({:?})", error);
+		render_login(&**state, &identity, &req, body.into_inner()).await
+	} else {
+		match db_addr.send(msg).await.map_err(|e| e.into()) {
+			Err(error) | Ok(Err(error)) => {
+				// Show error and prefilled form
+				body.insert("error".to_string(), format!(
+					"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+					error_message));
+				warn!("Error by auth message: {}", error);
+				render_login(&**state, &identity, &req, body.into_inner()).await
 			}
-		}))})
-		.responder(),
-	)
+			Ok(Ok(Some(id))) => {
+				set_logged_in(id, &identity);
+				let ip = match req.connection_info()
+					.remote()
+					.ok_or_else(|| format_err!("no ip detected")) {
+						Ok(r) => r.to_string(),
+						Err(e) => {
+							error!("Failed to get ip: {}", e);
+							return crate::error_response(&**state);
+						}
+					};
+				if let Err(e) = state.db_addr.send(db::DecreaseRateCounterMessage { ip } ).await {
+					error!("Failed to decrease rate limiting counter: {}", e);
+				}
+				// Redirect somewhere else if there is a
+				// redirect argument.
+				if let Some(redirect) = redirect {
+					let redirect = redirect.trim_start_matches('/');
+					let redirect = format!("/{}", redirect);
+					HttpResponse::Found().header("location", redirect.as_str()).finish()
+				} else {
+					HttpResponse::Found().header("location", "/").finish()
+				}
+			}
+			Ok(Ok(None)) => {
+				// Wrong username or password
+				// Show error and prefilled form
+				body.insert("error".to_string(),
+					"Falsches Passwort oder falscher Benutzername"
+					.to_string());
+				render_login(&**state, &identity, &req, body.into_inner()).await
+			}
+		}
+	}
 }
 
-pub fn logout(req: HttpRequest<AppState>) -> HttpResponse {
-	req.forget();
+#[get("/logout")]
+pub fn logout(id: Identity) -> HttpResponse {
+	id.forget();
 	HttpResponse::Found().header("location", "/").finish()
 }
 
 // Utility methods for other modules
 
 /// Get the id of the logged in user
-pub fn logged_in_user(req: &HttpRequest<AppState>) -> Option<i32> {
-	req.identity()
+pub fn logged_in_user(identity: &Identity) -> Option<i32> {
+	identity.identity()
 		.and_then(|s| {
 			if let [id, timeout] =
 				*s.splitn(2, '|').collect::<Vec<_>>().as_slice()
@@ -219,30 +228,24 @@ pub fn logged_in_user(req: &HttpRequest<AppState>) -> Option<i32> {
 				return None;
 			}
 			// Refresh token
-			set_logged_in(id, req);
+			set_logged_in(id, identity);
 			Some(id)
 		})
 }
 
-pub fn get_roles(req: &HttpRequest<AppState>) -> BoxFuture<Option<Vec<Roles>>> {
-	if let Some(user) = logged_in_user(req) {
-		Box::new(user_get_roles(req, user).map(Some))
+pub async fn get_roles(state: &State, id: &Identity) -> Result<Option<Vec<Roles>>> {
+	if let Some(user) = logged_in_user(id) {
+		Ok(Some(user_get_roles(state, user).await?))
 	} else {
-		Box::new(Ok(None).into_future())
+		Ok(None)
 	}
 }
 
-pub fn user_get_roles(
-	req: &HttpRequest<AppState>,
+pub async fn user_get_roles(
+	state: &State,
 	user: i32,
-) -> BoxFuture<Vec<Roles>> {
-	let db_addr = req.state().db_addr.clone();
+) -> Result<Vec<Roles>> {
 	let msg = db::GetRolesMessage { user };
-	Box::new(
-		db_addr
-			.send(msg)
-			.from_err::<failure::Error>()
-			.and_then(|r| r)
-			.map_err(|e| format_err!("Failed to get user roles: {:?}", e)),
-	)
+	Ok(state.db_addr.send(msg).await
+		.map_err(|e| format_err!("Failed to get user roles: {}", e))??)
 }

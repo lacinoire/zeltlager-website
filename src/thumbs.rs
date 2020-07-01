@@ -8,10 +8,9 @@ use std::process::Command;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
+use anyhow::{bail, format_err, Result};
+use log::{error, warn};
 use notify::{Watcher, RecursiveMode, watcher};
-use sentry::integrations::failure::capture_error;
-
-use crate::Result;
 
 pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 	// Create a channel to receive the events.
@@ -19,7 +18,6 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 
 	if let Err(e) = scan_files(&path) {
 		error!("Error when scanning files: {:?}", e);
-		capture_error(&format_err!("Error when scanning files: {:?}", e));
 	}
 
 	// Create a watcher object, delivering debounced events.
@@ -34,11 +32,9 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 		match rx.recv() {
 			Ok(_) => if let Err(e) = scan_files(&path) {
 				error!("Error when scanning files: {:?}", e);
-				capture_error(&format_err!("Error when scanning files: {:?}", e));
 			}
 			Err(e) => {
 				error!("Watch error: {:?}", e);
-				capture_error(&format_err!("Watch error: {:?}", e));
 				break;
 			}
 		}
@@ -67,7 +63,6 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 							// Check if there is a thumbnail for it
 							if let Err(e) = create_thumb(&path, name) {
 								warn!("Failed to create thumbnail for {}: {:?}", name, e);
-								capture_error(&format_err!("Failed to create thumbnail for {}: {:?}", name, e));
 							}
 						}
 					}
@@ -83,7 +78,6 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 		if !files.iter().any(|f| f.file_name() == name) {
 			if let Err(e) = fs::remove_file(file.path()) {
 				warn!("Failed to remove outdated thumbnail {:?}: {:?}", name, e);
-				capture_error(&format_err!("Failed to remove outdated thumbnail {:?}: {:?}", name, e));
 			}
 		}
 	}

@@ -1,51 +1,35 @@
-#![allow(proc_macro_derive_resolution_fallback)]
-
 #[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate strum_macros;
-#[macro_use]
-extern crate t4rust_derive;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll};
 
+use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
+use actix_files::Files;
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header::DispositionType;
-use actix_web::http::Method;
-use actix_web::middleware::identity::{CookieIdentityPolicy, IdentityService};
-use actix_web::middleware::{self, csrf, Middleware};
 use actix_web::*;
+use anyhow::Result;
 use chrono::Duration;
-use futures::{future, Future, IntoFuture};
+use futures::prelude::*;
+use log::{error, warn};
 use rand::Rng;
 use structopt::StructOpt;
-
-macro_rules! tryf {
-	($e:expr) => {
-		match $e {
-			Ok(e) => e,
-			Err(error) => return Box::new(::futures::future::err(error.into())),
-			}
-	};
-}
 
 mod admin;
 mod auth;
 mod basic;
 mod config;
 mod db;
-mod discourse;
 mod form;
 mod images;
 mod mail;
@@ -55,9 +39,6 @@ mod signup_supervisor;
 mod thumbs;
 
 use config::{Config, MailAddress};
-
-type Result<T> = std::result::Result<T, failure::Error>;
-type BoxFuture<T> = Box<dyn futures::Future<Item = T, Error = failure::Error>>;
 
 const DEFAULT_PREFIX: &str = "public";
 const DEFAULT_NAME: &str = "startseite";
@@ -81,12 +62,11 @@ fn get_true() -> bool {
 }
 
 #[derive(Clone)]
-pub struct AppState {
+pub struct State {
 	sites: HashMap<String, basic::SiteDescriptions>,
 	config: Config,
 	db_addr: actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
-	disc_addr: Option<actix::Addr<discourse::DiscourseExecutor>>,
 	/// Used to lock access to the log file.
 	log_mutex: Arc<Mutex<()>>,
 }
@@ -100,21 +80,20 @@ impl Into<lettre_email::Mailbox> for MailAddress {
 	}
 }
 
-#[derive(Default)]
-struct StaticFilesConfig;
-
-impl actix_web::fs::StaticFileConfig for StaticFilesConfig {
-	fn content_disposition_map(typ: mime::Name) -> DispositionType {
-		if typ == "application" {
-			// For application/pdf in object tags
-			DispositionType::Inline
-		} else {
-			actix_web::fs::DefaultConfig::content_disposition_map(typ)
-		}
+fn content_disposition_map(typ: &mime::Name) -> DispositionType {
+	match *typ {
+		// For images and application/pdf in object tags
+		mime::IMAGE | mime::TEXT | mime::VIDEO | mime::APPLICATION => DispositionType::Inline,
+		_ => DispositionType::Attachment,
 	}
 }
 
 struct HasRolePredicate {
+	role: auth::Roles,
+}
+
+struct HasRolePredicateMiddleware<S> {
+	service: Rc<RefCell<S>>,
 	role: auth::Roles,
 }
 
@@ -124,39 +103,113 @@ impl HasRolePredicate {
 	}
 }
 
-impl Middleware<AppState> for HasRolePredicate {
-	fn start(
-		&self,
-		req: &HttpRequest<AppState>,
-	) -> error::Result<middleware::Started> {
-		let role = self.role.clone();
-		let forbidden_site = forbidden(req);
-		let path = req.path().to_string();
-		let fut = auth::get_roles(req).and_then(move |r| -> BoxFuture<Option<HttpResponse>> {
-			if let Some(roles) = r {
+impl<S: 'static, B> Transform<S> for HasRolePredicate
+where
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S::Future: 'static,
+	B: 'static,
+{
+	type Request = ServiceRequest;
+	type Response = ServiceResponse<B>;
+	type Error = Error;
+	type InitError = ();
+	type Transform = HasRolePredicateMiddleware<S>;
+	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
+
+	fn new_transform(&self, service: S) -> Self::Future {
+		future::ok(HasRolePredicateMiddleware {
+			service: Rc::new(RefCell::new(service)),
+			role: self.role,
+		})
+	}
+}
+
+impl<S: 'static, B> Service for HasRolePredicateMiddleware<S>
+where
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S::Future: 'static,
+	B: 'static,
+{
+	type Request = ServiceRequest;
+	type Response = ServiceResponse<B>;
+	type Error = Error;
+	type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+
+	fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+		self.service.poll_ready(cx)
+	}
+
+	fn call(&mut self, req: ServiceRequest) -> Self::Future {
+		let mut service = self.service.clone();
+		let state = req.app_data::<State>().unwrap();
+		let (req, mut pay) = req.into_parts();
+		let identity = Identity::from_request(&req, &mut pay);
+		let role = self.role;
+
+		Box::pin(async move {
+			let identity = identity.await?;
+			let roles = match auth::get_roles(&**state, &identity).await {
+				Ok(r) => r,
+				Err(e) => {
+					error!("Failed to get roles: {}", e);
+					drop(identity);
+					let req = match ServiceRequest::from_parts(req, pay) {
+						Ok(r) => r,
+						Err(_) => {
+							return Err(std::io::Error::new(std::io::ErrorKind::Other,
+								"Failed to reassemble request").into());
+						}
+					};
+					return Ok(req.into_response(crate::error_response(&state).into_body()));
+				}
+			};
+			if let Some(roles) = roles {
 				if roles.contains(&role) {
-					Box::new(future::ok(None))
+					drop(identity);
+					let req = match ServiceRequest::from_parts(req, pay) {
+						Ok(r) => r,
+						Err(_) => {
+							return Err(std::io::Error::new(std::io::ErrorKind::Other,
+								"Failed to reassemble request").into());
+						}
+					};
+					service.call(req).await
 				} else {
-					warn!("Forbidden '{}'", path);
-					Box::new(forbidden_site.map(Some))
+					let res = forbidden(&state, &identity).await.into_body();
+					drop(identity);
+					let req = match ServiceRequest::from_parts(req, pay) {
+						Ok(r) => r,
+						Err(_) => {
+							return Err(std::io::Error::new(std::io::ErrorKind::Other,
+								"Failed to reassemble request").into());
+						}
+					};
+					warn!("Forbidden '{}'", req.path());
+					Ok(req.into_response(res))
 				}
 			} else {
+				drop(identity);
+				let req = match ServiceRequest::from_parts(req, pay) {
+					Ok(r) => r,
+					Err(_) => {
+						return Err(std::io::Error::new(std::io::ErrorKind::Other,
+							"Failed to reassemble request").into());
+					}
+				};
+				let location = format!(
+					"/login?redirect={}",
+					url::form_urlencoded::byte_serialize(
+						req.path().as_bytes()
+					).collect::<String>()
+				);
 				// Not logged in
 				// Redirect to login site with redirect to original site
-				Box::new(future::ok(Some(HttpResponse::Found()
-						.header(
-							"location",
-							format!(
-								"/login?redirect={}",
-								url::form_urlencoded::byte_serialize(
-									path.as_bytes()
-								).collect::<String>()
-							).as_str(),
-						)
-						.finish())))
+				Ok(req.into_response(HttpResponse::Found()
+					.header("location", location)
+					.finish()
+					.into_body()))
 			}
-		});
-		Ok(middleware::Started::Future(Box::new(fut.from_err())))
+		})
 	}
 }
 
@@ -219,7 +272,16 @@ fn get_scrypt_params() -> scrypt::ScryptParams {
 	scrypt::ScryptParams::new(15, 8, 1).unwrap()
 }
 
-fn sites(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+fn error_response(state: &State) -> HttpResponse {
+	HttpResponse::InternalServerError()
+		.content_type("text/html; charset=utf-8")
+		.body(format!(
+			"Es ist ein interner Fehler aufgetreten.\n{}",
+			state.config.error_message
+		))
+}
+
+async fn sites(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
 	let prefix: String;
 	let name: String;
 	if let Some(n) = req.match_info().get("name").and_then(|s| {
@@ -232,7 +294,7 @@ fn sites(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		if let Some(p) = req.match_info().get("prefix") {
 			prefix = p.to_string();
 			name = n.to_string();
-		} else if req.state().sites.get(n).is_some() {
+		} else if state.sites.get(n).is_some() {
 			// Check if the name is actually a prefix
 			prefix = n.to_string();
 			name = DEFAULT_NAME.to_string();
@@ -245,71 +307,96 @@ fn sites(req: HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
 		prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX).to_string();
 	}
 
-	let site_res = site(&req, &prefix, &name);
-	Box::new(site_res.and_then(move |site_opt| -> BoxFuture<HttpResponse> {
-		match site_opt {
-			Some(res) => Box::new(future::ok(res)),
-			None => not_found(&req),
-		}
-	}))
-}
-
-fn site(
-	req: &HttpRequest<AppState>,
-	prefix: &str,
-	name: &str,
-) -> BoxFuture<Option<HttpResponse>> {
-	// TODO nicht alles kopieren
-	if let Some(site_descriptions) = req.state().sites.get(prefix) {
-		let config = req.state().config.clone();
-		let site_descriptions = site_descriptions.clone();
-		let name = name.to_string();
-		Box::new(
-			auth::get_roles(req)
-				.map(move |res| {
-					site_descriptions.get_site(config, &name, res).ok()
-						.map(|site| {
-							let content = format!("{}", site);
-
-							HttpResponse::Ok()
-								.content_type("text/html; charset=utf-8")
-								.body(content)
-						})
-				})
-		)
-	} else {
-		Box::new(Ok(None).into_future())
+	match site(&**state, &id, &prefix, &name).await {
+		Some(res) => res,
+		None => not_found(&*state, &id, &req).await,
 	}
 }
 
-fn not_found(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
-	warn!("File not found '{}'", req.path());
-	let state = req.state().clone();
-	Box::new(auth::get_roles(&req).and_then(move |res| {
-		let site = state.sites["public"].get_site(
-			state.config.clone(), "notfound", res)?;
-		let content = format!("{}", site);
-		Ok(HttpResponse::NotFound()
-			.content_type("text/html; charset=utf-8")
-			.body(content))
-	}))
+async fn site(
+	state: &State,
+	id: &Identity,
+	prefix: &str,
+	name: &str,
+) -> Option<HttpResponse> {
+	// TODO Don't copy everything
+	if let Some(site_descriptions) = state.sites.get(prefix) {
+		let config = state.config.clone();
+		let site_descriptions = site_descriptions.clone();
+		let name = name.to_string();
+		let roles = match auth::get_roles(state, id).await {
+			Ok(r) => r,
+			Err(e) => {
+				error!("Failed to get roles: {}", e);
+				return Some(crate::error_response(state));
+			}
+		};
+		site_descriptions.get_site(config, &name, roles).ok()
+			.map(|site| {
+				let content = format!("{}", site);
+
+				HttpResponse::Ok()
+					.content_type("text/html; charset=utf-8")
+					.body(content)
+			})
+	} else {
+		None
+	}
 }
 
-fn forbidden(req: &HttpRequest<AppState>) -> BoxFuture<HttpResponse> {
+async fn not_found_handler(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
+	not_found(&**state, &id, &req).await
+}
+
+async fn not_found(state: &State, id: &Identity, req: &HttpRequest) -> HttpResponse {
+	warn!("File not found '{}'", req.path());
+	let roles = match auth::get_roles(state, id).await {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get roles: {}", e);
+			return crate::error_response(state);
+		}
+	};
+	let site = match state.sites["public"].get_site(
+		state.config.clone(), "notfound", roles) {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get site: {}", e);
+			return error_response(state);
+		}
+	};
+	let content = format!("{}", site);
+	HttpResponse::NotFound()
+		.content_type("text/html; charset=utf-8")
+		.body(content)
+}
+
+async fn forbidden(state: &State, id: &Identity) -> HttpResponse {
 	// This gets printed sometimes without a request being forbidden because
 	// we need the request.
-	let state = req.state().clone();
-	Box::new(auth::get_roles(&req).and_then(move |res| {
-		let site = state.sites["public"].get_site(
-			state.config.clone(), "forbidden", res)?;
-		let content = format!("{}", site);
-		Ok(HttpResponse::NotFound()
-			.content_type("text/html; charset=utf-8")
-			.body(content))
-	}))
+	let roles = match auth::get_roles(state, id).await {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get roles: {}", e);
+			return crate::error_response(state);
+		}
+	};
+	let site = match state.sites["public"].get_site(
+		state.config.clone(), "forbidden", roles) {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get site: {}", e);
+			return error_response(state);
+		}
+	};
+	let content = format!("{}", site);
+	HttpResponse::NotFound()
+		.content_type("text/html; charset=utf-8")
+		.body(content)
 }
 
-fn main() -> Result<()> {
+#[actix_rt::main]
+async fn main() -> Result<()> {
 	if env::var("RUST_LOG").is_err() {
 		// Default log level
 		env::set_var("RUST_LOG", "actix_web=info,zeltlager_website=info");
@@ -351,22 +438,13 @@ fn main() -> Result<()> {
 		toml::from_str(&content).expect("Failed to parse config.toml");
 	config.validate().unwrap();
 
-	// Start sentry
-	let _sentry_guard;
-	if let Some(s) = &config.sentry {
-		_sentry_guard = sentry::init(s.as_str());
-		sentry::integrations::panic::register_panic_handler();
-	}
-
-	let sys = actix::System::new(env!("CARGO_PKG_NAME"));
-
 	// Start some parallel db executors
 	let db_addr = actix::SyncArbiter::start(4, move || {
 		db::DbExecutor::new().expect("Failed to create db executor")
 	});
 
 	// Run database migrations
-	let _migrate_future = db_addr.send(db::RunMigrationsMessage);
+	db_addr.send(db::RunMigrationsMessage).await??;
 
 	// Start some parallel mail executors
 	let config2 = config.clone();
@@ -374,21 +452,12 @@ fn main() -> Result<()> {
 		mail::MailExecutor::new(config2.clone())
 	});
 
-	// Start some parallel discourse executors
-	let disc_addr = if let Some(config) = &config.discourse {
-		let config2 = config.clone();
-		Some(actix::SyncArbiter::start(4, move || {
-			discourse::DiscourseExecutor::new(config2.clone()).unwrap()
-		}))
-	} else { None };
-
 	let address = config.bind_address.clone();
-	let state = AppState {
+	let state = State {
 		sites,
 		config,
 		db_addr,
 		mail_addr,
-		disc_addr,
 		log_mutex: Arc::new(Mutex::new(())),
 	};
 
@@ -398,84 +467,69 @@ fn main() -> Result<()> {
 		std::thread::spawn(move || thumbs::watch_thumbs(name));
 	}
 
-	server::new(move || {
+	HttpServer::new(move || {
 		let mut identity_policy = CookieIdentityPolicy::new(&key)
 			.name("user")
-			.max_age(cookie_maxtime())
+			.max_age_time(cookie_maxtime())
 			.secure(state.config.secure);
 
-		let mut app =
-			App::with_state(state.clone()).middleware(middleware::Logger::default());
+		let app = App::new()
+			.data(state.clone())
+			.wrap(middleware::Logger::default());
 
 		if let Some(ref domain) = state.config.domain {
-			// TODO Test
+			// TODO Test for CSRF, check origin header
 			identity_policy = identity_policy.domain(domain.clone());
-			app = app.middleware(csrf::CsrfFilter::new().allowed_origin(format!(
-				"http{}://{}",
-				if state.config.secure { "s" } else { "" },
-				domain,
-			)))
 		}
 
-		app = app
-			.middleware(IdentityService::new(identity_policy))
-			// Register static file handler as resource. If it is registered as
-			// handler, it will be overwritten by resources.
-			.resource("/static/{tail:.*}", |r| {
-				r.h(fs::StaticFiles::with_config("static", StaticFilesConfig)
-					.unwrap().default_handler(not_found))
-			})
-			.route("/anmeldung", Method::GET, signup::signup)
-			.route(
-				"/intern/betreuer-anmeldung",
-				Method::GET,
-				signup_supervisor::signup,
-			)
-			.route("/anmeldung-test", Method::GET, signup::signup_test)
-			.route("/signup-send", Method::POST, signup::signup_send)
-			.route(
-				"/intern/signup-supervisor-send",
-				Method::POST,
-				signup_supervisor::signup_send,
-			)
-			.route("/login", Method::GET, auth::login)
-			.route("/login", Method::POST, auth::login_send)
-			.route("/logout", Method::GET, auth::logout);
+		let mut app = app
+			.wrap(IdentityService::new(identity_policy))
+			.service(Files::new("/static", "static")
+				.mime_override(content_disposition_map)
+				.default_handler(web::to(not_found_handler)))
+			.service(signup::signup)
+			.service(signup::signup_test)
+			.service(signup::signup_send)
+			.service(signup_supervisor::signup)
+			.service(signup_supervisor::signup_send)
+			.service(auth::login)
+			.service(auth::login_send)
+			.service(auth::logout);
 
 		for (name, role) in IMAGE_YEARS {
 			let name = *name;
 			app = app
-				.scope(&format!("/{}/", name), move |scope| { scope
-					.middleware(HasRolePredicate::new(*role))
-					.resource("/static/{tail:.*}", move |r| {
-						r.h(fs::StaticFiles::with_config(name, StaticFilesConfig)
-							.unwrap().default_handler(not_found))
-					})
-					.route("", Method::GET, move |r| images::render_images(r, name))
-					.default_resource(|r| r.f(not_found))
-				})
-				.route(&format!("/{}", name), Method::GET, move |_: HttpRequest<AppState>|
-					HttpResponse::Found().header("location", format!("/{}/", name)).finish());
+				.service(web::scope(&format!("/{}", name))
+					.wrap(HasRolePredicate::new(*role))
+					.service(web::resource("/").route(web::get().to(move |s, i| images::render_images(s, i, name))))
+					.service(Files::new("/static", name)
+						.mime_override(content_disposition_map)
+						.default_handler(web::to(not_found_handler)))
+					.default_service(web::to(not_found_handler))
+				)
+				.service(web::resource(&format!("/{}", name)).route(web::get().to(move ||
+					HttpResponse::Found().header("location", format!("/{}/", name)).finish())));
 		}
 
 		app
-			.scope("/admin/", |scope| { scope
-				.middleware(HasRolePredicate::new(auth::Roles::Admin))
-				.route("", Method::GET, admin::render_admin)
-				.route("/teilnehmer.csv", Method::GET, admin::download_members_csv)
-				.route("/betreuer.csv", Method::GET, admin::download_betreuer_csv)
-				.default_resource(|r| r.f(not_found))
-			})
-			.route("/admin", Method::GET, |_: HttpRequest<AppState>|
+			.service(web::scope("/admin")
+				.wrap(HasRolePredicate::new(auth::Roles::Admin))
+				.service(admin::render_admin)
+				.service(admin::download_members_csv)
+				.service(admin::download_betreuer_csv)
+				.default_service(web::to(not_found_handler))
+			)
+			.service(web::resource("/admin").route(web::get().to(||
 				HttpResponse::Found().header("location", "/admin/").finish())
+			))
 			// Allow an empty name
-			.route("/{prefix}/{name:[^/]*}", Method::GET, crate::sites)
-			.route("/{name}", Method::GET, crate::sites)
-			.route("/", Method::GET, crate::sites)
-			.default_resource(|r| r.f(not_found))
+			.service(web::resource("/{prefix}/{name:[^/]*}").route(web::get().to(crate::sites)))
+			.service(web::resource("/{name}").route(web::get().to(crate::sites)))
+			.service(web::resource("/").route(web::get().to(crate::sites)))
+			.default_service(web::to(not_found_handler))
 	}).bind(address)?
-		.start();
+		.run()
+		.await?;
 
-	let _ = sys.run();
 	Ok(())
 }

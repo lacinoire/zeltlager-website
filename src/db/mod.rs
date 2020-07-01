@@ -9,14 +9,16 @@ use std::net::IpAddr;
 use std::net::SocketAddr;
 
 use actix::prelude::*;
+use anyhow::{bail, format_err, Result};
 use chrono::Utc;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
 use dotenv::dotenv;
 use ipnetwork::IpNetwork;
+use log::info;
 
-use crate::{auth, Result};
+use crate::auth;
 
 macro_rules! get_str {
 	($map:ident, $key:expr) => {

@@ -44,20 +44,19 @@ global_message = "<h1>Ich bin ein globaler Header</h1>"
 `.env`:
 
 ```sh
-# Z. B. DATABASE_URL=postgres://zeltlager:meinpasswort@localhost/zeltlager
+# Z.B. DATABASE_URL=postgres://zeltlager:meinpasswort@localhost/zeltlager
 DATABASE_URL=postgres://<username>:<password>@<host>/<database>
 ```
 
 ## Starten
 
-Beim ersten Mal muss `diesel setup` ausgeführt werden, nach Aktualisierungen des
-Datenbankschemas reicht ein `diesel migration run` aus.
-
-`cargo run --release`
+```
+cargo run --release
+```
 
 Um Fehler zu finden:
 
-`env RUST_BACKTRACE=1 RUST_LOG=actix_web=debug,zeltlager_website=debug cargo run`
+`env RUST_BACKTRACE=1 RUST_LOG=debug cargo run`
 
 ### Entwickler
 

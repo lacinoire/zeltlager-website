@@ -1,10 +1,12 @@
 //! Display images from a folder.
 
-use actix_web::{HttpRequest, HttpResponse};
-use futures::Future;
+use actix_identity::Identity;
+use actix_web::*;
+use log::{error, warn};
+use t4rust_derive::Template;
 
 use crate::auth;
-use crate::{AppState, BoxFuture};
+use crate::State;
 
 #[derive(Template)]
 #[TemplatePath = "templates/images.tt"]
@@ -21,24 +23,34 @@ impl Images {
 	}
 }
 
-pub fn render_images(
-	req: HttpRequest<AppState>,
+pub async fn render_images(
+	state: web::Data<State>,
+	id: Identity,
 	name: &'static str,
-) -> BoxFuture<HttpResponse> {
-	Box::new(auth::get_roles(&req)
-		.and_then(move |res| {
-			req.state().sites["public"].get_site(req.state().config.clone(), &format!("{}/", name), res)
-		})
-		.map(move |site| {
-			let content = format!("{}", site);
-			let images = format!(
-				"{}",
-				Images::new("Bilder".to_string(), name.to_string())
-			);
-			let content = content.replace("<insert content here>", &images);
+) -> HttpResponse {
+	println!("Render images");
+	let roles = match auth::get_roles(&**state, &id).await {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get roles: {}", e);
+			return crate::error_response(&**state);
+		}
+	};
+	let site = match state.sites["public"].get_site(state.config.clone(), &format!("{}/", name), roles) {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get site: {}", e);
+			return crate::error_response(&**state);
+		}
+	};
+	let content = format!("{}", site);
+	let images = format!(
+		"{}",
+		Images::new("Bilder".to_string(), name.to_string())
+	);
+	let content = content.replace("<insert content here>", &images);
 
-			HttpResponse::Ok()
-				.content_type("text/html; charset=utf-8")
-				.body(content)
-		}))
+	HttpResponse::Ok()
+		.content_type("text/html; charset=utf-8")
+		.body(content)
 }
