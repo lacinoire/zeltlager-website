@@ -19,6 +19,7 @@ use crate::{auth, db, State};
 #[derive(Clone, Copy, EnumString, Debug, Deserialize, PartialEq, Eq)]
 pub enum Roles {
 	Admin,
+	Erwischt,
 	ImageDownload2018,
 	ImageDownload2019,
 	ImageDownload2020,

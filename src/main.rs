@@ -30,6 +30,7 @@ mod auth;
 mod basic;
 mod config;
 mod db;
+mod erwischt;
 mod form;
 mod images;
 mod mail;
@@ -319,10 +320,7 @@ async fn site(
 	prefix: &str,
 	name: &str,
 ) -> Option<HttpResponse> {
-	// TODO Don't copy everything
 	if let Some(site_descriptions) = state.sites.get(prefix) {
-		let config = state.config.clone();
-		let site_descriptions = site_descriptions.clone();
 		let name = name.to_string();
 		let roles = match auth::get_roles(state, id).await {
 			Ok(r) => r,
@@ -331,7 +329,7 @@ async fn site(
 				return Some(crate::error_response(state));
 			}
 		};
-		site_descriptions.get_site(config, &name, roles).ok()
+		site_descriptions.get_site(state.config.clone(), &name, roles).ok()
 			.map(|site| {
 				let content = format!("{}", site);
 
@@ -512,6 +510,7 @@ async fn main() -> Result<()> {
 		}
 
 		app
+			// admin
 			.service(web::scope("/admin")
 				.wrap(HasRolePredicate::new(auth::Roles::Admin))
 				.service(admin::render_admin)
@@ -521,6 +520,15 @@ async fn main() -> Result<()> {
 			)
 			.service(web::resource("/admin").route(web::get().to(||
 				HttpResponse::Found().header("location", "/admin/").finish())
+			))
+			// erwischt
+			.service(web::scope("/erwischt")
+				.wrap(HasRolePredicate::new(auth::Roles::Erwischt))
+				.service(erwischt::render_erwischt)
+				.default_service(web::to(not_found_handler))
+			)
+			.service(web::resource("/erwischt").route(web::get().to(||
+				HttpResponse::Found().header("location", "/erwischt/").finish())
 			))
 			// Allow an empty name
 			.service(web::resource("/{prefix}/{name:[^/]*}").route(web::get().to(crate::sites)))

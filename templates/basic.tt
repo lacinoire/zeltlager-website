@@ -77,7 +77,7 @@
 	<#= message #>
 	<# }
 #>
-<h3 style="color: black; text-align: center;"><a target="_blank" href="http://ftgern.de" style="color: black;"><img src="/static/img/GernerWappen.png" style="height: 2em;" />Freie Turnerschaft München Gern e.V.</a> – Zeltlager</h3>
+<h3 style="color: black; text-align: center;"><a target="_blank" href="https://ftgern.de" style="color: black;"><img src="/static/img/GernerWappen.png" style="height: 2em;" />Freie Turnerschaft München Gern e.V.</a> – Zeltlager</h3>
 
 <#= self.content #>
 
