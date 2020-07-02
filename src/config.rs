@@ -56,21 +56,6 @@ pub struct MailAccount {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct DiscourseConfig {
-	/// The api endpoint, something like `https://discourse.example.com`.
-	pub endpoint: String,
-	/// The api token.
-	pub token: String,
-	/// The username for the api.
-	pub username: String,
-	/// Add new users to this group.
-	pub group: String,
-	/// Subscribe new users to this category.
-	pub category: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
 pub struct Config {
 	/// The sender of emails
 	pub sender_mail: MailAddress,
@@ -112,9 +97,6 @@ pub struct Config {
 	/// If set, it restricts the authentication cookie to a domain
 	/// and protects against csrf using the referer and origin header.
 	pub domain: Option<String>,
-
-	/// The configuration of the discourse integration.
-	pub discourse: Option<DiscourseConfig>,
 
 	/// The sentry DSN.
 	pub sentry: Option<String>,

@@ -2,10 +2,22 @@
 
 use actix_identity::Identity;
 use actix_web::*;
+use anyhow::bail;
+use chrono::Utc;
+use diesel::prelude::*;
 use log::error;
+use rand::seq::SliceRandom;
+use serde::Deserialize;
 
 use crate::auth;
 use crate::{db, State};
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct CatchData {
+	game: i32,
+	catcher: Option<i32>,
+	member: i32,
+}
 
 #[get("/")]
 pub async fn render_erwischt(
@@ -26,6 +38,280 @@ pub async fn render_erwischt(
 		Err(e) => {
 			error!("Failed to get site: {}", e);
 			crate::error_response(&**state)
+		}
+	}
+}
+
+#[get("/games")]
+pub async fn get_games(
+	state: web::Data<State>,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(|db| {
+		use db::schema::erwischt_game;
+
+		Ok(erwischt_game::table.order(erwischt_game::columns::created).get_results::<db::models::ErwischtGame>(&db.connection)?)
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to get games: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to get games")
+		}
+		Ok(Ok(r)) => {
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.json2(&r)
+		}
+	}
+}
+
+#[get("/game/{id}")]
+pub async fn get_game(
+	state: web::Data<State>,
+	game_id: web::Path<i32>,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(move |db| {
+		use db::schema::erwischt_member;
+		use db::schema::erwischt_member::columns::*;
+
+		Ok(erwischt_member::table.filter(game.eq(*game_id))
+			.select((id, name, target, catcher, last_change))
+			.order(id)
+			.get_results::<db::models::ErwischtMember>(&db.connection)?)
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to get members: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to get members")
+		}
+		Ok(Ok(r)) => {
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.json2(&r)
+		}
+	}
+}
+
+#[post("/game")]
+pub async fn create_game(
+	state: web::Data<State>,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(move |db| {
+		use db::schema::betreuer;
+		use db::schema::erwischt_game;
+		use db::schema::erwischt_member;
+		use db::schema::teilnehmer;
+
+		let new_game: db::models::ErwischtGame = diesel::insert_into(erwischt_game::table)
+			.default_values()
+			.get_result(&db.connection)?;
+
+		let mut member = Vec::new();
+
+		let teilnehmer_member = teilnehmer::table
+			.select((teilnehmer::columns::vorname, teilnehmer::columns::nachname))
+			.get_results::<(String, String)>(&db.connection)?;
+
+		for m in teilnehmer_member {
+			let m_id = member.len() as i32;
+			member.push(db::models::NewErwischtMember {
+				game: new_game.id,
+				id: m_id,
+				name: format!("{} {}", m.0, m.1),
+				target: 0,
+			});
+		}
+
+		let supervisor_member = betreuer::table
+			.select((betreuer::columns::vorname, betreuer::columns::nachname))
+			.get_results::<(String, String)>(&db.connection)?;
+
+		for m in supervisor_member {
+			let m_id = member.len() as i32;
+			member.push(db::models::NewErwischtMember {
+				game: new_game.id,
+				id: m_id,
+				name: format!("{} {}", m.0, m.1),
+				target: 0,
+			});
+		}
+
+		if member.is_empty() {
+			bail!("Cannot create an empty game");
+		}
+
+		// Set targets of members
+		member.shuffle(&mut rand::thread_rng());
+		let len = member.len();
+		for i in 0..(len - 1) {
+			member[i].target = member[i + 1].id;
+		}
+		member[len - 1].target = member[0].id;
+
+		diesel::insert_into(erwischt_member::table)
+			.values(member)
+			.execute(&db.connection)?;
+
+		Ok(new_game.id)
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to create game: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to create game")
+		}
+		Ok(Ok(r)) => {
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.json(r)
+		}
+	}
+}
+
+#[delete("/game/{id}")]
+pub async fn delete_game(
+	state: web::Data<State>,
+	game_id: web::Path<i32>,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(move |db| {
+		use db::schema::erwischt_game;
+		use db::schema::erwischt_member;
+		use db::schema::erwischt_member::columns::*;
+
+		diesel::delete(erwischt_member::table).filter(game.eq(*game_id))
+			.execute(&db.connection)?;
+		let r = diesel::delete(erwischt_game::table).filter(erwischt_game::columns::id.eq(*game_id))
+			.execute(&db.connection)?;
+
+		if r == 0 {
+			bail!("Game not found");
+		}
+
+		Ok(())
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to delete game: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to delete game")
+		}
+		Ok(Ok(())) => {
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body("Success")
+		}
+	}
+}
+
+#[post("/game/setCatch")]
+pub(crate) async fn catch(
+	state: web::Data<State>,
+	data: web::Json<CatchData>,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(move |db| {
+		use db::schema::erwischt_member;
+		use db::schema::erwischt_member::columns::*;
+
+		let r = diesel::update(erwischt_member::table)
+			.filter(game.eq(data.game).and(id.eq(data.member)))
+			.set((catcher.eq(data.catcher), last_change.eq(Some(Utc::now().naive_utc()))))
+			.execute(&db.connection)?;
+		if r == 0 {
+			bail!("Member not found");
+		}
+		Ok(())
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to catch member: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to catch member")
+		}
+		Ok(Ok(())) => {
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body("Success")
+		}
+	}
+}
+
+#[get("/game/{id}/game.pdf")]
+pub async fn create_game_pdf(
+	state: web::Data<State>,
+	game_id: web::Path<i32>,
+) -> HttpResponse {
+	create_pdf(&state, *game_id, true).await
+}
+
+#[get("/game/{id}/members.pdf")]
+pub async fn create_members_pdf(
+	state: web::Data<State>,
+	game_id: web::Path<i32>,
+) -> HttpResponse {
+	create_pdf(&state, *game_id, false).await
+}
+
+async fn create_pdf(
+	state: &State,
+	game_id: i32,
+	with_target: bool,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(move |db| {
+		use std::collections::HashMap;
+		use std::io::BufWriter;
+		use std::fs::File;
+
+		use printpdf::*;
+
+		use db::schema::erwischt_member;
+		use db::schema::erwischt_member::columns::*;
+
+		let members = erwischt_member::table.filter(game.eq(game_id))
+			.select((id, name, target, catcher, last_change))
+			.get_results::<db::models::ErwischtMember>(&db.connection)?;
+		let members: HashMap<i32, db::models::ErwischtMember> = members.into_iter()
+			.map(|m| (m.id, m)).collect();
+		let mut members_by_name: Vec<i32> = members.keys().cloned().collect();
+		members_by_name.sort_by_key(|i| &members[&i].name);
+
+		let (mut doc, page1, layer1) = PdfDocument::new("Erwischt", Mm(210.0), Mm(297.0), "Layer 1");
+		// Remove ICC profile to reduce size
+		doc = doc.with_conformance(PdfConformance::Custom(CustomPdfConformance {
+			requires_icc_profile: false,
+			requires_xmp_metadata: false,
+			.. Default::default()
+		}));
+		let font = doc.add_external_font(File::open("static/DejaVuSans.ttf")?)?;
+		let current_layer = doc.get_page(page1).get_layer(layer1);
+
+		let line_height = Mm(10.0);
+		let mut cur_y_pos = Mm(297.0 - 20.0);
+		let mut cur_x_pos = Mm(20.0);
+		for i in &members_by_name {
+			let m = &members[&i];
+			let text = if with_target {
+				format!("{} → {}", m.name, members[&m.target].name)
+			} else {
+				m.name.clone()
+			};
+			current_layer.use_text(text, 12, cur_x_pos, cur_y_pos, &font);
+			cur_y_pos -= line_height;
+			if cur_y_pos < Mm(20.0) {
+				cur_y_pos = Mm(297.0 - 20.0);
+				cur_x_pos += Mm(100.0);
+			}
+		}
+
+		let mut buffer = Vec::new();
+		doc.save(&mut BufWriter::new(&mut buffer))?;
+
+		Ok(buffer)
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to get members: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to get members")
+		}
+		Ok(Ok(r)) => {
+			HttpResponse::Ok()
+				.content_type("application/pdf")
+				.body(r)
 		}
 	}
 }

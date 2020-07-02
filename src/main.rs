@@ -5,20 +5,22 @@ extern crate diesel_migrations;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::env;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
+use actix_http::cookie::SameSite;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_files::Files;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header::DispositionType;
 use actix_web::*;
-use anyhow::Result;
+use anyhow::{format_err, Result};
 use chrono::Duration;
 use futures::prelude::*;
 use log::{error, warn};
@@ -86,6 +88,108 @@ fn content_disposition_map(typ: &mime::Name) -> DispositionType {
 		// For images and application/pdf in object tags
 		mime::IMAGE | mime::TEXT | mime::VIDEO | mime::APPLICATION => DispositionType::Inline,
 		_ => DispositionType::Attachment,
+	}
+}
+
+struct CsrfFilter {
+	domain: Option<String>,
+}
+
+struct CsrfFilterMiddleware<S> {
+	service: S,
+	domain: Option<String>,
+}
+
+impl CsrfFilter {
+	fn new(domain: Option<String>) -> Self {
+		Self { domain }
+	}
+}
+
+impl<S: 'static, B> Transform<S> for CsrfFilter
+where
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S::Future: 'static,
+	B: 'static,
+{
+	type Request = ServiceRequest;
+	type Response = ServiceResponse<B>;
+	type Error = Error;
+	type InitError = ();
+	type Transform = CsrfFilterMiddleware<S>;
+	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
+
+	fn new_transform(&self, service: S) -> Self::Future {
+		future::ok(CsrfFilterMiddleware {
+			service,
+			domain: self.domain.clone(),
+		})
+	}
+}
+
+fn uri_origin(uri: &http::uri::Uri) -> Option<String> {
+	match (uri.scheme_str(), uri.host(), uri.port()) {
+		(Some(scheme), Some(host), Some(port)) => {
+			Some(format!("{}://{}:{}", scheme, host, port))
+		}
+		(Some(scheme), Some(host), None) => {
+			Some(format!("{}://{}", scheme, host))
+		}
+		_ => None
+	}
+}
+
+fn get_origin(headers: &http::header::HeaderMap) -> Option<Result<String>> {
+	headers.get(http::header::ORIGIN)
+		.map(|origin| {
+			origin
+				.to_str()
+				.map_err(|_| format_err!("Bad origin"))
+				.map(|o| o.into())
+		})
+		.or_else(|| {
+			headers.get(http::header::REFERER)
+				.map(|referer| {
+					http::uri::Uri::try_from(referer.as_bytes())
+						.ok()
+						.as_ref()
+						.and_then(uri_origin)
+						.ok_or_else(|| format_err!("Bad origin"))
+						.map(|o| o.into())
+				})
+		})
+}
+
+impl<S: 'static, B> Service for CsrfFilterMiddleware<S>
+where
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S::Future: 'static,
+	B: 'static,
+{
+	type Request = ServiceRequest;
+	type Response = ServiceResponse<B>;
+	type Error = Error;
+	type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+
+	fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+		self.service.poll_ready(cx)
+	}
+
+	fn call(&mut self, req: ServiceRequest) -> Self::Future {
+		if !req.method().is_safe() {
+			if let Some(domain) = &self.domain {
+				if let Some(header) = get_origin(req.headers()) {
+					match header {
+						Ok(ref origin) if domain == origin => {}
+						Ok(_) => return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
+							"Cross origin request denied").into())),
+						Err(_) => return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
+							"Cross origin request failure").into())),
+					}
+				}
+			}
+		}
+		Box::pin(self.service.call(req))
 	}
 }
 
@@ -157,7 +261,7 @@ where
 					let req = match ServiceRequest::from_parts(req, pay) {
 						Ok(r) => r,
 						Err(_) => {
-							return Err(std::io::Error::new(std::io::ErrorKind::Other,
+							return Err(io::Error::new(io::ErrorKind::Other,
 								"Failed to reassemble request").into());
 						}
 					};
@@ -170,7 +274,7 @@ where
 					let req = match ServiceRequest::from_parts(req, pay) {
 						Ok(r) => r,
 						Err(_) => {
-							return Err(std::io::Error::new(std::io::ErrorKind::Other,
+							return Err(io::Error::new(io::ErrorKind::Other,
 								"Failed to reassemble request").into());
 						}
 					};
@@ -181,7 +285,7 @@ where
 					let req = match ServiceRequest::from_parts(req, pay) {
 						Ok(r) => r,
 						Err(_) => {
-							return Err(std::io::Error::new(std::io::ErrorKind::Other,
+							return Err(io::Error::new(io::ErrorKind::Other,
 								"Failed to reassemble request").into());
 						}
 					};
@@ -193,7 +297,7 @@ where
 				let req = match ServiceRequest::from_parts(req, pay) {
 					Ok(r) => r,
 					Err(_) => {
-						return Err(std::io::Error::new(std::io::ErrorKind::Other,
+						return Err(io::Error::new(io::ErrorKind::Other,
 							"Failed to reassemble request").into());
 					}
 				};
@@ -469,11 +573,13 @@ async fn main() -> Result<()> {
 		let mut identity_policy = CookieIdentityPolicy::new(&key)
 			.name("user")
 			.max_age_time(cookie_maxtime())
-			.secure(state.config.secure);
+			.secure(state.config.secure)
+			.same_site(SameSite::Strict);
 
 		let app = App::new()
 			.data(state.clone())
-			.wrap(middleware::Logger::default());
+			.wrap(middleware::Logger::default())
+			.wrap(CsrfFilter::new(state.config.domain.clone()));
 
 		if let Some(ref domain) = state.config.domain {
 			// TODO Test for CSRF, check origin header
@@ -525,6 +631,13 @@ async fn main() -> Result<()> {
 			.service(web::scope("/erwischt")
 				.wrap(HasRolePredicate::new(auth::Roles::Erwischt))
 				.service(erwischt::render_erwischt)
+				.service(erwischt::get_games)
+				.service(erwischt::get_game)
+				.service(erwischt::create_game)
+				.service(erwischt::delete_game)
+				.service(erwischt::catch)
+				.service(erwischt::create_game_pdf)
+				.service(erwischt::create_members_pdf)
 				.default_service(web::to(not_found_handler))
 			)
 			.service(web::resource("/erwischt").route(web::get().to(||

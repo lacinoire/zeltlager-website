@@ -36,14 +36,8 @@ pub async fn render_admin(
 pub async fn download_members_csv(
 	state: web::Data<State>,
 ) -> HttpResponse {
-	let db_addr = state.db_addr.clone();
-
-	match db_addr.send(db::DownloadMembersMessage).await {
-		Err(error) => {
-			warn!("Error fetching from database: {}", error);
-			crate::error_response(&**state)
-		}
-		Ok(Err(error)) => {
+	match state.db_addr.send(db::DownloadMembersMessage).await.map_err(|e| e.into()) {
+		Ok(Err(error)) | Err(error) => {
 			warn!("Error fetching from database: {}", error);
 			crate::error_response(&**state)
 		}
@@ -74,14 +68,8 @@ pub async fn download_members_csv(
 pub async fn download_betreuer_csv(
 	state: web::Data<State>,
 ) -> HttpResponse {
-	let db_addr = state.db_addr.clone();
-
-	match db_addr.send(db::DownloadBetreuerMessage).await {
-		Err(error) => {
-			warn!("Error fetching from database: {}", error);
-			crate::error_response(&**state)
-		}
-		Ok(Err(error)) => {
+	match state.db_addr.send(db::DownloadBetreuerMessage).await.map_err(|e| e.into()) {
+		Ok(Err(error)) | Err(error) => {
 			warn!("Error fetching from database: {}", error);
 			crate::error_response(&**state)
 		}

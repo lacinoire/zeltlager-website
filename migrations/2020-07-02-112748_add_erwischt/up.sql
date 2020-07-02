@@ -9,7 +9,7 @@ CREATE TABLE erwischt_member (
 	id SERIAL NOT NULL,
 	name TEXT NOT NULL,
 	target SERIAL NOT NULL,
-	catcher SERIAL,
+	catcher INTEGER,
 	last_change TIMESTAMPTZ,
 
 	PRIMARY KEY (game, id),

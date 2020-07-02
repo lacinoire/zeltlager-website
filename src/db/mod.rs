@@ -34,7 +34,7 @@ pub mod schema;
 diesel_migrations::embed_migrations!();
 
 pub struct DbExecutor {
-	connection: PgConnection,
+	pub(crate) connection: PgConnection,
 }
 
 impl Actor for DbExecutor {
@@ -90,6 +90,13 @@ pub struct DecreaseRateCounterMessage {
 }
 impl Message for DecreaseRateCounterMessage {
 	type Result = Result<()>;
+}
+
+pub struct RunOnDbMsg<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>>(pub F);
+impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>> Message
+	for RunOnDbMsg<I, F>
+{
+	type Result = Result<I>;
 }
 
 impl AuthenticateMessage {
@@ -240,6 +247,15 @@ impl Handler<DecreaseRateCounterMessage> for DbExecutor {
 			}
 			Err(e) => Err(e.into()),
 		}
+	}
+}
+
+impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>>
+	Handler<RunOnDbMsg<I, F>> for DbExecutor
+{
+	type Result = Result<I>;
+	fn handle(&mut self, msg: RunOnDbMsg<I, F>, _: &mut Self::Context) -> Self::Result {
+		msg.0(self)
 	}
 }
 

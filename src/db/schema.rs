@@ -34,7 +34,7 @@ table! {
         id -> Int4,
         name -> Text,
         target -> Int4,
-        catcher -> Int4,
+        catcher -> Nullable<Int4>,
         last_change -> Nullable<Timestamptz>,
     }
 }

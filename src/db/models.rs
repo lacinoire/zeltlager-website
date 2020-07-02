@@ -13,6 +13,7 @@ use log::warn;
 use serde::Serialize;
 
 use super::schema::betreuer;
+use super::schema::erwischt_member;
 use super::schema::rate_limiting;
 use super::schema::teilnehmer;
 use super::schema::users;
@@ -116,6 +117,30 @@ pub struct UserQueryResult {
 pub struct Role {
 	pub user_id: i32,
 	pub role: String,
+}
+
+#[derive(Clone, Debug, Queryable, Serialize)]
+pub struct ErwischtGame {
+	pub id: i32,
+	pub created: chrono::NaiveDateTime,
+}
+
+#[derive(Clone, Debug, Insertable)]
+#[table_name = "erwischt_member"]
+pub struct NewErwischtMember {
+	pub game: i32,
+	pub id: i32,
+	pub name: String,
+	pub target: i32,
+}
+
+#[derive(Clone, Debug, Queryable, Serialize)]
+pub struct ErwischtMember {
+	pub id: i32,
+	pub name: String,
+	pub target: i32,
+	pub catcher: Option<i32>,
+	pub last_change: Option<chrono::NaiveDateTime>,
 }
 
 pub fn try_parse_date(s: &str) -> Result<NaiveDate> {

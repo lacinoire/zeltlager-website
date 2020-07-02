@@ -1,36 +1,38 @@
+<script src="/static/js/moment.min.js"></script>
 <script src="/static/js/erwischt.js"></script>
 
-<ul class="nav nav-tabs" style="margin-bottom: 1em;">
-  <li class="nav-item">
-    <a class="nav-link active" href="#">Active</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" href="javascript:newGame()" title="Neues Spiel erstellen">+</a>
-  </li>
+<ul id="gameTabs" class="nav nav-tabs" style="margin-bottom: 1em;">
+	<li class="nav-item">
+		<a class="nav-link" href="javascript:newGame()" title="Neues Spiel erstellen">+</a>
+	</li>
 </ul>
 
 <div class="form-inline">
 	<div class="form-group mx-sm-3 mb-2">
-		<input class="form-control" type="text" autofocus="autofocus" placeholder="Suchen…" />
+		<input class="form-control" id="memberFilter" type="text" autofocus="autofocus" oninput="showMembers()" placeholder="Suchen…" />
 	</div>
-	<div class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
-		<label class="btn btn-secondary active">
-			<input type="radio" autocomplete="off" checked /> Ziel anzeigen
-		</label>
+	<div id="goalToggle" class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
 		<label class="btn btn-secondary">
-			<input type="radio" autocomplete="off" /> Ziel verstecken
+			<input type="radio" autocomplete="off" data-show="true" /> Ziel anzeigen
+		</label>
+		<label class="btn btn-secondary active">
+			<input type="radio" autocomplete="off" data-show="false" /> Ziel verstecken
 		</label>
 	</div>
+	<a href="javascript:openPdf('game.pdf')" class="mx-sm-3">Spiel herunterladen</a>
+	<a href="javascript:openPdf('members.pdf')" class="mx-sm-3">Teilnehmer herunterladen</a>
+	<a href="javascript:deleteGame()" class="mx-sm-3">Spiel löschen</a>
 </div>
 
 <table class="table">
 	<thead class="thead-light">
 		<tr>
 			<th scope="col">Name</th>
-			<th scope="col">Ziel</th>
+			<th scope="col">Nächstes Ziel</th>
+			<th scope="col"></th>
 		</tr>
 	</thead>
-	<tbody>
+	<tbody id="memberTableBody">
 	</tbody>
 </table>
 
@@ -41,9 +43,10 @@
 		<tr>
 			<th scope="col">Name</th>
 			<th scope="col">Von</th>
-			<th scope="col">Datum</th>
+			<th scope="col">Zeit</th>
+			<th scope="col"></th>
 		</tr>
 	</thead>
-	<tbody>
+	<tbody id="catchedTableBody">
 	</tbody>
 </table>
