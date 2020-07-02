@@ -22,6 +22,24 @@ table! {
 }
 
 table! {
+    erwischt_game (id) {
+        id -> Int4,
+        created -> Timestamptz,
+    }
+}
+
+table! {
+    erwischt_member (game, id) {
+        game -> Int4,
+        id -> Int4,
+        name -> Text,
+        target -> Int4,
+        catcher -> Int4,
+        last_change -> Nullable<Timestamptz>,
+    }
+}
+
+table! {
     rate_limiting (ip_addr) {
         ip_addr -> Inet,
         counter -> Int4,
@@ -67,10 +85,13 @@ table! {
     }
 }
 
+joinable!(erwischt_member -> erwischt_game (game));
 joinable!(roles -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     betreuer,
+    erwischt_game,
+    erwischt_member,
     rate_limiting,
     roles,
     teilnehmer,
