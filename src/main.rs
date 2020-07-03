@@ -180,11 +180,17 @@ where
 			if let Some(domain) = &self.domain {
 				if let Some(header) = get_origin(req.headers()) {
 					match header {
-						Ok(ref origin) if domain == origin => {}
-						Ok(_) => return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
-							"Cross origin request denied").into())),
-						Err(_) => return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
-							"Cross origin request failure").into())),
+						Ok(ref origin) if origin.ends_with(domain) => {}
+						Ok(ref origin) => {
+							warn!("Origin does not match: {:?} does not end with {:?}", origin, domain);
+							return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
+								"Cross origin request denied").into()));
+						}
+						Err(e) => {
+							warn!("Origin not found: {}", e);
+							return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
+								"Cross origin request failure").into()));
+						}
 					}
 				}
 			}
