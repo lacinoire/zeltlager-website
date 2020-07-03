@@ -270,7 +270,9 @@ async fn create_pdf(
 		let mut members_by_name: Vec<i32> = members.keys().cloned().collect();
 		members_by_name.sort_by_key(|i| &members[&i].name);
 
-		let (mut doc, page1, layer1) = PdfDocument::new("Erwischt", Mm(210.0), Mm(297.0), "Layer 1");
+		let width = Mm(210.0);
+		let height = Mm(297.0);
+		let (mut doc, mut page, mut layer) = PdfDocument::new("Erwischt", width, height, "Layer 1");
 		// Remove ICC profile to reduce size
 		doc = doc.with_conformance(PdfConformance::Custom(CustomPdfConformance {
 			requires_icc_profile: false,
@@ -278,12 +280,14 @@ async fn create_pdf(
 			.. Default::default()
 		}));
 		let font = doc.add_external_font(File::open("static/DejaVuSans.ttf")?)?;
-		let current_layer = doc.get_page(page1).get_layer(layer1);
+		let mut current_layer = doc.get_page(page).get_layer(layer);
 
 		let margin = Mm(15.0);
 		let line_height = Mm(7.0);
 		let mut cur_y_pos = Mm(297.0) - margin;
 		let mut cur_x_pos = margin;
+		let mut column = 0;
+		let mut page_num = 1;
 		for i in &members_by_name {
 			let m = &members[&i];
 			let text = if with_target {
@@ -294,8 +298,21 @@ async fn create_pdf(
 			current_layer.use_text(text, 11, cur_x_pos, cur_y_pos, &font);
 			cur_y_pos -= line_height;
 			if cur_y_pos < margin {
-				cur_y_pos = Mm(297.0) - margin;
-				cur_x_pos += Mm(210.0 / 2.0) - margin;
+				if column == 0 {
+					column = 1;
+					cur_y_pos = Mm(297.0) - margin;
+					cur_x_pos = width / 2.0;
+				} else {
+					// New page
+					page_num += 1;
+					column = 0;
+					let (r_page, r_layer) = doc.add_page(width, height, &format!("Page {}, Layer 1", page_num));
+					page = r_page;
+					layer = r_layer;
+					current_layer = doc.get_page(page).get_layer(layer);
+					cur_y_pos = Mm(297.0) - margin;
+					cur_x_pos = margin;
+				}
 			}
 		}
 
