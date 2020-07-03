@@ -280,9 +280,10 @@ async fn create_pdf(
 		let font = doc.add_external_font(File::open("static/DejaVuSans.ttf")?)?;
 		let current_layer = doc.get_page(page1).get_layer(layer1);
 
-		let line_height = Mm(10.0);
-		let mut cur_y_pos = Mm(297.0 - 20.0);
-		let mut cur_x_pos = Mm(20.0);
+		let margin = Mm(15.0);
+		let line_height = Mm(7.0);
+		let mut cur_y_pos = Mm(297.0) - margin;
+		let mut cur_x_pos = margin;
 		for i in &members_by_name {
 			let m = &members[&i];
 			let text = if with_target {
@@ -290,11 +291,11 @@ async fn create_pdf(
 			} else {
 				m.name.clone()
 			};
-			current_layer.use_text(text, 12, cur_x_pos, cur_y_pos, &font);
+			current_layer.use_text(text, 11, cur_x_pos, cur_y_pos, &font);
 			cur_y_pos -= line_height;
-			if cur_y_pos < Mm(20.0) {
-				cur_y_pos = Mm(297.0 - 20.0);
-				cur_x_pos += Mm(100.0);
+			if cur_y_pos < margin {
+				cur_y_pos = Mm(297.0) - margin;
+				cur_x_pos += Mm(210.0 / 2.0) - margin;
 			}
 		}
 
