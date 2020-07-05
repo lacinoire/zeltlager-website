@@ -352,13 +352,25 @@ async fn create_pdf(
 
 		let font_size = 11;
 		let margin = Mm(12.0);
-		let number_size = Mm(15.0);
+		let number_size = Mm(18.0);
 		let line_height = Mm(7.0);
 		let mut cur_y_pos = Mm(297.0) - margin;
 		let mut cur_x_pos = margin;
 		let mut column = 0;
 		let mut page_num = 1;
 		for (index, i) in members_by_name.iter().enumerate() {
+			if column == 3 {
+				// New page
+				page_num += 1;
+				column = 0;
+				let (r_page, r_layer) = doc.add_page(width, height, &format!("Page {}, Layer 1", page_num));
+				page = r_page;
+				layer = r_layer;
+				current_layer = doc.get_page(page).get_layer(layer);
+				cur_y_pos = Mm(297.0) - margin;
+				cur_x_pos = margin;
+			}
+
 			let m = &members[&i];
 			let target_index = members_by_name.iter().position(|i| *i == m.target)
 				.ok_or(diesel::result::Error::NotFound)?;
@@ -378,24 +390,13 @@ async fn create_pdf(
 			cur_y_pos -= line_height;
 			if cur_y_pos < margin {
 				if column == 0 {
-					column = 1;
 					cur_y_pos = Mm(297.0) - margin;
 					cur_x_pos = width / 3.0;
 				} else if column == 1 {
-					column = 2;
 					cur_y_pos = Mm(297.0) - margin;
 					cur_x_pos = width / 3.0 * 2.0;
-				} else {
-					// New page
-					page_num += 1;
-					column = 0;
-					let (r_page, r_layer) = doc.add_page(width, height, &format!("Page {}, Layer 1", page_num));
-					page = r_page;
-					layer = r_layer;
-					current_layer = doc.get_page(page).get_layer(layer);
-					cur_y_pos = Mm(297.0) - margin;
-					cur_x_pos = margin;
 				}
+				column += 1;
 			}
 		}
 
