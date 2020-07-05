@@ -19,9 +19,38 @@
 			<input type="radio" autocomplete="off" data-show="false" /> Ziel verstecken
 		</label>
 	</div>
-	<a href="javascript:openPdf('game.pdf')" class="mx-sm-3">Spiel herunterladen</a>
-	<a href="javascript:openPdf('members.pdf')" class="mx-sm-3">Teilnehmer herunterladen</a>
-	<a href="javascript:deleteGame()" class="mx-sm-3">Spiel löschen</a>
+	<div class="navbar-light" style="margin: 0.5em;">
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#gameOptions" aria-controls="gameOptions"
+			aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="gameOptions" style="position: absolute; background-color: white; border: 1px solid rgba(0,0,0,.1); border-radius: 0.5em 0 0.5em 0.5em; margin-left: calc(-30em + 3.5em); width: 30em; max-width: 100vw">
+			<div style="background-color: rgba(0,0,0,.1); padding: 0.3em;">
+				<span style="font-weight: bold;">Letzte Änderungen</span>
+				<ul id="undoList" style="list-style-type: none; padding-left: 0;">
+				</ul>
+			</div>
+			<div id="addToggle" class="btn-group btn-group-toggle mb-2" data-toggle="buttons" style="margin: 0.5em;">
+				<label class="btn btn-secondary active">
+					<input type="radio" autocomplete="off" data-show="false" /> erwischen
+				</label>
+				<label class="btn btn-secondary">
+					<input type="radio" autocomplete="off" data-show="true" /> einfügen
+				</label>
+			</div>
+			<ul class="navbar-nav">
+				<li class="nav-item">
+					<a href="javascript:openPdf('game.pdf')" class="mx-sm-3">Spiel herunterladen</a>
+				</li>
+				<li class="nav-item">
+					<a href="javascript:openPdf('members.pdf')" class="mx-sm-3">Teilnehmer herunterladen</a>
+				</li>
+				<li class="nav-item">
+					<a href="javascript:deleteGame()" class="mx-sm-3">Spiel löschen</a>
+				</li>
+			</ul>
+		</div>
+	</div>
 </div>
 
 <table class="table">

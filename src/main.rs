@@ -55,7 +55,7 @@ static IMAGE_YEARS: &[(&str, auth::Roles)] = &[
 ];
 
 fn cookie_maxtime() -> Duration {
-	Duration::minutes(30)
+	Duration::minutes(120)
 }
 fn ratelimit_duration() -> Duration {
 	Duration::days(1)
@@ -642,6 +642,7 @@ async fn main() -> Result<()> {
 				.service(erwischt::create_game)
 				.service(erwischt::delete_game)
 				.service(erwischt::catch)
+				.service(erwischt::insert)
 				.service(erwischt::create_game_pdf)
 				.service(erwischt::create_members_pdf)
 				.default_service(web::to(not_found_handler))

@@ -19,6 +19,13 @@ pub(crate) struct CatchData {
 	member: i32,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct InsertData {
+	game: i32,
+	before: i32,
+	name: String,
+}
+
 #[get("/")]
 pub async fn render_erwischt(
 	state: web::Data<State>,
@@ -231,6 +238,61 @@ pub(crate) async fn catch(
 	}
 }
 
+#[post("/game/insert")]
+pub(crate) async fn insert(
+	state: web::Data<State>,
+	data: web::Json<InsertData>,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(move |db| {
+		use diesel::dsl::max;
+
+		use db::models::NewErwischtMember;
+		use db::schema::erwischt_member;
+		use db::schema::erwischt_member::columns::*;
+
+		// Result will be `after` `new` `before`
+		db.connection.transaction::<_, diesel::result::Error, _>(|| {
+			// Find current member before `before`
+			let after = erwischt_member::table.filter(game.eq(data.game).and(target.eq(data.before)))
+				.select(id)
+				.get_result::<i32>(&db.connection)?;
+
+			let last_id = erwischt_member::table.filter(game.eq(data.game)).select(max(id))
+				.first::<Option<i32>>(&db.connection)?
+				.ok_or_else(|| diesel::result::Error::NotFound)?;
+
+			diesel::insert_into(erwischt_member::table)
+				.values(NewErwischtMember {
+					game: data.game,
+					id: last_id + 1,
+					name: data.name.clone(),
+					target: data.before,
+				})
+				.execute(&db.connection)?;
+
+			diesel::update(erwischt_member::table)
+				.filter(game.eq(data.game).and(id.eq(after)))
+				.set(target.eq(last_id + 1))
+				.execute(&db.connection)?;
+
+			Ok(())
+		})?;
+
+		Ok(())
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to insert member: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to insert member")
+		}
+		Ok(Ok(())) => {
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body("Success")
+		}
+	}
+}
+
 #[get("/game/{id}/game.pdf")]
 pub async fn create_game_pdf(
 	state: web::Data<State>,
@@ -257,10 +319,16 @@ async fn create_pdf(
 		use std::io::BufWriter;
 		use std::fs::File;
 
+		use diesel::dsl::max;
 		use printpdf::*;
 
 		use db::schema::erwischt_member;
 		use db::schema::erwischt_member::columns::*;
+
+		let last_id = erwischt_member::table.filter(game.eq(game_id)).select(max(id))
+			.first::<Option<i32>>(&db.connection)?
+			.ok_or_else(|| diesel::result::Error::NotFound)?;
+		let id_digits = (last_id as f32).log10().ceil() as usize;
 
 		let members = erwischt_member::table.filter(game.eq(game_id))
 			.select((id, name, target, catcher, last_change))
@@ -282,26 +350,41 @@ async fn create_pdf(
 		let font = doc.add_external_font(File::open("static/DejaVuSans.ttf")?)?;
 		let mut current_layer = doc.get_page(page).get_layer(layer);
 
-		let margin = Mm(15.0);
+		let font_size = 11;
+		let margin = Mm(12.0);
+		let number_size = Mm(15.0);
 		let line_height = Mm(7.0);
 		let mut cur_y_pos = Mm(297.0) - margin;
 		let mut cur_x_pos = margin;
 		let mut column = 0;
 		let mut page_num = 1;
-		for i in &members_by_name {
+		for (index, i) in members_by_name.iter().enumerate() {
 			let m = &members[&i];
-			let text = if with_target {
-				format!("{} → {}", m.name, members[&m.target].name)
+			let target_index = members_by_name.iter().position(|i| *i == m.target)
+				.ok_or(diesel::result::Error::NotFound)?;
+			if with_target {
+				let text = format!("{:>width$}→{}", index, target_index, width = id_digits);
+				current_layer.use_text(text, font_size, cur_x_pos, cur_y_pos, &font);
+				let text = if m.name.len() > 20 {
+					format!("{}.", &m.name[..19])
+				} else {
+					m.name.clone()
+				};
+				current_layer.use_text(text, font_size, cur_x_pos + number_size, cur_y_pos, &font);
 			} else {
-				m.name.clone()
-			};
-			current_layer.use_text(text, 11, cur_x_pos, cur_y_pos, &font);
+				let text = m.name.clone();
+				current_layer.use_text(text, font_size, cur_x_pos, cur_y_pos, &font);
+			}
 			cur_y_pos -= line_height;
 			if cur_y_pos < margin {
 				if column == 0 {
 					column = 1;
 					cur_y_pos = Mm(297.0) - margin;
-					cur_x_pos = width / 2.0;
+					cur_x_pos = width / 3.0;
+				} else if column == 1 {
+					column = 2;
+					cur_y_pos = Mm(297.0) - margin;
+					cur_x_pos = width / 3.0 * 2.0;
 				} else {
 					// New page
 					page_num += 1;

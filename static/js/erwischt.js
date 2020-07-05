@@ -2,8 +2,15 @@ var games;
 var currentGame;
 var currentGameId;
 var showTarget = localStorage.erwischtShowTarget === "true";
+var insertMember = false;
+
+var lastActions = localStorage.erwischtLastActions ?
+	JSON.parse(localStorage.erwischtLastActions) : [];
+const historyLength = 5;
 
 function findMember(id) {
+	if (id === undefined)
+		return undefined;
 	var target = currentGame[id];
 	if (target.id === id)
 		return target;
@@ -18,15 +25,60 @@ function findNextTarget(member) {
 	return target;
 }
 
+async function insertNewMember(before) {
+	const beforeName = findMember(before).name;
+	const name = prompt(`Vor ${beforeName} einfügen. Name:`);
+	if (name === null || name === "undefined")
+		return;
+
+	await insertNewMemberName(before, name);
+}
+
+async function insertNewMemberName(before, name) {
+	try {
+		const data = {
+			game: currentGameId,
+			before: before,
+			name: name,
+		};
+
+		response = await fetch("/erwischt/game/insert", {
+			method: "POST",
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data),
+		});
+		if (!response.ok) {
+			alert("Fehler: Spieler konnte nicht eingefügt werden (Server-Fehler)");
+			return;
+		}
+	} catch(e) {
+		console.error("Failed to insert member", e);
+		alert("Fehler: Spieler konnte nicht eingefügt werden (Server nicht erreichbar)");
+		return;
+	}
+	await loadGame(currentGameId);
+}
+
 async function catchMember(catcher, member) {
 	console.log(`${catcher} catched ${member}`);
 
+	const m = findMember(member);
 	try {
 		const data = {
 			game: currentGameId,
 			catcher: catcher,
 			member: member,
 		};
+		lastActions = localStorage.erwischtLastActions ?
+			JSON.parse(localStorage.erwischtLastActions) : [];
+		lastActions.push({ ...data, lastCatcher: m.catcher });
+		if (lastActions.length > historyLength)
+			lastActions = lastActions.slice(lastActions.length - historyLength);
+		localStorage.erwischtLastActions = JSON.stringify(lastActions);
+		showHistory();
+
 		response = await fetch("/erwischt/game/setCatch", {
 			method: "POST",
 			headers: {
@@ -44,12 +96,28 @@ async function catchMember(catcher, member) {
 		return;
 	}
 
-	await loadGame(currentGameId);
+	if (catcher === null) {
+		const c = findMember(m.catcher);
+		m.catcher = catcher;
+		c.nextTarget = findNextTarget(c);
+		m.nextTarget = findNextTarget(m);
+	} else {
+		m.catcher = catcher;
+		const c = findMember(m.catcher);
+		c.nextTarget = findNextTarget(c);
+	}
+	m.last_change = moment();
+	showMembers();
 }
 
 function changeShowTarget(show) {
 	showTarget = show;
 	localStorage.erwischtShowTarget = showTarget ? "true" : "false";
+	showMembers();
+}
+
+function changeInsertMember(insert) {
+	insertMember = insert;
 	showMembers();
 }
 
@@ -133,6 +201,7 @@ async function loadGame(id) {
 	}
 
 	showMembers();
+	showHistory();
 
 	console.log("Loaded game", currentGameId);
 }
@@ -166,8 +235,14 @@ function showMembers() {
 
 		var cell = document.createElement("td");
 		var link = document.createElement("a");
-		link.href = `javascript:catchMember(${m.id}, ${m.nextTarget.id})`;
-		link.innerText = "erwischt";
+		if (insertMember) {
+			link.href = `javascript:insertNewMember(${m.nextTarget.id})`;
+			link.innerText = "einfügen";
+		} else {
+			link.href = `javascript:catchMember(${m.id}, ${m.nextTarget.id})`;
+			link.innerText = "erwischt";
+		}
+		cell.style.textAlign = "right";
 		cell.appendChild(link);
 		row.appendChild(cell);
 
@@ -202,10 +277,35 @@ function showMembers() {
 		var link = document.createElement("a");
 		link.href = `javascript:catchMember(null, ${m.id})`;
 		link.innerText = "wiederbeleben";
+		cell.style.textAlign = "right";
 		cell.appendChild(link);
 		row.appendChild(cell);
 
 		list.appendChild(row);
+	}
+}
+
+function showHistory() {
+	$("#undoList").children().remove();
+	var list = document.getElementById("undoList");
+	for (var a of lastActions) {
+		if (a.game === currentGameId) {
+			var item = document.createElement("li");
+			var text = document.createElement("span");
+			if (a.catcher !== null) {
+				console.log(a);
+				text.innerText = `${findMember(a.catcher).name} → ${findMember(a.member).name} `;
+			} else {
+				text.innerText = `${findMember(a.member).name} wiederbelebt `;
+			}
+			item.appendChild(text);
+			var link = document.createElement("a");
+			link.href = `javascript:catchMember(${a.lastCatcher}, ${a.member})`;
+			link.innerText = "rückgängig";
+			link.style.textAlign = "right";
+			item.appendChild(link);
+			list.appendChild(item);
+		}
 	}
 }
 
@@ -270,5 +370,11 @@ window.addEventListener('load', function() {
 	$("#goalToggle :input").change(function() {
 		changeShowTarget(this.dataset.show === "true");
 	});
+	$("#addToggle :input").change(function() {
+		changeInsertMember(this.dataset.show === "true");
+	});
+	if (showTarget) {
+		$("#goalToggle label").toggleClass('active');
+	}
 	loadGames();
 });
