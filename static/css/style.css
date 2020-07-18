@@ -11,13 +11,13 @@ body > .container {
 }
 
 img {
-	max-width: 36em;
+	max-width: min(36em, 90vw);
 	padding: .3125rem; /* 5px */
 	image-orientation: from-image;
 }
 
 .responsive-image {
-	width: 50vw;
+	width: auto;
 	height: auto;
 }
 

@@ -26,10 +26,11 @@
 
 <div class="row">
 	<div class="col">
-		<img src="/static/img/ausstattung/KuecheAußen.jpeg" alt="Unsere Kücheanhänger" class="responsive-image">
+		<img src="/static/img/ausstattung/KuecheAußen.jpeg" alt="Unsere Küchenanhänger" class="responsive-image">
+		<img src="/static/img/ausstattung/KuecheInnen.jpeg" alt="Die Küche von Innen" class="responsive-image">
 	</div>
 	<div class="col">
-		<img src="/static/img/ausstattung/KuecheInnen.jpeg" alt="Die Küche von Innen" class="responsive-image">
+		<img src="/static/img/ausstattung/AnhaengerLogo.jpeg" alt="Ein Küchenanhänger von hinten" class="responsive-image">
 	</div>
 	<div class="col">
 		<img src="/static/img/ausstattung/Kueche1.jpg" alt="Die Küche von Innen" class="responsive-image">
