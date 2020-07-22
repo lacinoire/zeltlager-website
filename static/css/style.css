@@ -21,6 +21,14 @@ img {
 	height: auto;
 }
 
+.sponser-image {
+	width: 100%;
+}
+
+.sponsor-row {
+	margin-right: 1em;
+}
+
 h1 {
 	padding-top: .3125rem;
 	padding-bottom: .3125rem;
