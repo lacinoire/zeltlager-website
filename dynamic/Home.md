@@ -42,43 +42,19 @@ Eure Supervisor 😃
 
 # Mit großzügiger Unterstützung von
 
-<div class="row align-items-center sponsor-row">
-	<div class="col-4">
-		<img src="/static/img/sponsors/acqua_pellegrino.jpg" alt="Acqua Panna und S. Pellegrino" class="sponser-image">
-	</div>
-	<div class="col-4">
-		<img src="/static/img/sponsors/farnetani.svg" alt="farnetani" class="sponser-image">
-	</div>
-	<div class="col-4">
-		<img src="/static/img/sponsors/molisana.jpg" alt="la Molisana" class="sponser-image">
-	</div>
+<div class="d-flex flex-wrap sponsor-row align-items-center">
+	<img src="/static/img/sponsors/acqua_pellegrino.jpg" alt="Acqua Panna und S. Pellegrino" class="sponsor-image">
+	<img src="/static/img/sponsors/farnetani.svg" alt="farnetani" class="sponsor-image">
+	<img src="/static/img/sponsors/molisana.jpg" alt="la Molisana" class="sponsor-image">
 </div>
 
 # Eindrücke
 
-<div class="row">
-	<div class="col">
-		<img src="/static/img/programm/SpieleSonne.jpg" alt="Menschenketten in der Sonne" class="responsive-image">
-	</div>
-	<div class="col">
-		<img src="/static/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness" class="responsive-image">
-	</div>
-</div>
-
-<div class="row">
-	<div class="col">
-		<img src="/static/img/programm/SpieleUeabend.jpg" alt="Ü-Abend" class="responsive-image">
-	</div>
-	<div class="col">
-		<img src="/static/img/programm/SpieleSchatten.jpg" alt="Werwolf im Schatten" class="responsive-image">
-	</div>
-</div>
-
-<div class="row">
-	<div class="col">
-		<img src="/static/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag" class="responsive-image">
-	</div>
-	<div class="col">
-		<img src="/static/img/programm/SpieleFussballplatz.jpg" alt="Fußball" class="responsive-image">
-	</div>
+<div class="d-flex flex-wrap align-items-start image-list">
+	<img src="/static/img/programm/SpieleSonne.jpg" alt="Menschenketten in der Sonne" class="responsive-image">
+	<img src="/static/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness" class="responsive-image">
+	<img src="/static/img/programm/SpieleUeabend.jpg" alt="Ü-Abend" class="responsive-image">
+	<img src="/static/img/programm/SpieleSchatten.jpg" alt="Werwolf im Schatten" class="responsive-image">
+	<img src="/static/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag" class="responsive-image">
+	<img src="/static/img/programm/SpieleFussballplatz.jpg" alt="Fußball" class="responsive-image">
 </div>

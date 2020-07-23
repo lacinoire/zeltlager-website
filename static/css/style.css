@@ -11,22 +11,22 @@ body > .container {
 }
 
 img {
-	max-width: min(36em, 90vw);
 	padding: .3125rem; /* 5px */
 	image-orientation: from-image;
 }
 
-.responsive-image {
-	width: auto;
-	height: auto;
-}
-
-.sponser-image {
-	width: 100%;
+.image-list img {
+	max-width: 90vw;
+	width: 36em;
 }
 
 .sponsor-row {
 	margin-right: 1em;
+}
+
+.sponsor-row img {
+	max-width: 20em;
+	margin: 0.5em;
 }
 
 h1 {
