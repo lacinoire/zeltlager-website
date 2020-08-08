@@ -44,9 +44,9 @@
 	list.sort_unstable_by(|a, b| a.cmp(b).reverse());
 	for name in &list {
 		let lower_name = name.to_lowercase();
-		if lower_name.ends_with(".jpg") || lower_name.ends_with(".png") { #>
+		if lower_name.ends_with(".jpg") || lower_name.ends_with(".jpeg") || lower_name.ends_with(".png") { #>
 	<a href="static/<#= name #>" data-toggle="lightbox" data-gallery="image-gallery" class="col-lg-3 col-md-4 col-6 my-3">
-		<img src="static/thumbs/<#= name #>" class="img-fluid card">
+		<img data-src="static/thumbs/<#= name #>" class="img-fluid card lozad">
 	</a>
 	<# } else { #>
 	<a href="static/<#= name #>" target="_blank" class="col-lg-3 col-md-4 col-6 my-3">
@@ -57,3 +57,8 @@
 	</a>
 		<# }
 	} #>
+</div>
+<script>
+	const observer = lozad();
+	observer.observe();
+</script>

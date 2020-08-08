@@ -14,6 +14,7 @@
 	<link rel="stylesheet" href="/static/css/ekko-lightbox.css"/>
 	<script src="/static/bootstrap/js/jquery-3.5.1.slim.min.js"></script>
 	<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+	<script src="/static/js/lozad.min.js"></script>
 	<script src="/static/js/zeltlager.js"></script>
 	<script src="/static/js/ekko-lightbox.min.js"></script>
 
