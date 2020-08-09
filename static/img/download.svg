@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" version="1.1" viewBox="0 0 135.47 135.47" xmlns="http://www.w3.org/2000/svg">
+ <g transform="translate(0 -161.53)">
+  <rect x="18.521" y="273.19" width="97.896" height="7.9375" ry="0"/>
+  <g transform="translate(-1.0583)">
+   <rect x="66.146" y="175.29" width="5.2917" height="76.729"/>
+   <rect transform="rotate(39.421)" x="209.93" y="117.57" width="5.2917" height="31.75"/>
+   <rect transform="matrix(-.7725 .63501 .63501 .7725 0 0)" x="103.65" y="204.94" width="5.2917" height="31.75"/>
+  </g>
+ </g>
+</svg>

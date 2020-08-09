@@ -28,7 +28,6 @@ pub async fn render_images(
 	id: Identity,
 	name: &'static str,
 ) -> HttpResponse {
-	println!("Render images");
 	let roles = match auth::get_roles(&**state, &id).await {
 		Ok(r) => r,
 		Err(e) => {
