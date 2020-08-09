@@ -1,0 +1,59 @@
+<script src="/static/js/moment.min.js"></script>
+<script src="/static/js/admin.js"></script>
+
+<div class="form-inline">
+	<div class="form-group mx-sm-3 mb-2">
+		<input class="form-control" id="memberFilter" type="text" autofocus="autofocus" oninput="showMembers()" placeholder="Suchen…" />
+	</div>
+	<div id="sortSelect" class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
+		<label class="btn btn-secondary active">
+			<input type="radio" autocomplete="off" data-sort="alphabetical" /> Alphabetisch
+		</label>
+		<label class="btn btn-secondary">
+			<input type="radio" autocomplete="off" data-sort="region" /> München/Landkreis
+		</label>
+	</div>
+	<div class="mx-sm-3 mb-2">
+		<a href="TODO">Als csv herunterladen</a>
+	</div>
+</div>
+
+<table class="table">
+	<thead class="thead-light">
+		<tr>
+			<th scope="col">Anwe&shy;send</th>
+			<th scope="col">Be&shy;zahlt</th>
+			<th scope="col">Name</th>
+			<th scope="col"><!-- Geschlecht --></th>
+			<th scope="col">Geburtsdatum</th>
+			<th scope="col">Schwim&shy;mer</th>
+			<th scope="col">Vege&shy;tarier</th>
+			<th scope="col">Tetanus-Impfung</th>
+			<th scope="col">Eltern</th>
+			<th scope="col">E-Mail</th>
+			<th scope="col">Handy</th>
+			<th scope="col">Adresse</th>
+			<th scope="col">Ort</th>
+			<th scope="col">PLZ</th>
+			<th scope="col">Besonderheiten</th>
+			<th scope="col">Anmeldedatum</th>
+			<th scope="col"><!-- löschen --></th>
+		</tr>
+	</thead>
+	<tbody id="memberTableBody">
+	</tbody>
+</table>
+
+<h3>Geburtstagskinder</h3>
+
+<table class="table">
+	<thead class="thead-light">
+		<tr>
+			<th scope="col">Name</th>
+			<th scope="col"><!-- Geschlecht --></th>
+			<th scope="col">Geburtsdatum</th>
+		</tr>
+	</thead>
+	<tbody id="birthdayTableBody">
+	</tbody>
+</table>

@@ -626,8 +626,12 @@ async fn main() -> Result<()> {
 			.service(web::scope("/admin")
 				.wrap(HasRolePredicate::new(auth::Roles::Admin))
 				.service(admin::render_admin)
+				.service(admin::render_members)
+				.service(admin::download_members_json)
 				.service(admin::download_members_csv)
 				.service(admin::download_betreuer_csv)
+				.service(admin::remove_member)
+				.service(admin::edit_member)
 				.default_service(web::to(not_found_handler))
 			)
 			.service(web::resource("/admin").route(web::get().to(||

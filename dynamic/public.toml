@@ -17,6 +17,13 @@ description = "Administration des Zeltlagers"
 role = "Admin"
 
 [[sites]]
+name = "admin/teilnehmer"
+file_name = "Teilnehmer.html"
+title = "Teilnehmer"
+description = "Administration des Zeltlagers – Teilnehmer"
+role = "Admin"
+
+[[sites]]
 name = "erwischt/"
 file_name = "Erwischt.html"
 title = "Erwischt"

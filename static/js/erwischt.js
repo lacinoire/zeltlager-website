@@ -141,7 +141,6 @@ async function loadGames() {
 		alert("Fehler: Spiele konnten nicht geladen werden (unlesbar)");
 		return;
 	}
-	console.log("Loaded games");
 
 	// Update tabs
 	$(".gameTab").remove();
@@ -208,7 +207,6 @@ async function loadGame(id) {
 
 /// Show the filtered members
 function showMembers() {
-	console.log("Refresh list");
 	$("#memberTableBody, #catchedTableBody").children().remove();
 	const filter = $("#memberFilter").val().toLowerCase();
 
@@ -293,7 +291,6 @@ function showHistory() {
 			var item = document.createElement("li");
 			var text = document.createElement("span");
 			if (a.catcher !== null) {
-				console.log(a);
 				text.innerText = `${findMember(a.catcher).name} → ${findMember(a.member).name} `;
 			} else {
 				text.innerText = `${findMember(a.member).name} wiederbelebt `;

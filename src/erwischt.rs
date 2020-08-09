@@ -92,7 +92,6 @@ pub async fn get_game(
 		}
 		Ok(Ok(r)) => {
 			HttpResponse::Ok()
-				.content_type("text/html; charset=utf-8")
 				.json2(&r)
 		}
 	}
@@ -167,7 +166,6 @@ pub async fn create_game(
 		}
 		Ok(Ok(r)) => {
 			HttpResponse::Ok()
-				.content_type("text/html; charset=utf-8")
 				.json(r)
 		}
 	}

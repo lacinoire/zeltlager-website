@@ -74,6 +74,8 @@ table! {
         besonderheiten -> Text,
         agb -> Bool,
         anmeldedatum -> Timestamptz,
+        bezahlt -> Bool,
+        anwesend -> Bool,
     }
 }
 

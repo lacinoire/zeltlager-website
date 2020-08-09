@@ -69,6 +69,30 @@ pub struct Teilnehmer {
 	pub agb: bool,
 }
 
+#[derive(Clone, Debug, Serialize, Queryable)]
+pub struct FullTeilnehmer {
+	pub id: i32,
+	pub vorname: String,
+	pub nachname: String,
+	pub geburtsdatum: chrono::NaiveDate,
+	pub geschlecht: Gender,
+	pub schwimmer: bool,
+	pub vegetarier: bool,
+	pub tetanus_impfung: bool,
+	pub eltern_name: String,
+	pub eltern_mail: String,
+	pub eltern_handynummer: String,
+	pub strasse: String,
+	pub hausnummer: String,
+	pub ort: String,
+	pub plz: String,
+	pub besonderheiten: String,
+	pub agb: bool,
+	pub anmeldedatum: chrono::NaiveDateTime,
+	pub bezahlt: bool,
+	pub anwesend: bool,
+}
+
 #[derive(Clone, Debug, Insertable, Serialize, Queryable)]
 #[table_name = "betreuer"]
 pub struct Supervisor {
