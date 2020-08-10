@@ -143,6 +143,119 @@ function inMunichLandkreis(plz, ort) {
 	return false;
 }
 
+function createCsv() {
+	var res = "";
+	const data = createData();
+	for (var line of data) {
+		var first = true;
+		for (var field of line) {
+			if (first)
+				first = false;
+			else
+				res += ",";
+			if (field.includes(",") || field.includes("\n") || field.includes('"')) {
+				res += '"' + field.replace('"', '""') + '"';
+			} else {
+				res += field;
+			}
+		}
+		res += "\n";
+	}
+
+	createDownload(res, "teilnehmer.csv", "text/csv");
+}
+
+function createXlsx() {
+	let data = createData(true);
+	for (var i = 1; i < data.length; i++) {
+		let row = data[i];
+		if (row[5] !== "") {
+			row[5] = { t: "d", v: row[5], z: "dd.mm.yyyy" };
+			row[17] = { t: "d", v: row[17], z: "dd.mm.yy hh:mm" };
+		}
+	}
+	let sheet = XLSX.utils.aoa_to_sheet(data);
+	sheet["!cols"] = Array(18).fill({});
+	sheet["!cols"][5] = { wch: 10};
+	sheet["!cols"][17] = { wch: 14};
+	const workbook = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(workbook, sheet, "Teilnehmer");
+	XLSX.writeFile(workbook, 'teilnehmer.xlsx');
+}
+
+function createDownload(content, name, type) {
+	var blob = new Blob([content], { type: type });
+	var link = window.document.createElement("a");
+	link.href = window.URL.createObjectURL(blob);
+	link.download = name;
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+}
+
+function boolToStr(b) {
+	return b === true ? "ja" : "nein";
+}
+
+function createData(asDate = false) {
+	let members = [];
+	for (var m of allMembers)
+		members.push(m);
+	if (sorting === "alphabetical") {
+		members.sort(nameSortFn);
+	} else if (sorting === "region") {
+		members.sort(regionSortFn);
+	} else {
+		console.error("Unknown sorting type '" + sorting + "'");
+	}
+
+	let data = [["Anwesend", "Bezahlt", "Vorname", "Nachname", "Geschlecht", "Geburtsdatum",
+		"Schwimmer", "Vegetarier", "Tetanus-Impfung", "Eltern", "E-Mail", "Handynummer",
+		"Straße", "Hausnummer", "Ort", "PLZ", "Besonderheiten", "Anmeldedatum"]];
+	var lastRegion = undefined;
+	for (var m of members) {
+		const curRegion = getRegion(m.plz, m.ort);
+		if (sorting === "region" && lastRegion !== undefined && curRegion !== lastRegion) {
+			// Empty row between Munich/Landkreis and Landkreis/rest
+			data.push(Array(data[0].length).fill(""));
+		}
+
+		lastRegion = curRegion;
+		const geburtsdatum = moment.utc(m.geburtsdatum).local();
+		const anmeldedatum = moment.utc(m.anmeldedatum).local();
+		data.push([boolToStr(m.anwesend), boolToStr(m.bezahlt), m.vorname, m.nachname,
+			m.geschlecht === "Male" ? "m" : "w", asDate ? geburtsdatum.toDate() : geburtsdatum.format("DD.MM.YYYY"),
+			boolToStr(m.schwimmer), boolToStr(m.vegetarier), boolToStr(m.tetanus_impfung),
+			m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse, m.hausnummer,
+			m.ort, m.plz, m.besonderheiten, asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
+	}
+
+	return data;
+}
+
+function nameSortFn(a, b) {
+	const vorCmp = a.vorname.localeCompare(b.vorname);
+	if (vorCmp === 0)
+		return a.nachname.localeCompare(b.nachname);
+	return vorCmp;
+}
+
+function regionSortFn(a, b) {
+	const aInMunich = inMunich(a.plz, a.ort);
+	const bInMunich = inMunich(b.plz, b.ort);
+	if (aInMunich != bInMunich) {
+		return aInMunich ? -1 : 1;
+	}
+
+	const aInMunichLandkreis = inMunichLandkreis(a.plz, a.ort);
+	const bInMunichLandkreis = inMunichLandkreis(b.plz, b.ort);
+	if (aInMunichLandkreis != bInMunichLandkreis) {
+		return aInMunichLandkreis ? -1 : 1;
+	}
+
+	return nameSortFn(a, b);
+}
+
 /// Show the filtered members
 function showMembers() {
 	$("#memberTableBody, #birthdayTableBody").children().remove();
@@ -165,33 +278,12 @@ function showMembers() {
 		}
 	}
 
-	const nameSortFn = (a, b) => {
-		const vorCmp = a.vorname.localeCompare(b.vorname);
-		if (vorCmp === 0)
-			return a.nachname.localeCompare(b.nachname);
-		return vorCmp;
-	};
 	if (sorting === "alphabetical") {
 		members.sort(nameSortFn);
 		birthdays.sort(nameSortFn);
 	} else if (sorting === "region") {
-		const sortFn = (a, b) => {
-			const aInMunich = inMunich(a.plz, a.ort);
-			const bInMunich = inMunich(b.plz, b.ort);
-			if (aInMunich != bInMunich) {
-				return aInMunich ? -1 : 1;
-			}
-
-			const aInMunichLandkreis = inMunichLandkreis(a.plz, a.ort);
-			const bInMunichLandkreis = inMunichLandkreis(b.plz, b.ort);
-			if (aInMunichLandkreis != bInMunichLandkreis) {
-				return aInMunichLandkreis ? -1 : 1;
-			}
-
-			return nameSortFn(a, b);
-		};
-		members.sort(sortFn);
-		birthdays.sort(sortFn);
+		members.sort(regionSortFn);
+		birthdays.sort(regionSortFn);
 	} else {
 		console.error("Unknown sorting type '" + sorting + "'");
 	}
