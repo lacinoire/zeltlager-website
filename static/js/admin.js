@@ -1,4 +1,5 @@
 var allMembers;
+var allSupervisors;
 var sorting = ["alphabetical", "region"].includes(localStorage.adminMemberSorting) ?
 	localStorage.adminMemberSorting : "alphabetical";
 
@@ -24,6 +25,30 @@ async function loadMembers() {
 	}
 
 	showMembers();
+}
+
+async function loadSupervisors() {
+	var response;
+	try {
+		response = await fetch("/admin/betreuer.json");
+		if (!response.ok) {
+			alert("Fehler: Betreuer konnten nicht geladen werden (Server-Fehler)");
+			return;
+		}
+	} catch(e) {
+		console.error("Failed to fetch supervisor", e);
+		alert("Fehler: Betreuer konnten nicht geladen werden (Server nicht erreichbar)");
+		return;
+	}
+	try {
+		allSupervisors = await response.json();
+	} catch(e) {
+		console.error("Failed to parse supervisor json", e);
+		alert("Fehler: Betreuer konnten nicht geladen werden (unlesbar)");
+		return;
+	}
+
+	showSupervisors();
 }
 
 async function removeMember(id) {
@@ -94,6 +119,30 @@ async function editMember(data) {
 	}
 }
 
+async function editSupervisor(data) {
+	var response;
+	try {
+		response = await fetch("/admin/betreuer/edit", {
+			method: "POST",
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(data),
+		});
+		if (!response.ok) {
+			alert("Fehler: Betreuer konnte nicht bearbeitet werden (Server-Fehler)");
+			showSupervisors(); // Refresh list with unedited properties
+			return;
+		}
+	} catch(e) {
+		console.error("Failed to edit supervisor", e);
+		alert("Fehler: Betreuer konnte nicht bearbeitet werden");
+		showSupervisors();
+		return;
+	}
+	loadSupervisors();
+}
+
 function getRegion(plz, ort) {
 	if (inMunich(plz, ort))
 		return "München";
@@ -153,9 +202,8 @@ function inMunichLandkreis(plz, ort) {
 	return false;
 }
 
-function createCsv() {
+function createCsv(data, member) {
 	var res = "";
-	const data = createData();
 	for (var line of data) {
 		var first = true;
 		for (var field of line) {
@@ -163,34 +211,56 @@ function createCsv() {
 				first = false;
 			else
 				res += ",";
-			if (field.includes(",") || field.includes("\n") || field.includes('"')) {
-				res += '"' + field.replace('"', '""') + '"';
-			} else {
-				res += field;
+			if (field !== null) {
+				if (field.includes(",") || field.includes("\n") || field.includes('"')) {
+					res += '"' + field.replace('"', '""') + '"';
+				} else {
+					res += field;
+				}
 			}
 		}
 		res += "\n";
 	}
 
-	createDownload(res, "teilnehmer.csv", "text/csv");
+	createDownload(res, member ? "teilnehmer.csv" : "betreuer.csv", "text/csv");
 }
 
-function createXlsx() {
-	let data = createData(true);
-	for (var i = 1; i < data.length; i++) {
-		let row = data[i];
-		if (row[5] !== "") {
-			row[5] = { t: "d", v: row[5], z: "dd.mm.yyyy" };
-			row[17] = { t: "d", v: row[17], z: "dd.mm.yy hh:mm" };
+function createXlsx(data, member) {
+	if (member) {
+		for (var i = 1; i < data.length; i++) {
+			let row = data[i];
+			if (row[5] !== "") {
+				row[5] = { t: "d", v: row[5], z: "dd.mm.yyyy" };
+				row[17] = { t: "d", v: row[17], z: "dd.mm.yy hh:mm" };
+			}
+		}
+	} else {
+		for (var i = 1; i < data.length; i++) {
+			let row = data[i];
+			if (row[3] !== "")
+				row[3] = { t: "d", v: row[3], z: "dd.mm.yyyy" };
+			if (row[11] !== "" && row[11])
+				row[11] = { t: "d", v: row[11], z: "dd.mm.yyyy" };
+			if (row[12] !== "" && row[12])
+				row[12] = { t: "d", v: row[12], z: "dd.mm.yyyy" };
+			if (row[14] !== "")
+				row[14] = { t: "d", v: row[14], z: "dd.mm.yy hh:mm" };
 		}
 	}
 	let sheet = XLSX.utils.aoa_to_sheet(data);
 	sheet["!cols"] = Array(18).fill({});
-	sheet["!cols"][5] = { wch: 10};
-	sheet["!cols"][17] = { wch: 14};
+	if (member) {
+		sheet["!cols"][5] = { wch: 10 };
+		sheet["!cols"][17] = { wch: 14 };
+	} else {
+		sheet["!cols"][3] = { wch: 10 };
+		sheet["!cols"][11] = { wch: 10 };
+		sheet["!cols"][12] = { wch: 10 };
+		sheet["!cols"][14] = { wch: 14 };
+	}
 	const workbook = XLSX.utils.book_new();
-	XLSX.utils.book_append_sheet(workbook, sheet, "Teilnehmer");
-	XLSX.writeFile(workbook, 'teilnehmer.xlsx');
+	XLSX.utils.book_append_sheet(workbook, sheet, member ? "Teilnehmer" : "Betreuer");
+	XLSX.writeFile(workbook, member ? "teilnehmer.xlsx" : "betreuer.xlsx");
 }
 
 function createDownload(content, name, type) {
@@ -207,7 +277,7 @@ function boolToStr(b) {
 	return b === true ? "ja" : "nein";
 }
 
-function createData(asDate = false) {
+function createMemberData(asDate = false) {
 	let members = [];
 	for (var m of allMembers)
 		members.push(m);
@@ -238,6 +308,33 @@ function createData(asDate = false) {
 			boolToStr(m.schwimmer), boolToStr(m.vegetarier), boolToStr(m.tetanus_impfung),
 			m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse, m.hausnummer,
 			m.ort, m.plz, m.besonderheiten, asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
+	}
+
+	return data;
+}
+
+function createSupervisorData(asDate = false) {
+	let members = [];
+	for (var m of allSupervisors)
+		members.push(m);
+	members.sort(nameSortFn);
+
+	let data = [["Vorname", "Nachname", "Geschlecht", "Geburtsdatum", "JuLeiCa",
+		"E-Mail", "Handynummer", "Straße", "Hausnummer", "Ort", "PLZ",
+		"Führungszeugnis Ausstellung", "Führungszeugnis Eingesehen", "Besonderheiten",
+		"Anmeldedatum"]];
+	for (var m of members) {
+		const geburtsdatum = moment.utc(m.geburtsdatum).local();
+		const anmeldedatum = moment.utc(m.anmeldedatum).local();
+		let fuehrungszeugnis_ausstellung = moment.utc(m.fuehrungszeugnis_auststellung).local();
+		let fuehrungszeugnis_eingesehen = moment.utc(m.fuehrungszeugnis_eingesehen).local();
+		fuehrungszeugnis_ausstellung = m.fuehrungszeugnis_auststellung ? (asDate ? fuehrungszeugnis_ausstellung.toDate() : fuehrungszeugnis_ausstellung.format("DD.MM.YYYY")) : m.fuehrungszeugnis_auststellung;
+		fuehrungszeugnis_eingesehen = m.fuehrungszeugnis_eingesehen ? (asDate ? fuehrungszeugnis_eingesehen.toDate() : fuehrungszeugnis_eingesehen.format("DD.MM.YYYY")) : m.fuehrungszeugnis_eingesehen;
+		data.push([m.vorname, m.nachname, m.geschlecht === "Male" ? "m" : "w",
+			asDate ? geburtsdatum.toDate() : geburtsdatum.format("DD.MM.YYYY"),
+			m.juleica_nummer, m.mail, m.handynummer, m.strasse, m.hausnummer,
+			m.ort, m.plz, fuehrungszeugnis_ausstellung, fuehrungszeugnis_eingesehen,
+			m.besonderheiten, asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
 	}
 
 	return data;
@@ -358,45 +455,18 @@ function showMembers() {
 		cell.innerText = moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY");
 		row.appendChild(cell);
 
-		cell = document.createElement("td");
-		cell.innerHTML = '<input type="checkbox"' + (m.schwimmer === true ? ' checked' : '') + ' disabled>';
-		row.appendChild(cell);
+		for (let c of [m.schwimmer, m.vegetarier, m.tetanus_impfung]) {
+			cell = document.createElement("td");
+			cell.innerHTML = '<input type="checkbox"' + (c ? " checked" : "") + ' disabled>';
+			row.appendChild(cell);
+		}
 
-		cell = document.createElement("td");
-		cell.innerHTML = '<input type="checkbox"' + (m.vegetarier === true ? ' checked' : '') + ' disabled>';
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerHTML = '<input type="checkbox"' + (m.tetanus_impfung === true ? ' checked' : '') + ' disabled>';
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.eltern_name;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.eltern_mail;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.eltern_handynummer;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.strasse + " " + m.hausnummer;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.ort;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.plz;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.besonderheiten;
-		row.appendChild(cell);
+		for (let c of [m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse + " " + m.hausnummer,
+			m.ort, m.plz, m.besonderheiten]) {
+			cell = document.createElement("td");
+			cell.innerText = c;
+			row.appendChild(cell);
+		}
 
 		cell = document.createElement("td");
 		cell.innerText = moment.utc(m.anmeldedatum).local().format("DD.MM.YY HH:mm");
@@ -434,14 +504,164 @@ function showMembers() {
 	}
 }
 
-window.addEventListener('load', function() {
-	$("#sortSelect :input").change(function() {
-		sorting = this.dataset.sort;
-		localStorage.adminMemberSorting = sorting;
-		showMembers();
-	});
-	if (sorting !== "alphabetical") {
-		$("#sortSelect label").toggleClass('active');
+/// Show the filtered supervisors
+function showSupervisors() {
+	$("#supervisorTableBody").children().remove();
+	const filter = $("#supervisorFilter").val().toLowerCase();
+
+	var members = [];
+
+	for (var m of allSupervisors) {
+		if (filter.length === 0 || m.vorname.toLowerCase().includes(filter) || m.nachname.toLowerCase().includes(filter)) {
+			members.push(m);
+		}
 	}
-	loadMembers();
+
+	members.sort(nameSortFn);
+
+	var list = document.getElementById("supervisorTableBody");
+	for (var m of members) {
+		const row = document.createElement("tr");
+		let cell;
+		const id = m.id;
+		const juleica_nummer = m.juleica_nummer;
+		const fuehrungszeugnis_ausstellung = m.fuehrungszeugnis_auststellung;
+		const fuehrungszeugnis_eingesehen = m.fuehrungszeugnis_eingesehen;
+
+		cell = document.createElement("td");
+		cell.innerText = m.vorname + " " + m.nachname;
+		row.appendChild(cell);
+
+		cell = document.createElement("td");
+		cell.innerText = m.geschlecht === "Male" ? "m" : "w";
+		row.appendChild(cell);
+
+		cell = document.createElement("td");
+		cell.innerText = moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY");
+		row.appendChild(cell);
+
+		let juleica_cell = document.createElement("td");
+		juleica_cell.innerText = m.juleica_nummer;
+		let juleica_nummer_editing = false;
+		juleica_cell.onclick = (_event) => {
+			if (!juleica_nummer_editing) {
+				juleica_nummer_editing = true;
+				juleica_cell.innerText = "";
+				const form = document.createElement("form");
+				const input = document.createElement("input");
+				input.value = juleica_nummer;
+				form.appendChild(input);
+				const button = document.createElement("input");
+				button.type = "submit";
+				button.value = "💾";
+				form.appendChild(button);
+				form.onsubmit = (e) => {
+					e.preventDefault();
+					editSupervisor({
+						supervisor: id,
+						juleica_nummer: input.value,
+						fuehrungszeugnis_ausstellung: fuehrungszeugnis_ausstellung,
+						fuehrungszeugnis_eingesehen: fuehrungszeugnis_eingesehen,
+					})
+				};
+				juleica_cell.appendChild(form);
+			}
+		};
+		row.appendChild(juleica_cell);
+
+		for (var c of [m.mail, m.handynummer, m.strasse + " " + m.hausnummer, m.ort, m.plz]) {
+			cell = document.createElement("td");
+			cell.innerText = c;
+			row.appendChild(cell);
+		}
+
+		let fuehrungszeugnis_ausstellung_cell = document.createElement("td");
+		if (m.fuehrungszeugnis_auststellung)
+			fuehrungszeugnis_ausstellung_cell.innerText = moment.utc(m.fuehrungszeugnis_auststellung).format("DD.MM.YYYY");
+		let fuehrungszeugnis_ausstellung_editing = false;
+		fuehrungszeugnis_ausstellung_cell.onclick = (_event) => {
+			if (!fuehrungszeugnis_ausstellung_editing) {
+				fuehrungszeugnis_ausstellung_editing = true;
+				fuehrungszeugnis_ausstellung_cell.innerText = "";
+				const form = document.createElement("form");
+				const input = document.createElement("input");
+				if (fuehrungszeugnis_ausstellung)
+					input.value = moment.utc(fuehrungszeugnis_ausstellung).format("DD.MM.YYYY");
+				form.appendChild(input);
+				const button = document.createElement("input");
+				button.type = "submit";
+				button.value = "💾";
+				form.appendChild(button);
+				form.onsubmit = (e) => {
+					e.preventDefault();
+					editSupervisor({
+						supervisor: id,
+						juleica_nummer: juleica_nummer,
+						fuehrungszeugnis_ausstellung: input.value.length > 0 ? moment(input.value, "DD.MM.YYYY").format("YYYY-MM-DD") : null,
+						fuehrungszeugnis_eingesehen: fuehrungszeugnis_eingesehen,
+					})
+				};
+				fuehrungszeugnis_ausstellung_cell.appendChild(form);
+			}
+		};
+		row.appendChild(fuehrungszeugnis_ausstellung_cell);
+
+		let fuehrungszeugnis_eingesehen_cell = document.createElement("td");
+		if (m.fuehrungszeugnis_eingesehen)
+			fuehrungszeugnis_eingesehen_cell.innerText = moment.utc(m.fuehrungszeugnis_eingesehen).format("DD.MM.YYYY");
+		let fuehrungszeugnis_eingesehen_editing = false;
+		fuehrungszeugnis_eingesehen_cell.onclick = (_event) => {
+			if (!fuehrungszeugnis_eingesehen_editing) {
+				fuehrungszeugnis_eingesehen_editing = true;
+				fuehrungszeugnis_eingesehen_cell.innerText = "";
+				const form = document.createElement("form");
+				const input = document.createElement("input");
+				if (fuehrungszeugnis_eingesehen)
+					input.value = moment.utc(fuehrungszeugnis_eingesehen).format("DD.MM.YYYY");
+				form.appendChild(input);
+				const button = document.createElement("input");
+				button.type = "submit";
+				button.value = "💾";
+				form.appendChild(button);
+				form.onsubmit = (e) => {
+					e.preventDefault();
+					editSupervisor({
+						supervisor: id,
+						juleica_nummer: juleica_nummer,
+						fuehrungszeugnis_ausstellung: fuehrungszeugnis_ausstellung,
+						fuehrungszeugnis_eingesehen: input.value.length > 0 ? moment(input.value, "DD.MM.YYYY").format("YYYY-MM-DD") : null,
+					})
+				};
+				fuehrungszeugnis_eingesehen_cell.appendChild(form);
+			}
+		};
+		row.appendChild(fuehrungszeugnis_eingesehen_cell);
+
+		cell = document.createElement("td");
+		cell.innerText = m.besonderheiten;
+		row.appendChild(cell);
+
+		cell = document.createElement("td");
+		cell.innerText = moment.utc(m.anmeldedatum).local().format("DD.MM.YY HH:mm");
+		row.appendChild(cell);
+
+		list.appendChild(row);
+	}
+}
+
+window.addEventListener('load', function() {
+	var isMembers = document.getElementById("memberTableBody") !== null;
+	if (isMembers) {
+		$("#sortSelect :input").change(function() {
+			sorting = this.dataset.sort;
+			localStorage.adminMemberSorting = sorting;
+			showMembers();
+		});
+		if (sorting !== "alphabetical") {
+			$("#sortSelect label").toggleClass('active');
+		}
+		loadMembers();
+	} else {
+		loadSupervisors();
+	}
 });

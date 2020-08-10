@@ -10,17 +10,17 @@ description = "Startseite der Zeltlagerwebseite"
 navbar_visible = false
 
 [[sites]]
-name = "admin/"
-file_name = "Admin.md"
-title = "Admin"
-description = "Administration des Zeltlagers"
-role = "Admin"
-
-[[sites]]
 name = "admin/teilnehmer"
 file_name = "Teilnehmer.html"
 title = "Teilnehmer"
 description = "Administration des Zeltlagers – Teilnehmer"
+role = "Admin"
+
+[[sites]]
+name = "admin/betreuer"
+file_name = "Betreuer.html"
+title = "Betreuer"
+description = "Administration des Zeltlagers – Betreuer"
 role = "Admin"
 
 [[sites]]

@@ -1,0 +1,35 @@
+<script src="/static/js/moment.min.js"></script>
+<script src="/static/js/xlsx.full.min.js"></script>
+<script src="/static/js/admin.js"></script>
+
+<div class="form-inline">
+	<div class="form-group mx-sm-3 mb-2">
+		<input class="form-control" id="supervisorFilter" type="text" autofocus="autofocus" oninput="showSupervisors()" placeholder="Suchen…" />
+	</div>
+	<div class="mx-sm-3 mb-2">
+		<a href="javascript:createCsv(createSupervisorData(), false)">.csv</a>
+		<a href="javascript:createXlsx(createSupervisorData(true), false)">.xlsx</a>
+	</div>
+</div>
+
+<table class="table">
+	<thead class="thead-light">
+		<tr>
+			<th scope="col">Name</th>
+			<th scope="col"><!-- Geschlecht --></th>
+			<th scope="col">Geburtsdatum</th>
+			<th scope="col">JuLeiCa</th>
+			<th scope="col">E-Mail</th>
+			<th scope="col">Handy</th>
+			<th scope="col">Adresse</th>
+			<th scope="col">Ort</th>
+			<th scope="col">PLZ</th>
+			<th scope="col">Führungszeugnis Ausstellung</th>
+			<th scope="col">Führungszeugnis Eingesehen</th>
+			<th scope="col">Besonderheiten</th>
+			<th scope="col">Anmeldedatum</th>
+		</tr>
+	</thead>
+	<tbody id="supervisorTableBody">
+	</tbody>
+</table>

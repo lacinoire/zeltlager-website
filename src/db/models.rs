@@ -114,6 +114,28 @@ pub struct Supervisor {
 	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 }
 
+#[derive(Clone, Debug, Serialize, Queryable)]
+pub struct FullSupervisor {
+	pub id: i32,
+	pub vorname: String,
+	pub nachname: String,
+	pub geburtsdatum: chrono::NaiveDate,
+	pub geschlecht: Gender,
+	pub juleica_nummer: Option<String>,
+	pub mail: String,
+	pub handynummer: String,
+	pub strasse: String,
+	pub hausnummer: String,
+	pub ort: String,
+	pub plz: String,
+	pub besonderheiten: String,
+	pub agb: bool,
+	pub selbsterklaerung: bool,
+	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
+	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+	pub anmeldedatum: chrono::NaiveDateTime,
+}
+
 #[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
 #[primary_key(ip_addr)]
 #[table_name = "rate_limiting"]

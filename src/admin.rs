@@ -2,7 +2,6 @@
 
 use actix_identity::Identity;
 use actix_web::*;
-use actix_web::http::header::CONTENT_DISPOSITION;
 use anyhow::bail;
 use diesel::prelude::*;
 use log::{error, warn};
@@ -23,27 +22,12 @@ pub struct EditMemberData {
 	anwesend: bool,
 }
 
-#[get("/")]
-pub async fn render_admin(
-	state: web::Data<State>,
-	id: Identity,
-) -> HttpResponse {
-	let roles = match auth::get_roles(&**state, &id).await {
-		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get roles: {}", e);
-			return crate::error_response(&**state);
-		}
-	};
-	match state.sites["public"].get_site(state.config.clone(), "admin/", roles) {
-		Ok(site) => HttpResponse::Ok()
-			.content_type("text/html; charset=utf-8")
-			.body(format!("{}", site)),
-		Err(e) => {
-			error!("Failed to get site: {}", e);
-			crate::error_response(&**state)
-		}
-	}
+#[derive(Clone, Debug, Deserialize)]
+pub struct EditSupervisorData {
+	supervisor: i32,
+	juleica_nummer: Option<String>,
+	fuehrungszeugnis_ausstellung: Option<chrono::NaiveDate>,
+	fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 }
 
 #[get("/teilnehmer")]
@@ -59,6 +43,29 @@ pub async fn render_members(
 		}
 	};
 	match state.sites["public"].get_site(state.config.clone(), "admin/teilnehmer", roles) {
+		Ok(site) => HttpResponse::Ok()
+			.content_type("text/html; charset=utf-8")
+			.body(format!("{}", site)),
+		Err(e) => {
+			error!("Failed to get site: {}", e);
+			crate::error_response(&**state)
+		}
+	}
+}
+
+#[get("/betreuer")]
+pub async fn render_supervisors(
+	state: web::Data<State>,
+	id: Identity,
+) -> HttpResponse {
+	let roles = match auth::get_roles(&**state, &id).await {
+		Ok(r) => r,
+		Err(e) => {
+			error!("Failed to get roles: {}", e);
+			return crate::error_response(&**state);
+		}
+	};
+	match state.sites["public"].get_site(state.config.clone(), "admin/betreuer", roles) {
 		Ok(site) => HttpResponse::Ok()
 			.content_type("text/html; charset=utf-8")
 			.body(format!("{}", site)),
@@ -125,6 +132,35 @@ pub(crate) async fn edit_member(
 	}
 }
 
+#[post("/betreuer/edit")]
+pub(crate) async fn edit_supervisor(
+	state: web::Data<State>,
+	data: web::Json<EditSupervisorData>,
+) -> HttpResponse {
+	match state.db_addr.send(db::RunOnDbMsg(move |db| {
+		use db::schema::betreuer;
+		use db::schema::betreuer::columns::*;
+
+		diesel::update(betreuer::table.filter(id.eq(data.supervisor)))
+			.set((juleica_nummer.eq(&data.juleica_nummer),
+				fuehrungszeugnis_auststellung.eq(&data.fuehrungszeugnis_ausstellung),
+				fuehrungszeugnis_eingesehen.eq(&data.fuehrungszeugnis_eingesehen)))
+			.execute(&db.connection)?;
+		Ok(())
+	})).await.map_err(|e| e.into()) {
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to edit supervisor: {}", e);
+			HttpResponse::InternalServerError()
+				.body("Failed to edit supervisor")
+		}
+		Ok(Ok(())) => {
+			HttpResponse::Ok()
+				.content_type("text/html; charset=utf-8")
+				.body("Success")
+		}
+	}
+}
+
 /// Return all current members as json.
 #[get("/teilnehmer.json")]
 pub async fn download_members_json(
@@ -142,66 +178,19 @@ pub async fn download_members_json(
 	}
 }
 
-/// Return all current members as csv.
-#[get("/teilnehmer.csv")]
-pub async fn download_members_csv(
+/// Return all current members as json.
+#[get("/betreuer.json")]
+pub async fn download_supervisors_json(
 	state: web::Data<State>,
 ) -> HttpResponse {
-	match state.db_addr.send(db::DownloadMembersMessage).await.map_err(|e| e.into()) {
+	match state.db_addr.send(db::DownloadFullSupervisorsMessage).await.map_err(|e| e.into()) {
 		Ok(Err(error)) | Err(error) => {
 			warn!("Error fetching from database: {}", error);
 			crate::error_response(&**state)
 		}
-		Ok(Ok(members)) => {
-			let mut res = Vec::new();
-			{
-				let mut writer = csv::WriterBuilder::new()
-					.delimiter(b'|')
-					.from_writer(&mut res);
-				for t in members {
-					if let Err(e) = writer.serialize(t) {
-						error!("Failed converting member to csv: {}", e);
-						return HttpResponse::InternalServerError().body("Failed to create csv");
-					}
-				}
-			}
-
+		Ok(Ok(supervisors)) => {
 			HttpResponse::Ok()
-				.content_type("text/csv; charset=utf-8")
-				.header(CONTENT_DISPOSITION, "attachment;filename=teilnehmer.csv")
-				.body(res)
-		}
-	}
-}
-
-/// Return all current members as csv.
-#[get("/betreuer.csv")]
-pub async fn download_betreuer_csv(
-	state: web::Data<State>,
-) -> HttpResponse {
-	match state.db_addr.send(db::DownloadBetreuerMessage).await.map_err(|e| e.into()) {
-		Ok(Err(error)) | Err(error) => {
-			warn!("Error fetching from database: {}", error);
-			crate::error_response(&**state)
-		}
-		Ok(Ok(betreuer)) => {
-			let mut res = Vec::new();
-			{
-				let mut writer = csv::WriterBuilder::new()
-					.delimiter(b'|')
-					.from_writer(&mut res);
-				for t in betreuer {
-					if let Err(e) = writer.serialize(t) {
-						error!("Failed converting supervisor to csv: {}", e);
-						return HttpResponse::InternalServerError().body("Failed to create csv");
-					}
-				}
-			}
-
-			HttpResponse::Ok()
-				.content_type("text/csv; charset=utf-8")
-				.header(CONTENT_DISPOSITION, "attachment;filename=betreuer.csv")
-				.body(res)
+				.json(supervisors)
 		}
 	}
 }

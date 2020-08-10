@@ -65,6 +65,11 @@ impl Message for DownloadFullMembersMessage {
 	type Result = Result<Vec<models::FullTeilnehmer>>;
 }
 
+pub struct DownloadFullSupervisorsMessage;
+impl Message for DownloadFullSupervisorsMessage {
+	type Result = Result<Vec<models::FullSupervisor>>;
+}
+
 pub struct DownloadBetreuerMessage;
 impl Message for DownloadBetreuerMessage {
 	type Result = Result<Vec<models::Supervisor>>;
@@ -316,6 +321,20 @@ impl Handler<DownloadFullMembersMessage> for DbExecutor {
 		use self::schema::teilnehmer;
 
 		Ok(teilnehmer::table.load::<models::FullTeilnehmer>(&self.connection)?)
+	}
+}
+
+impl Handler<DownloadFullSupervisorsMessage> for DbExecutor {
+	type Result = Result<Vec<models::FullSupervisor>>;
+
+	fn handle(
+		&mut self,
+		_: DownloadFullSupervisorsMessage,
+		_: &mut Self::Context,
+	) -> Self::Result {
+		use self::schema::betreuer;
+
+		Ok(betreuer::table.load::<models::FullSupervisor>(&self.connection)?)
 	}
 }
 
