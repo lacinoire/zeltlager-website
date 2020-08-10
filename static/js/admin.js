@@ -75,12 +75,22 @@ async function editMember(data) {
 		});
 		if (!response.ok) {
 			alert("Fehler: Teilnehmer konnte nicht bearbeitet werden (Server-Fehler)");
+			showMembers(); // Refresh list with unedited properties
 			return;
 		}
 	} catch(e) {
 		console.error("Failed to edit member", e);
 		alert("Fehler: Teilnehmer konnte nicht bearbeitet werden");
+		showMembers();
 		return;
+	}
+
+	for (var m of allMembers) {
+		if (m.id === data.member) {
+			m.bezahlt = data.bezahlt;
+			m.anwesend = data.anwesend;
+			break;
+		}
 	}
 }
 
