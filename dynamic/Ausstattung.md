@@ -10,8 +10,9 @@
 ## Teilnehmerzelte
 
 <div class="d-flex flex-wrap align-items-start image-list">
-	<img src="/static/img/ausstattung/ZelteErkheim.jpeg" alt="Zeltplatz in Erkheim" class="responsive-image">
 	<img src="/static/img/ausstattung/ZelteAbends.jpeg" alt="Zeltplatz am Abend" class="responsive-image">
+	<img src="/static/img/ausstattung/ZelteRegen.jpg" alt="Zeltplatz in Erpfting" class="responsive-image">
+	<img src="/static/img/ausstattung/ZelteErkheim.jpeg" alt="Zeltplatz in Erkheim" class="responsive-image">
 </div>
 
 ## Küche
@@ -32,7 +33,7 @@
 </a>
 
 <div class="d-flex flex-wrap align-items-start image-list">
-	<img src="/static/img/team/TeamBrasilien.jpg" alt="Ü-Abend Brasilien" class="responsive-image">
+	<img src="/static/img/team/TeamIndien.jpg" alt="Ü-Abend Indien" class="responsive-image">
 	<img src="/static/img/team/TeamKellner.jpg" alt="ü-Abend England" class="responsive-image">
 </div>
 

@@ -1,6 +1,6 @@
 var allMembers;
 var allSupervisors;
-var sorting = ["alphabetical", "region"].includes(localStorage.adminMemberSorting) ?
+var sorting = ["alphabetical", "region", "payed"].includes(localStorage.adminMemberSorting) ?
 	localStorage.adminMemberSorting : "alphabetical";
 
 async function loadMembers() {
@@ -285,6 +285,8 @@ function createMemberData(asDate = false) {
 		members.sort(nameSortFn);
 	} else if (sorting === "region") {
 		members.sort(regionSortFn);
+	} else if (sorting === "payed") {
+		members.sort(nameSortFn);
 	} else {
 		console.error("Unknown sorting type '" + sorting + "'");
 	}
@@ -391,6 +393,9 @@ function showMembers() {
 	} else if (sorting === "region") {
 		members.sort(regionSortFn);
 		birthdays.sort(regionSortFn);
+	} else if (sorting === "payed") {
+		members.sort(nameSortFn);
+		birthdays.sort(nameSortFn);
 	} else {
 		console.error("Unknown sorting type '" + sorting + "'");
 	}
@@ -657,9 +662,13 @@ window.addEventListener('load', function() {
 			localStorage.adminMemberSorting = sorting;
 			showMembers();
 		});
-		if (sorting !== "alphabetical") {
-			$("#sortSelect label").toggleClass('active');
-		}
+
+		if (sorting !== "alphabetical")
+			$("#sortSelect label [data-sort='alphabetical']").parent().toggleClass('active');
+		if (sorting === "region")
+			$("#sortSelect label [data-sort='region']").parent().toggleClass('active');
+		if (sorting === "payed")
+			$("#sortSelect label [data-sort='payed']").parent().toggleClass('active');
 		loadMembers();
 	} else {
 		loadSupervisors();
