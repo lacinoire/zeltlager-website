@@ -498,9 +498,11 @@ function showMembers() {
 		let list = document.getElementById("memberTableBodyNotPayed");
 		document.getElementById("payedTables").classList.remove("hidden");
 		document.getElementById("memberTable").classList.add("hidden");
+		let count = 0;
 		for (let m of members) {
 			if (m.bezahlt)
 				continue;
+			count++;
 
 			const row = document.createElement("tr");
 			let cell;
@@ -527,11 +529,14 @@ function showMembers() {
 
 			list.appendChild(row);
 		}
+		document.getElementById("countNotPayed").innerText = count;
 
 		list = document.getElementById("memberTableBodyPayed");
+		count = 0;
 		for (let m of members) {
 			if (!m.bezahlt)
 				continue;
+			count++;
 
 			const row = document.createElement("tr");
 			let cell;
@@ -558,6 +563,7 @@ function showMembers() {
 
 			list.appendChild(row);
 		}
+		document.getElementById("countPayed").innerText = count;
 	}
 
 	list = document.getElementById("birthdayTableBody");
