@@ -89,6 +89,19 @@ body {
 	padding: .75rem .75rem;
 }
 
+.hidden {
+	display: none;
+}
+
+#payedTables {
+	display: flex;
+	gap: 2em;
+}
+
+#payedTables table {
+	width: 40%;
+}
+
 /* Lightbox */
 .ekko-lightbox-item {
 	text-align: center;

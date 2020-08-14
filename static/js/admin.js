@@ -1,10 +1,10 @@
-var allMembers;
-var allSupervisors;
-var sorting = ["alphabetical", "region", "payed"].includes(localStorage.adminMemberSorting) ?
+let allMembers;
+let allSupervisors;
+let sorting = ["alphabetical", "region", "payed"].includes(localStorage.adminMemberSorting) ?
 	localStorage.adminMemberSorting : "alphabetical";
 
 async function loadMembers() {
-	var response;
+	let response;
 	try {
 		response = await fetch("/admin/teilnehmer.json");
 		if (!response.ok) {
@@ -28,7 +28,7 @@ async function loadMembers() {
 }
 
 async function loadSupervisors() {
-	var response;
+	let response;
 	try {
 		response = await fetch("/admin/betreuer.json");
 		if (!response.ok) {
@@ -52,8 +52,8 @@ async function loadSupervisors() {
 }
 
 async function removeMember(id) {
-	var member;
-	for (var m of allMembers) {
+	let member;
+	for (let m of allMembers) {
 		if (m.id === id) {
 			member = m;
 			break;
@@ -62,7 +62,7 @@ async function removeMember(id) {
 	if (!window.confirm(`${member.vorname} ${member.nachname} löschen?`))
 		return;
 
-	var response;
+	let response;
 	try {
 		const data = {
 			member: id,
@@ -89,7 +89,7 @@ async function removeMember(id) {
 }
 
 async function editMember(data) {
-	var response;
+	let response;
 	try {
 		response = await fetch("/admin/teilnehmer/edit", {
 			method: "POST",
@@ -110,7 +110,7 @@ async function editMember(data) {
 		return;
 	}
 
-	for (var m of allMembers) {
+	for (let m of allMembers) {
 		if (m.id === data.member) {
 			m.bezahlt = data.bezahlt;
 			m.anwesend = data.anwesend;
@@ -120,7 +120,7 @@ async function editMember(data) {
 }
 
 async function editSupervisor(data) {
-	var response;
+	let response;
 	try {
 		response = await fetch("/admin/betreuer/edit", {
 			method: "POST",
@@ -195,7 +195,7 @@ function inMunichLandkreis(plz, ort) {
 		[85774, 'Unterföhring'],
 	];
 
-	for (var p of places) {
+	for (let p of places) {
 		if (plz == p[0] && ort.toLowerCase().includes(p[1].toLowerCase()))
 			return true;
 	}
@@ -203,10 +203,10 @@ function inMunichLandkreis(plz, ort) {
 }
 
 function createCsv(data, member) {
-	var res = "";
-	for (var line of data) {
-		var first = true;
-		for (var field of line) {
+	let res = "";
+	for (let line of data) {
+		let first = true;
+		for (let field of line) {
 			if (first)
 				first = false;
 			else
@@ -227,7 +227,7 @@ function createCsv(data, member) {
 
 function createXlsx(data, member) {
 	if (member) {
-		for (var i = 1; i < data.length; i++) {
+		for (let i = 1; i < data.length; i++) {
 			let row = data[i];
 			if (row[5] !== "") {
 				row[5] = { t: "d", v: row[5], z: "dd.mm.yyyy" };
@@ -235,7 +235,7 @@ function createXlsx(data, member) {
 			}
 		}
 	} else {
-		for (var i = 1; i < data.length; i++) {
+		for (let i = 1; i < data.length; i++) {
 			let row = data[i];
 			if (row[3] !== "")
 				row[3] = { t: "d", v: row[3], z: "dd.mm.yyyy" };
@@ -264,8 +264,8 @@ function createXlsx(data, member) {
 }
 
 function createDownload(content, name, type) {
-	var blob = new Blob([content], { type: type });
-	var link = window.document.createElement("a");
+	let blob = new Blob([content], { type: type });
+	let link = window.document.createElement("a");
 	link.href = window.URL.createObjectURL(blob);
 	link.download = name;
 	document.body.appendChild(link);
@@ -279,7 +279,7 @@ function boolToStr(b) {
 
 function createMemberData(asDate = false) {
 	let members = [];
-	for (var m of allMembers)
+	for (let m of allMembers)
 		members.push(m);
 	if (sorting === "alphabetical") {
 		members.sort(nameSortFn);
@@ -294,8 +294,8 @@ function createMemberData(asDate = false) {
 	let data = [["Anwesend", "Bezahlt", "Vorname", "Nachname", "Geschlecht", "Geburtsdatum",
 		"Schwimmer", "Vegetarier", "Tetanus-Impfung", "Eltern", "E-Mail", "Handynummer",
 		"Straße", "Hausnummer", "Ort", "PLZ", "Besonderheiten", "Anmeldedatum"]];
-	var lastRegion = undefined;
-	for (var m of members) {
+	let lastRegion = undefined;
+	for (let m of members) {
 		const curRegion = getRegion(m.plz, m.ort);
 		if (sorting === "region" && lastRegion !== undefined && curRegion !== lastRegion) {
 			// Empty row between Munich/Landkreis and Landkreis/rest
@@ -317,7 +317,7 @@ function createMemberData(asDate = false) {
 
 function createSupervisorData(asDate = false) {
 	let members = [];
-	for (var m of allSupervisors)
+	for (let m of allSupervisors)
 		members.push(m);
 	members.sort(nameSortFn);
 
@@ -325,7 +325,7 @@ function createSupervisorData(asDate = false) {
 		"E-Mail", "Handynummer", "Straße", "Hausnummer", "Ort", "PLZ",
 		"Führungszeugnis Ausstellung", "Führungszeugnis Eingesehen", "Besonderheiten",
 		"Anmeldedatum"]];
-	for (var m of members) {
+	for (let m of members) {
 		const geburtsdatum = moment.utc(m.geburtsdatum).local();
 		const anmeldedatum = moment.utc(m.anmeldedatum).local();
 		let fuehrungszeugnis_ausstellung = moment.utc(m.fuehrungszeugnis_auststellung).local();
@@ -365,17 +365,32 @@ function regionSortFn(a, b) {
 	return nameSortFn(a, b);
 }
 
+function payedSortFn(a, b) {
+	if (a.bezahlt != b.bezahlt) {
+		return a.bezahlt ? 1 : -1;
+	}
+
+	return nameSortFn(a, b);
+}
+
+function addTextCell(row, text) {
+	const cell = document.createElement("td");
+	cell.innerText = text;
+	row.appendChild(cell);
+	return cell;
+}
+
 /// Show the filtered members
 function showMembers() {
-	$("#memberTableBody, #birthdayTableBody").children().remove();
+	$("#memberTableBody, #birthdayTableBody, #memberTableBodyNotPayed, #memberTableBodyPayed").children().remove();
 	const filter = $("#memberFilter").val().toLowerCase();
 
-	var members = [];
-	var birthdays = [];
+	let members = [];
+	let birthdays = [];
 
 	const start = moment.utc("1970-07-25").local();
 	const end = moment.utc("1970-08-20").local();
-	for (var m of allMembers) {
+	for (let m of allMembers) {
 		if (filter.length === 0 || m.vorname.toLowerCase().includes(filter) || m.nachname.toLowerCase().includes(filter)) {
 			members.push(m);
 			const birthday = moment.utc(m.geburtsdatum).local();
@@ -394,116 +409,164 @@ function showMembers() {
 		members.sort(regionSortFn);
 		birthdays.sort(regionSortFn);
 	} else if (sorting === "payed") {
-		members.sort(nameSortFn);
+		members.sort(payedSortFn);
 		birthdays.sort(nameSortFn);
 	} else {
 		console.error("Unknown sorting type '" + sorting + "'");
 	}
 
-	var list = document.getElementById("memberTableBody");
-	var lastRegion = undefined;
-	for (var m of members) {
-		const row = document.createElement("tr");
-		var cell;
-		const id = m.id;
-		const bezahlt = m.bezahlt;
-		const anwesend = m.anwesend;
+	if (sorting !== "payed") {
+		let list = document.getElementById("memberTableBody");
+		document.getElementById("payedTables").classList.add("hidden");
+		document.getElementById("memberTable").classList.remove("hidden");
+		let lastRegion = undefined;
+		for (let m of members) {
+			const row = document.createElement("tr");
+			let cell;
+			const id = m.id;
+			const bezahlt = m.bezahlt;
+			const anwesend = m.anwesend;
 
-		const curRegion = getRegion(m.plz, m.ort);
-		if (sorting === "region" && lastRegion !== undefined && curRegion !== lastRegion) {
-			// Empty row between Munich/Landkreis and Landkreis/rest
-			const emptyRow = document.createElement("tr");
-			for (var i = 0; i < 17; i++)
-				emptyRow.appendChild(document.createElement("td"));
-			list.appendChild(emptyRow);
-		}
+			const curRegion = getRegion(m.plz, m.ort);
+			if (sorting === "region" && lastRegion !== undefined && curRegion !== lastRegion) {
+				// Empty row between Munich/Landkreis and Landkreis/rest
+				const emptyRow = document.createElement("tr");
+				for (let i = 0; i < 17; i++)
+					emptyRow.appendChild(document.createElement("td"));
+				list.appendChild(emptyRow);
+			}
 
-		lastRegion = curRegion;
+			lastRegion = curRegion;
 
-		cell = document.createElement("td");
-		var checkbox = document.createElement("input");
-		checkbox.type = "checkbox";
-		checkbox.checked = m.anwesend === true;
-		checkbox.oninput = function() {
-			editMember({
-				member: id,
-				bezahlt: bezahlt,
-				anwesend: !anwesend,
-			})
-		};
-		cell.appendChild(checkbox);
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		var checkbox = document.createElement("input");
-		checkbox.type = "checkbox";
-		checkbox.checked = m.bezahlt === true;
-		checkbox.oninput = function() {
-			editMember({
-				member: id,
-				bezahlt: !bezahlt,
-				anwesend: anwesend,
-			})
-		};
-		cell.appendChild(checkbox);
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.vorname + " " + m.nachname;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.geschlecht === "Male" ? "m" : "w";
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY");
-		row.appendChild(cell);
-
-		for (let c of [m.schwimmer, m.vegetarier, m.tetanus_impfung]) {
 			cell = document.createElement("td");
-			cell.innerHTML = '<input type="checkbox"' + (c ? " checked" : "") + ' disabled>';
+			let checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.checked = m.anwesend === true;
+			checkbox.oninput = function() {
+				editMember({
+					member: id,
+					bezahlt: bezahlt,
+					anwesend: !anwesend,
+				});
+			};
+			cell.appendChild(checkbox);
 			row.appendChild(cell);
-		}
 
-		for (let c of [m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse + " " + m.hausnummer,
-			m.ort, m.plz, m.besonderheiten]) {
 			cell = document.createElement("td");
-			cell.innerText = c;
+			checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.checked = m.bezahlt === true;
+			checkbox.oninput = function() {
+				editMember({
+					member: id,
+					bezahlt: !bezahlt,
+					anwesend: anwesend,
+				});
+			};
+			cell.appendChild(checkbox);
 			row.appendChild(cell);
+
+			addTextCell(row, m.vorname + " " + m.nachname);
+			addTextCell(row, m.geschlecht === "Male" ? "m" : "w");
+			addTextCell(row, moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY"));
+
+			for (let c of [m.schwimmer, m.vegetarier, m.tetanus_impfung]) {
+				cell = document.createElement("td");
+				cell.innerHTML = '<input type="checkbox"' + (c ? " checked" : "") + ' disabled>';
+				row.appendChild(cell);
+			}
+
+			for (let c of [m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse + " " + m.hausnummer,
+				m.ort, m.plz, m.besonderheiten]) {
+				addTextCell(row, c);
+			}
+
+			addTextCell(row, moment.utc(m.anmeldedatum).local().format("DD.MM.YY HH:mm"));
+
+			cell = document.createElement("td");
+			let link = document.createElement("a");
+			link.href = `javascript:removeMember(${m.id})`;
+			link.innerText = "löschen";
+			cell.style.textAlign = "right";
+			cell.appendChild(link);
+			row.appendChild(cell);
+
+			list.appendChild(row);
+		}
+	} else {
+		// Payed
+		let list = document.getElementById("memberTableBodyNotPayed");
+		document.getElementById("payedTables").classList.remove("hidden");
+		document.getElementById("memberTable").classList.add("hidden");
+		for (let m of members) {
+			if (m.bezahlt)
+				continue;
+
+			const row = document.createElement("tr");
+			let cell;
+			const id = m.id;
+			const bezahlt = m.bezahlt;
+			const anwesend = m.anwesend;
+
+			cell = document.createElement("td");
+			let checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.checked = m.bezahlt === true;
+			checkbox.oninput = async function() {
+				await editMember({
+					member: id,
+					bezahlt: !bezahlt,
+					anwesend: anwesend,
+				});
+				showMembers();
+			};
+			cell.appendChild(checkbox);
+			row.appendChild(cell);
+
+			addTextCell(row, m.vorname + " " + m.nachname);
+
+			list.appendChild(row);
 		}
 
-		cell = document.createElement("td");
-		cell.innerText = moment.utc(m.anmeldedatum).local().format("DD.MM.YY HH:mm");
-		row.appendChild(cell);
+		list = document.getElementById("memberTableBodyPayed");
+		for (let m of members) {
+			if (!m.bezahlt)
+				continue;
 
-		cell = document.createElement("td");
-		var link = document.createElement("a");
-		link.href = `javascript:removeMember(${m.id})`;
-		link.innerText = "löschen";
-		cell.style.textAlign = "right";
-		cell.appendChild(link);
-		row.appendChild(cell);
+			const row = document.createElement("tr");
+			let cell;
+			const id = m.id;
+			const bezahlt = m.bezahlt;
+			const anwesend = m.anwesend;
 
-		list.appendChild(row);
+			cell = document.createElement("td");
+			let checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.checked = m.bezahlt === true;
+			checkbox.oninput = async function() {
+				await editMember({
+					member: id,
+					bezahlt: !bezahlt,
+					anwesend: anwesend,
+				});
+				showMembers();
+			};
+			cell.appendChild(checkbox);
+			row.appendChild(cell);
+
+			addTextCell(row, m.vorname + " " + m.nachname);
+
+			list.appendChild(row);
+		}
 	}
 
-	var list = document.getElementById("birthdayTableBody");
-	for (var m of birthdays) {
+	list = document.getElementById("birthdayTableBody");
+	for (let m of birthdays) {
 		const row = document.createElement("tr");
-		var cell;
 
-		cell = document.createElement("td");
-		cell.innerText = m.vorname + " " + m.nachname;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.geschlecht === "Male" ? "m" : "w";
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY");
-		row.appendChild(cell);
+		addTextCell(row, m.vorname + " " + m.nachname);
+		addTextCell(row, m.geschlecht === "Male" ? "m" : "w");
+		addTextCell(row, moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY"));
 
 		list.appendChild(row);
 	}
@@ -514,9 +577,9 @@ function showSupervisors() {
 	$("#supervisorTableBody").children().remove();
 	const filter = $("#supervisorFilter").val().toLowerCase();
 
-	var members = [];
+	let members = [];
 
-	for (var m of allSupervisors) {
+	for (let m of allSupervisors) {
 		if (filter.length === 0 || m.vorname.toLowerCase().includes(filter) || m.nachname.toLowerCase().includes(filter)) {
 			members.push(m);
 		}
@@ -524,26 +587,17 @@ function showSupervisors() {
 
 	members.sort(nameSortFn);
 
-	var list = document.getElementById("supervisorTableBody");
-	for (var m of members) {
+	let list = document.getElementById("supervisorTableBody");
+	for (let m of members) {
 		const row = document.createElement("tr");
-		let cell;
 		const id = m.id;
 		const juleica_nummer = m.juleica_nummer;
 		const fuehrungszeugnis_ausstellung = m.fuehrungszeugnis_auststellung;
 		const fuehrungszeugnis_eingesehen = m.fuehrungszeugnis_eingesehen;
 
-		cell = document.createElement("td");
-		cell.innerText = m.vorname + " " + m.nachname;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = m.geschlecht === "Male" ? "m" : "w";
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY");
-		row.appendChild(cell);
+		addTextCell(row, m.vorname + " " + m.nachname);
+		addTextCell(row, m.geschlecht === "Male" ? "m" : "w");
+		addTextCell(row, moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY"));
 
 		let juleica_cell = document.createElement("td");
 		juleica_cell.innerText = m.juleica_nummer;
@@ -567,17 +621,15 @@ function showSupervisors() {
 						juleica_nummer: input.value,
 						fuehrungszeugnis_ausstellung: fuehrungszeugnis_ausstellung,
 						fuehrungszeugnis_eingesehen: fuehrungszeugnis_eingesehen,
-					})
+					});
 				};
 				juleica_cell.appendChild(form);
 			}
 		};
 		row.appendChild(juleica_cell);
 
-		for (var c of [m.mail, m.handynummer, m.strasse + " " + m.hausnummer, m.ort, m.plz]) {
-			cell = document.createElement("td");
-			cell.innerText = c;
-			row.appendChild(cell);
+		for (let c of [m.mail, m.handynummer, m.strasse + " " + m.hausnummer, m.ort, m.plz]) {
+			addTextCell(row, c);
 		}
 
 		let fuehrungszeugnis_ausstellung_cell = document.createElement("td");
@@ -604,7 +656,7 @@ function showSupervisors() {
 						juleica_nummer: juleica_nummer,
 						fuehrungszeugnis_ausstellung: input.value.length > 0 ? moment(input.value, "DD.MM.YYYY").format("YYYY-MM-DD") : null,
 						fuehrungszeugnis_eingesehen: fuehrungszeugnis_eingesehen,
-					})
+					});
 				};
 				fuehrungszeugnis_ausstellung_cell.appendChild(form);
 			}
@@ -635,27 +687,22 @@ function showSupervisors() {
 						juleica_nummer: juleica_nummer,
 						fuehrungszeugnis_ausstellung: fuehrungszeugnis_ausstellung,
 						fuehrungszeugnis_eingesehen: input.value.length > 0 ? moment(input.value, "DD.MM.YYYY").format("YYYY-MM-DD") : null,
-					})
+					});
 				};
 				fuehrungszeugnis_eingesehen_cell.appendChild(form);
 			}
 		};
 		row.appendChild(fuehrungszeugnis_eingesehen_cell);
 
-		cell = document.createElement("td");
-		cell.innerText = m.besonderheiten;
-		row.appendChild(cell);
-
-		cell = document.createElement("td");
-		cell.innerText = moment.utc(m.anmeldedatum).local().format("DD.MM.YY HH:mm");
-		row.appendChild(cell);
+		addTextCell(row, m.besonderheiten);
+		addTextCell(row, moment.utc(m.anmeldedatum).local().format("DD.MM.YY HH:mm"));
 
 		list.appendChild(row);
 	}
 }
 
 window.addEventListener('load', function() {
-	var isMembers = document.getElementById("memberTableBody") !== null;
+	let isMembers = document.getElementById("memberTableBody") !== null;
 	if (isMembers) {
 		$("#sortSelect :input").change(function() {
 			sorting = this.dataset.sort;
