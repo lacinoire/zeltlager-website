@@ -30,13 +30,13 @@ notify = "4"
 pulldown-cmark = { version = "0.7", default-features = false }
 printpdf = "0.3"
 rand = "0.7"
-rpassword = "4"
-scrypt = "0.3"
+rpassword = "5"
+scrypt = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 structopt = { version = "0.3", default-features = false }
-strum = "0.18"
-strum_macros = "0.18"
+strum = "0.19"
+strum_macros = "0.19"
 t4rust-derive = "0.2"
 toml = "0.5"
 tokio = { version = "0.2", features = ["macros"] }
