@@ -2,7 +2,7 @@
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet dieses Jahr voraussichtlich auf dem Sportgelände des TSV Dinkelscherben statt.
+Das Zeltlager findet dieses Jahr voraussichtlich auf dem Sportgelände des FC Penzing statt.
 
 Abfahrt Montag den 02.08.2021 um 10:00 Uhr  
 Rückkehr Freitag den 13.08.2021 um ca. 14:00 Uhr  
