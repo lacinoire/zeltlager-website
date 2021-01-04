@@ -348,7 +348,7 @@ async fn create_pdf(
 		let font = doc.add_external_font(File::open("static/DejaVuSans.ttf")?)?;
 		let mut current_layer = doc.get_page(page).get_layer(layer);
 
-		let font_size = 11;
+		let font_size = 11.0;
 		let margin = Mm(12.0);
 		let number_size = Mm(18.0);
 		let line_height = Mm(7.0);

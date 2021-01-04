@@ -1,3 +1,8 @@
+# COVID-19
+Unser Zeltlager fand auch 2020 mit Zustimmung der Behörden basierend auf unserem Hygienekonzept statt. Da wir auch 2021 im Zuständigkeitsbereich der gleichen Behörden unser Zeltlager planen, sind wir sehr zuversichtlich unser Zeltlager wieder so erfolgreich wie 2020 durchführen zu dürfen.
+
+Sollte uns wider Erwarten dennoch keine Genehmigung erteilt werden, werden alle Teilnehmerbeiträge komplett rückerstattet.
+
 # Zeltlager 2021 – Elterninfo
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
