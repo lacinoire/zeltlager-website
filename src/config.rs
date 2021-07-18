@@ -105,6 +105,4 @@ pub struct Config {
 	pub log_file: Option<PathBuf>,
 }
 
-fn default_bind_address() -> String {
-	String::from("127.0.0.1:8080")
-}
+fn default_bind_address() -> String { String::from("127.0.0.1:8080") }

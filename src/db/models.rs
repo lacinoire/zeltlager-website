@@ -20,21 +20,15 @@ use super::schema::users;
 
 macro_rules! get_bool {
 	($map:ident, $key:expr) => {
-		$map.remove($key)
-			.ok_or_else(|| format_err!("{} fehlt", $key))
-			.and_then(|s| {
-				if s == "true" {
-					Ok(true)
-				} else if s == "false" {
-					Ok(false)
-				} else {
-					Err(format_err!(
-						"{} ({}) ist kein Wahrheitswert",
-						$key,
-						s
-					))
-					}
-				})
+		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key)).and_then(|s| {
+			if s == "true" {
+				Ok(true)
+			} else if s == "false" {
+				Ok(false)
+			} else {
+				Err(format_err!("{} ({}) ist kein Wahrheitswert", $key, s))
+			}
+		})
 	};
 }
 
@@ -220,26 +214,14 @@ pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
 		}
 		Ok(date)
 	} else {
-		bail!(
-			"Bitte geben Sie das Geburtsdatum ({}) im Format TT.MM.JJJJ an.",
-			s
-		);
+		bail!("Bitte geben Sie das Geburtsdatum ({}) im Format TT.MM.JJJJ an.", s);
 	}
 }
 
 pub fn try_parse_gender(s: &str) -> Result<Gender> {
-	const MALE: &[&str] = &[
-		"m",
-		"M",
-		"männlich",
-		"Männlich",
-		"maennlich",
-		"Maennlich",
-		"male",
-		"Male",
-	];
-	const FEMALE: &[&str] =
-		&["w", "W", "weiblich", "Weiblich", "female", "Female"];
+	const MALE: &[&str] =
+		&["m", "M", "männlich", "Männlich", "maennlich", "Maennlich", "male", "Male"];
+	const FEMALE: &[&str] = &["w", "W", "weiblich", "Weiblich", "female", "Female"];
 
 	if MALE.contains(&s) {
 		Ok(Gender::Male)
@@ -297,11 +279,7 @@ pub enum Gender {
 
 impl fmt::Display for Gender {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		if *self == Gender::Male {
-			write!(f, "m")
-		} else {
-			write!(f, "w")
-		}
+		if *self == Gender::Male { write!(f, "m") } else { write!(f, "w") }
 	}
 }
 
@@ -379,8 +357,7 @@ impl Teilnehmer {
 		// Check house number
 		if !check_house_number(&res.hausnummer) {
 			bail!(
-				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
-				 enthalten",
+				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer enthalten",
 				res.hausnummer
 			);
 		}
@@ -390,29 +367,25 @@ impl Teilnehmer {
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
 			bail!(
-				"Sind Sie sicher, dass {} das Geburtsdatum Ihres Kindes \
-				 ist?\nBitte geben Sie das Geburtsdatum im Format TT.MM.JJJJ \
-				 an.",
+				"Sind Sie sicher, dass {} das Geburtsdatum Ihres Kindes ist?\nBitte geben Sie das \
+				 Geburtsdatum im Format TT.MM.JJJJ an.",
 				res.geburtsdatum.format("%d.%m.%Y")
 			);
 		}
 
 		if years < 7 {
 			bail!(
-				"Ihr Kind ist zu jung (Geburtsdatum {}).\nDas \
-				 Zeltlager ist für Kinder und Jugendliche zwischen 7 und 15 \
-				 Jahren.",
+				"Ihr Kind ist zu jung (Geburtsdatum {}).\nDas Zeltlager ist für Kinder und \
+				 Jugendliche zwischen 7 und 15 Jahren.",
 				res.geburtsdatum.format("%d.%m.%Y")
 			);
 		}
 		if years > 15 {
 			bail!(
-				"Ihr Kind ist zu alt um als Teilnehmer beim Zeltlager \
-				 mitzufahren (Geburtsdatum {}).\nWir suchen immer nach \
-				 motivierten Betreuern (ab 16 Jahren), die auf das Zeltlager \
-				 mitfahren.\nInfos dazu finden Sie auf der \
-				 Betreuerseite.\nDas Zeltlager ist für Kinder und Jugendliche \
-				 zwischen 7 und 15 Jahren.",
+				"Ihr Kind ist zu alt um als Teilnehmer beim Zeltlager mitzufahren (Geburtsdatum \
+				 {}).\nWir suchen immer nach motivierten Betreuern (ab 16 Jahren), die auf das \
+				 Zeltlager mitfahren.\nInfos dazu finden Sie auf der Betreuerseite.\nDas \
+				 Zeltlager ist für Kinder und Jugendliche zwischen 7 und 15 Jahren.",
 				res.geburtsdatum.format("%d.%m.%Y")
 			);
 		}
@@ -446,18 +419,12 @@ impl Supervisor {
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
 
 		let f_date = get_str!(map, "fuehrungszeugnis_auststellung")?;
-		let fuehrungszeugnis_auststellung = if !f_date.is_empty() {
-			Some(try_parse_date(&f_date)?)
-		} else {
-			None
-		};
+		let fuehrungszeugnis_auststellung =
+			if !f_date.is_empty() { Some(try_parse_date(&f_date)?) } else { None };
 
 		let juleica_nummer_str = get_str!(map, "juleica_nummer")?;
-		let juleica_nummer = if juleica_nummer_str.is_empty() {
-			None
-		} else {
-			Some(juleica_nummer_str)
-		};
+		let juleica_nummer =
+			if juleica_nummer_str.is_empty() { None } else { Some(juleica_nummer_str) };
 
 		let res = Self {
 			vorname: get_str!(map, "vorname")?,
@@ -486,17 +453,7 @@ impl Supervisor {
 		if !res.selbsterklaerung {
 			bail!("Die Selbsterklärung muss abgegeben werden");
 		}
-		check_empty!(
-			res,
-			vorname,
-			nachname,
-			mail,
-			handynummer,
-			strasse,
-			hausnummer,
-			ort,
-			plz
-		);
+		check_empty!(res, vorname, nachname, mail, handynummer, strasse, hausnummer, ort, plz);
 		// Check PLZ
 		if !check_only_numbers(&res.plz, 5) {
 			bail!("Ungültige Postleitzahl ({})", res.plz);
@@ -508,19 +465,14 @@ impl Supervisor {
 		// Check house number
 		if !check_house_number(&res.hausnummer) {
 			bail!(
-				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer \
-				 enthalten",
+				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer enthalten",
 				res.hausnummer
 			);
 		}
 		// Check Juleica Number
 		if let Some(ref jn) = res.juleica_nummer {
 			if !check_only_numbers(&jn, 11) {
-				bail!(
-					"Ungültige Juleicanummer ({}, Länge ≠ 11 oder \
-					 Buchstaben drin)",
-					jn
-				)
+				bail!("Ungültige Juleicanummer ({}, Länge ≠ 11 oder Buchstaben drin)", jn)
 			}
 		}
 		// Check birth date
@@ -529,17 +481,16 @@ impl Supervisor {
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
 			bail!(
-				"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben \
-				 Sie das Geburtsdatum im Format TT.MM.JJJJ an.",
+				"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben Sie das Geburtsdatum \
+				 im Format TT.MM.JJJJ an.",
 				res.geburtsdatum.format("%d.%m.%Y")
 			);
 		}
 
 		if years < 15 {
 			bail!(
-				"Mit deinem Geburtsdatum {} bist du leider zu jung, um als \
-				 Betreuer mit aufs Zeltlager zu fahren 🙂, bitte melde dich \
-				 als Teilnehmer an.",
+				"Mit deinem Geburtsdatum {} bist du leider zu jung, um als Betreuer mit aufs \
+				 Zeltlager zu fahren 🙂, bitte melde dich als Teilnehmer an.",
 				res.geburtsdatum.format("%d.%m.%Y")
 			);
 		}

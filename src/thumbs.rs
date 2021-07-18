@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use anyhow::{bail, format_err, Result};
 use log::{error, warn};
-use notify::{Watcher, RecursiveMode, watcher};
+use notify::{watcher, RecursiveMode, Watcher};
 
 pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 	// Create a channel to receive the events.
@@ -30,8 +30,10 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 
 	loop {
 		match rx.recv() {
-			Ok(_) => if let Err(e) = scan_files(&path) {
-				error!("Error when scanning files: {:?}", e);
+			Ok(_) => {
+				if let Err(e) = scan_files(&path) {
+					error!("Error when scanning files: {:?}", e);
+				}
 			}
 			Err(e) => {
 				error!("Watch error: {:?}", e);
@@ -55,8 +57,7 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 			None => warn!("Cannot get filename of {:?}", file_path),
 			Some(name) => {
 				match name.to_str() {
-					None => warn!("Filename {:?} is not valid unicode",
-						file_path),
+					None => warn!("Filename {:?} is not valid unicode", file_path),
 					Some(name) => {
 						let lower_name = name.to_lowercase();
 						if lower_name.ends_with(".jpg") || lower_name.ends_with(".png") {
@@ -118,7 +119,8 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 			}
 		}
 
-		#[cfg(unix)] {
+		#[cfg(unix)]
+		{
 			let orig_t = orig_meta.ctime();
 			let thumb_t = thumb_meta.ctime();
 			if orig_t > thumb_t {
@@ -135,12 +137,11 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 
 	// Check if we can scale it down
 	let proc = Command::new("convert")
-		.args(&[orig_file.to_str()
-				.ok_or_else(|| format_err!("Path is not valid unicode"))?,
+		.args(&[
+			orig_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
 			"-resize",
 			"300x300",
-			thumb_file.to_str()
-				.ok_or_else(|| format_err!("Path is not valid unicode"))?
+			thumb_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
 		])
 		.status()?;
 

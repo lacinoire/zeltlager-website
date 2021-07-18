@@ -1,9 +1,9 @@
 use actix::prelude::*;
 use anyhow::Result;
 use lettre::smtp::authentication::Credentials;
-use lettre::smtp::client::net::{DEFAULT_TLS_PROTOCOLS, ClientTlsParameters};
+use lettre::smtp::client::net::{ClientTlsParameters, DEFAULT_TLS_PROTOCOLS};
 use lettre::smtp::ClientSecurity;
-use lettre::{Transport, SmtpClient};
+use lettre::{SmtpClient, Transport};
 use lettre_email::EmailBuilder;
 use native_tls::TlsConnector;
 use t4rust_derive::Template;
@@ -42,33 +42,15 @@ struct Body<'a> {
 }
 
 impl MailExecutor {
-	pub fn new(config: Config) -> Self {
-		Self { config }
-	}
+	pub fn new(config: Config) -> Self { Self { config } }
 }
 
 impl Handler<SignupMessage> for MailExecutor {
 	type Result = Result<()>;
 
-	fn handle(
-		&mut self,
-		msg: SignupMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
-		let subject = format!(
-			"{}",
-			Subject {
-				member: &msg.member
-			}
-		).trim()
-			.to_string();
-		let body = format!(
-			"{}",
-			Body {
-				member: &msg.member
-			}
-		).trim()
-			.to_string();
+	fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context) -> Self::Result {
+		let subject = format!("{}", Subject { member: &msg.member }).trim().to_string();
+		let body = format!("{}", Body { member: &msg.member }).trim().to_string();
 
 		let mut email_builder = EmailBuilder::new()
 			.to((
@@ -91,23 +73,24 @@ impl Handler<SignupMessage> for MailExecutor {
 		let email = email_builder.build()?;
 
 		let mut tls_builder = TlsConnector::builder();
-			tls_builder.min_protocol_version(Some(DEFAULT_TLS_PROTOCOLS[0]));
+		tls_builder.min_protocol_version(Some(DEFAULT_TLS_PROTOCOLS[0]));
 		let tls_parameters = ClientTlsParameters::new(
 			self.config.sender_mail_account.host.clone(),
 			tls_builder.build().unwrap(),
 		);
 		let mut mailer = SmtpClient::new(
-			(self.config.sender_mail_account.host.as_str(),
-				self.config.sender_mail_account.port),
+			(self.config.sender_mail_account.host.as_str(), self.config.sender_mail_account.port),
 			ClientSecurity::Required(tls_parameters),
-		)?.credentials(Credentials::new(
+		)?
+		.credentials(Credentials::new(
 			self.config
 				.sender_mail_account
 				.name
 				.clone()
 				.unwrap_or_else(|| self.config.sender_mail.address.clone()),
 			self.config.sender_mail_account.password.clone(),
-		)).transport();
+		))
+		.transport();
 
 		// Send the email
 		mailer.send(email.into())?;
@@ -133,7 +116,7 @@ mod tests {
 
 	#[test]
 	fn test_parse_mails() {
-		let mails = &["x@abc.de",  "a.b@d.e", "my.long-mail_address@even-longer-domain.ending"];
+		let mails = &["x@abc.de", "a.b@d.e", "my.long-mail_address@even-longer-domain.ending"];
 		for &m in mails {
 			check_parsable(m).unwrap();
 		}

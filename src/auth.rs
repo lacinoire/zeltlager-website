@@ -35,22 +35,16 @@ pub struct Login {
 }
 
 impl Form for Login {
-	fn get_values(&self) -> Cow<HashMap<String, String>> {
-		Cow::Borrowed(&self.values)
-	}
+	fn get_values(&self) -> Cow<HashMap<String, String>> { Cow::Borrowed(&self.values) }
 }
 
 impl Login {
-	fn new(values: HashMap<String, String>) -> Login {
-		Login { values }
-	}
+	fn new(values: HashMap<String, String>) -> Login { Login { values } }
 }
 
 async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
-	let ip = req.connection_info()
-		.remote()
-		.ok_or_else(|| format_err!("no ip detected"))?
-		.to_string();
+	let ip =
+		req.connection_info().remote().ok_or_else(|| format_err!("no ip detected"))?.to_string();
 	match state.db_addr.send(db::CheckRateMessage { ip }).await {
 		Ok(result) => {
 			if result? {
@@ -67,10 +61,7 @@ async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
 ///
 /// The `values` can contain the `username` and an `error`.
 async fn render_login(
-	state: &State,
-	id: &Identity,
-	req: &HttpRequest,
-	values: HashMap<String, String>,
+	state: &State, id: &Identity, req: &HttpRequest, values: HashMap<String, String>,
 ) -> HttpResponse {
 	let roles = match auth::get_roles(state, id).await {
 		Ok(r) => r,
@@ -79,9 +70,7 @@ async fn render_login(
 			return crate::error_response(state);
 		}
 	};
-	if let Ok(site) = state.sites["public"].get_site(
-		state.config.clone(), "login", roles)
-	{
+	if let Ok(site) = state.sites["public"].get_site(state.config.clone(), "login", roles) {
 		let mut resp = if values.contains_key("error") {
 			HttpResponse::Unauthorized()
 		} else {
@@ -91,19 +80,21 @@ async fn render_login(
 		let content = format!("{}", site);
 		let content = content.replace("<insert content here>", &format!("{}", Login::new(values)));
 
-		resp
-			.content_type("text/html; charset=utf-8")
-			.body(content)
+		resp.content_type("text/html; charset=utf-8").body(content)
 	} else {
 		crate::not_found(state, id, req).await
 	}
 }
 
 #[derive(Deserialize)]
-pub struct LoginArgs { redirect: Option<String> }
+pub struct LoginArgs {
+	redirect: Option<String>,
+}
 
 #[get("/login")]
-pub async fn login(state: web::Data<State>, id: Identity, req: HttpRequest, mut args: web::Query<LoginArgs>) -> HttpResponse {
+pub async fn login(
+	state: web::Data<State>, id: Identity, req: HttpRequest, mut args: web::Query<LoginArgs>,
+) -> HttpResponse {
 	if logged_in_user(&id).is_some() {
 		let redir = args.redirect.as_ref().map(|s| s.as_str()).unwrap_or("/");
 		HttpResponse::Found().header("location", redir).finish()
@@ -126,8 +117,10 @@ fn set_logged_in(id: i32, identity: &Identity) {
 }
 
 #[post("/login")]
-pub async fn login_send(state: web::Data<State>, req: HttpRequest, identity: Identity,
-	mut body: web::Form<HashMap<String, String>>) -> HttpResponse {
+pub async fn login_send(
+	state: web::Data<State>, req: HttpRequest, identity: Identity,
+	mut body: web::Form<HashMap<String, String>>,
+) -> HttpResponse {
 	// Search user in database
 	let db_addr = state.db_addr.clone();
 	let error_message = state.config.error_message.clone();
@@ -144,9 +137,9 @@ pub async fn login_send(state: web::Data<State>, req: HttpRequest, identity: Ide
 	body.remove("password");
 
 	if let Err(error) = rate_limit(&**state, &req).await {
-		body.insert("error".to_string(),
-			"Zu viele Login Anfragen. \
-			Probieren Sie es später noch einmal.".to_string(),
+		body.insert(
+			"error".to_string(),
+			"Zu viele Login Anfragen. Probieren Sie es später noch einmal.".to_string(),
 		);
 		info!("Rate limit exceeded ({:?})", error);
 		render_login(&**state, &identity, &req, body.into_inner()).await
@@ -154,24 +147,27 @@ pub async fn login_send(state: web::Data<State>, req: HttpRequest, identity: Ide
 		match db_addr.send(msg).await.map_err(|e| e.into()) {
 			Err(error) | Ok(Err(error)) => {
 				// Show error and prefilled form
-				body.insert("error".to_string(), format!(
-					"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-					error_message));
+				body.insert(
+					"error".to_string(),
+					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message),
+				);
 				warn!("Error by auth message: {}", error);
 				render_login(&**state, &identity, &req, body.into_inner()).await
 			}
 			Ok(Ok(Some(id))) => {
 				set_logged_in(id, &identity);
-				let ip = match req.connection_info()
+				let ip = match req
+					.connection_info()
 					.remote()
-					.ok_or_else(|| format_err!("no ip detected")) {
-						Ok(r) => r.to_string(),
-						Err(e) => {
-							error!("Failed to get ip: {}", e);
-							return crate::error_response(&**state);
-						}
-					};
-				if let Err(e) = state.db_addr.send(db::DecreaseRateCounterMessage { ip } ).await {
+					.ok_or_else(|| format_err!("no ip detected"))
+				{
+					Ok(r) => r.to_string(),
+					Err(e) => {
+						error!("Failed to get ip: {}", e);
+						return crate::error_response(&**state);
+					}
+				};
+				if let Err(e) = state.db_addr.send(db::DecreaseRateCounterMessage { ip }).await {
 					error!("Failed to decrease rate limiting counter: {}", e);
 				}
 				// Redirect somewhere else if there is a
@@ -187,9 +183,10 @@ pub async fn login_send(state: web::Data<State>, req: HttpRequest, identity: Ide
 			Ok(Ok(None)) => {
 				// Wrong username or password
 				// Show error and prefilled form
-				body.insert("error".to_string(),
-					"Falsches Passwort oder falscher Benutzername"
-					.to_string());
+				body.insert(
+					"error".to_string(),
+					"Falsches Passwort oder falscher Benutzername".to_string(),
+				);
 				render_login(&**state, &identity, &req, body.into_inner()).await
 			}
 		}
@@ -206,16 +203,13 @@ pub fn logout(id: Identity) -> HttpResponse {
 
 /// Get the id of the logged in user
 pub fn logged_in_user(identity: &Identity) -> Option<i32> {
-	identity.identity()
+	identity
+		.identity()
 		.and_then(|s| {
-			if let [id, timeout] =
-				*s.splitn(2, '|').collect::<Vec<_>>().as_slice()
-			{
+			if let [id, timeout] = *s.splitn(2, '|').collect::<Vec<_>>().as_slice() {
 				if let Ok(id) = id.parse::<i32>() {
-					if let Ok(timeout) = NaiveDateTime::parse_from_str(
-						timeout,
-						"%Y-%m-%d %H:%M:%S",
-					) {
+					if let Ok(timeout) = NaiveDateTime::parse_from_str(timeout, "%Y-%m-%d %H:%M:%S")
+					{
 						let timeout = DateTime::<Utc>::from_utc(timeout, Utc);
 						return Some((id, timeout));
 					}
@@ -242,11 +236,11 @@ pub async fn get_roles(state: &State, id: &Identity) -> Result<Option<Vec<Roles>
 	}
 }
 
-pub async fn user_get_roles(
-	state: &State,
-	user: i32,
-) -> Result<Vec<Roles>> {
+pub async fn user_get_roles(state: &State, user: i32) -> Result<Vec<Roles>> {
 	let msg = db::GetRolesMessage { user };
-	Ok(state.db_addr.send(msg).await
+	Ok(state
+		.db_addr
+		.send(msg)
+		.await
 		.map_err(|e| format_err!("Failed to get user roles: {}", e))??)
 }

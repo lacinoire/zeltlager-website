@@ -14,9 +14,9 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
+use actix_files::Files;
 use actix_http::cookie::SameSite;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
-use actix_files::Files;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header::DispositionType;
 use actix_web::*;
@@ -54,15 +54,9 @@ static IMAGE_YEARS: &[(&str, auth::Roles)] = &[
 	("Bilder2020", auth::Roles::ImageDownload2020),
 ];
 
-fn cookie_maxtime() -> Duration {
-	Duration::minutes(120)
-}
-fn ratelimit_duration() -> Duration {
-	Duration::days(1)
-}
-fn get_true() -> bool {
-	true
-}
+fn cookie_maxtime() -> Duration { Duration::minutes(120) }
+fn ratelimit_duration() -> Duration { Duration::days(1) }
+fn get_true() -> bool { true }
 
 #[derive(Clone)]
 pub struct State {
@@ -76,10 +70,7 @@ pub struct State {
 
 impl Into<lettre_email::Mailbox> for MailAddress {
 	fn into(self) -> lettre_email::Mailbox {
-		lettre_email::Mailbox {
-			name: self.name,
-			address: self.address,
-		}
+		lettre_email::Mailbox { name: self.name, address: self.address }
 	}
 }
 
@@ -101,9 +92,7 @@ struct CsrfFilterMiddleware<S> {
 }
 
 impl CsrfFilter {
-	fn new(domain: Option<String>) -> Self {
-		Self { domain }
-	}
+	fn new(domain: Option<String>) -> Self { Self { domain } }
 }
 
 impl<S: 'static, B> Transform<S> for CsrfFilter
@@ -120,43 +109,31 @@ where
 	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
 
 	fn new_transform(&self, service: S) -> Self::Future {
-		future::ok(CsrfFilterMiddleware {
-			service,
-			domain: self.domain.clone(),
-		})
+		future::ok(CsrfFilterMiddleware { service, domain: self.domain.clone() })
 	}
 }
 
 fn uri_origin(uri: &http::uri::Uri) -> Option<String> {
 	match (uri.scheme_str(), uri.host(), uri.port()) {
-		(Some(scheme), Some(host), Some(port)) => {
-			Some(format!("{}://{}:{}", scheme, host, port))
-		}
-		(Some(scheme), Some(host), None) => {
-			Some(format!("{}://{}", scheme, host))
-		}
-		_ => None
+		(Some(scheme), Some(host), Some(port)) => Some(format!("{}://{}:{}", scheme, host, port)),
+		(Some(scheme), Some(host), None) => Some(format!("{}://{}", scheme, host)),
+		_ => None,
 	}
 }
 
 fn get_origin(headers: &http::header::HeaderMap) -> Option<Result<String>> {
-	headers.get(http::header::ORIGIN)
-		.map(|origin| {
-			origin
-				.to_str()
-				.map_err(|_| format_err!("Bad origin"))
-				.map(|o| o.into())
-		})
+	headers
+		.get(http::header::ORIGIN)
+		.map(|origin| origin.to_str().map_err(|_| format_err!("Bad origin")).map(|o| o.into()))
 		.or_else(|| {
-			headers.get(http::header::REFERER)
-				.map(|referer| {
-					http::uri::Uri::try_from(referer.as_bytes())
-						.ok()
-						.as_ref()
-						.and_then(uri_origin)
-						.ok_or_else(|| format_err!("Bad origin"))
-						.map(|o| o.into())
-				})
+			headers.get(http::header::REFERER).map(|referer| {
+				http::uri::Uri::try_from(referer.as_bytes())
+					.ok()
+					.as_ref()
+					.and_then(uri_origin)
+					.ok_or_else(|| format_err!("Bad origin"))
+					.map(|o| o.into())
+			})
 		})
 }
 
@@ -182,14 +159,24 @@ where
 					match header {
 						Ok(ref origin) if origin.ends_with(domain) => {}
 						Ok(ref origin) => {
-							warn!("Origin does not match: {:?} does not end with {:?}", origin, domain);
-							return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
-								"Cross origin request denied").into()));
+							warn!(
+								"Origin does not match: {:?} does not end with {:?}",
+								origin, domain
+							);
+							return Box::pin(future::err(
+								io::Error::new(io::ErrorKind::Other, "Cross origin request denied")
+									.into(),
+							));
 						}
 						Err(e) => {
 							warn!("Origin not found: {}", e);
-							return Box::pin(future::err(io::Error::new(io::ErrorKind::Other,
-								"Cross origin request failure").into()));
+							return Box::pin(future::err(
+								io::Error::new(
+									io::ErrorKind::Other,
+									"Cross origin request failure",
+								)
+								.into(),
+							));
 						}
 					}
 				}
@@ -209,9 +196,7 @@ struct HasRolePredicateMiddleware<S> {
 }
 
 impl HasRolePredicate {
-	fn new(role: auth::Roles) -> Self {
-		Self { role }
-	}
+	fn new(role: auth::Roles) -> Self { Self { role } }
 }
 
 impl<S: 'static, B> Transform<S> for HasRolePredicate
@@ -267,8 +252,11 @@ where
 					let req = match ServiceRequest::from_parts(req, pay) {
 						Ok(r) => r,
 						Err(_) => {
-							return Err(io::Error::new(io::ErrorKind::Other,
-								"Failed to reassemble request").into());
+							return Err(io::Error::new(
+								io::ErrorKind::Other,
+								"Failed to reassemble request",
+							)
+							.into());
 						}
 					};
 					return Ok(req.into_response(crate::error_response(&state).into_body()));
@@ -280,8 +268,11 @@ where
 					let req = match ServiceRequest::from_parts(req, pay) {
 						Ok(r) => r,
 						Err(_) => {
-							return Err(io::Error::new(io::ErrorKind::Other,
-								"Failed to reassemble request").into());
+							return Err(io::Error::new(
+								io::ErrorKind::Other,
+								"Failed to reassemble request",
+							)
+							.into());
 						}
 					};
 					service.call(req).await
@@ -291,8 +282,11 @@ where
 					let req = match ServiceRequest::from_parts(req, pay) {
 						Ok(r) => r,
 						Err(_) => {
-							return Err(io::Error::new(io::ErrorKind::Other,
-								"Failed to reassemble request").into());
+							return Err(io::Error::new(
+								io::ErrorKind::Other,
+								"Failed to reassemble request",
+							)
+							.into());
 						}
 					};
 					warn!("Forbidden '{}'", req.path());
@@ -303,22 +297,22 @@ where
 				let req = match ServiceRequest::from_parts(req, pay) {
 					Ok(r) => r,
 					Err(_) => {
-						return Err(io::Error::new(io::ErrorKind::Other,
-							"Failed to reassemble request").into());
+						return Err(io::Error::new(
+							io::ErrorKind::Other,
+							"Failed to reassemble request",
+						)
+						.into());
 					}
 				};
 				let location = format!(
 					"/login?redirect={}",
-					url::form_urlencoded::byte_serialize(
-						req.path().as_bytes()
-					).collect::<String>()
+					url::form_urlencoded::byte_serialize(req.path().as_bytes()).collect::<String>()
 				);
 				// Not logged in
 				// Redirect to login site with redirect to original site
-				Ok(req.into_response(HttpResponse::Found()
-					.header("location", location)
-					.finish()
-					.into_body()))
+				Ok(req.into_response(
+					HttpResponse::Found().header("location", location).finish().into_body(),
+				))
 			}
 		})
 	}
@@ -374,30 +368,21 @@ fn escape_html_body(s: &str) -> String {
 ///
 /// Reference: https://stackoverflow.com/a/9189067
 fn escape_html_attribute(s: &str) -> String {
-	s.replace('&', "&amp;")
-		.replace('<', "&lt;")
-		.replace('"', "&quot;")
+	s.replace('&', "&amp;").replace('<', "&lt;").replace('"', "&quot;")
 }
 
 fn error_response(state: &State) -> HttpResponse {
 	HttpResponse::InternalServerError()
 		.content_type("text/html; charset=utf-8")
-		.body(format!(
-			"Es ist ein interner Fehler aufgetreten.\n{}",
-			state.config.error_message
-		))
+		.body(format!("Es ist ein interner Fehler aufgetreten.\n{}", state.config.error_message))
 }
 
 async fn sites(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
 	let prefix: String;
 	let name: String;
-	if let Some(n) = req.match_info().get("name").and_then(|s| {
-		if s.is_empty() {
-			None
-		} else {
-			Some(s)
-		}
-	}) {
+	if let Some(n) =
+		req.match_info().get("name").and_then(|s| if s.is_empty() { None } else { Some(s) })
+	{
 		if let Some(p) = req.match_info().get("prefix") {
 			prefix = p.to_string();
 			name = n.to_string();
@@ -420,12 +405,7 @@ async fn sites(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpR
 	}
 }
 
-async fn site(
-	state: &State,
-	id: &Identity,
-	prefix: &str,
-	name: &str,
-) -> Option<HttpResponse> {
+async fn site(state: &State, id: &Identity, prefix: &str, name: &str) -> Option<HttpResponse> {
 	if let Some(site_descriptions) = state.sites.get(prefix) {
 		let name = name.to_string();
 		let roles = match auth::get_roles(state, id).await {
@@ -435,20 +415,19 @@ async fn site(
 				return Some(crate::error_response(state));
 			}
 		};
-		site_descriptions.get_site(state.config.clone(), &name, roles).ok()
-			.map(|site| {
-				let content = format!("{}", site);
+		site_descriptions.get_site(state.config.clone(), &name, roles).ok().map(|site| {
+			let content = format!("{}", site);
 
-				HttpResponse::Ok()
-					.content_type("text/html; charset=utf-8")
-					.body(content)
-			})
+			HttpResponse::Ok().content_type("text/html; charset=utf-8").body(content)
+		})
 	} else {
 		None
 	}
 }
 
-async fn not_found_handler(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
+async fn not_found_handler(
+	state: web::Data<State>, id: Identity, req: HttpRequest,
+) -> HttpResponse {
 	not_found(&**state, &id, &req).await
 }
 
@@ -461,8 +440,7 @@ async fn not_found(state: &State, id: &Identity, req: &HttpRequest) -> HttpRespo
 			return crate::error_response(state);
 		}
 	};
-	let site = match state.sites["public"].get_site(
-		state.config.clone(), "notfound", roles) {
+	let site = match state.sites["public"].get_site(state.config.clone(), "notfound", roles) {
 		Ok(r) => r,
 		Err(e) => {
 			error!("Failed to get site: {}", e);
@@ -470,9 +448,7 @@ async fn not_found(state: &State, id: &Identity, req: &HttpRequest) -> HttpRespo
 		}
 	};
 	let content = format!("{}", site);
-	HttpResponse::NotFound()
-		.content_type("text/html; charset=utf-8")
-		.body(content)
+	HttpResponse::NotFound().content_type("text/html; charset=utf-8").body(content)
 }
 
 async fn forbidden(state: &State, id: &Identity) -> HttpResponse {
@@ -485,8 +461,7 @@ async fn forbidden(state: &State, id: &Identity) -> HttpResponse {
 			return crate::error_response(state);
 		}
 	};
-	let site = match state.sites["public"].get_site(
-		state.config.clone(), "forbidden", roles) {
+	let site = match state.sites["public"].get_site(state.config.clone(), "forbidden", roles) {
 		Ok(r) => r,
 		Err(e) => {
 			error!("Failed to get site: {}", e);
@@ -494,9 +469,7 @@ async fn forbidden(state: &State, id: &Identity) -> HttpResponse {
 		}
 	};
 	let content = format!("{}", site);
-	HttpResponse::NotFound()
-		.content_type("text/html; charset=utf-8")
-		.body(content)
+	HttpResponse::NotFound().content_type("text/html; charset=utf-8").body(content)
 }
 
 #[actix_rt::main]
@@ -535,11 +508,8 @@ async fn main() -> Result<()> {
 	}
 
 	let mut content = String::new();
-	File::open("config.toml")
-		.unwrap()
-		.read_to_string(&mut content)?;
-	let config: Config =
-		toml::from_str(&content).expect("Failed to parse config.toml");
+	File::open("config.toml").unwrap().read_to_string(&mut content)?;
+	let config: Config = toml::from_str(&content).expect("Failed to parse config.toml");
 	config.validate().unwrap();
 
 	// Start some parallel db executors
@@ -552,18 +522,10 @@ async fn main() -> Result<()> {
 
 	// Start some parallel mail executors
 	let config2 = config.clone();
-	let mail_addr = actix::SyncArbiter::start(4, move || {
-		mail::MailExecutor::new(config2.clone())
-	});
+	let mail_addr = actix::SyncArbiter::start(4, move || mail::MailExecutor::new(config2.clone()));
 
 	let address = config.bind_address.clone();
-	let state = State {
-		sites,
-		config,
-		db_addr,
-		mail_addr,
-		log_mutex: Arc::new(Mutex::new(())),
-	};
+	let state = State { sites, config, db_addr, mail_addr, log_mutex: Arc::new(Mutex::new(())) };
 
 	// Start thumbnail creator
 	for (name, _) in IMAGE_YEARS {
@@ -590,9 +552,11 @@ async fn main() -> Result<()> {
 
 		let mut app = app
 			.wrap(IdentityService::new(identity_policy))
-			.service(Files::new("/static", "static")
-				.mime_override(content_disposition_map)
-				.default_handler(web::to(not_found_handler)))
+			.service(
+				Files::new("/static", "static")
+					.mime_override(content_disposition_map)
+					.default_handler(web::to(not_found_handler)),
+			)
 			.service(signup::signup)
 			.service(signup::signup_test)
 			.service(signup::signup_send)
@@ -605,16 +569,24 @@ async fn main() -> Result<()> {
 		for (name, role) in IMAGE_YEARS {
 			let name = *name;
 			app = app
-				.service(web::scope(&format!("/{}", name))
-					.wrap(HasRolePredicate::new(*role))
-					.service(web::resource("/").route(web::get().to(move |s, i| images::render_images(s, i, name))))
-					.service(Files::new("/static", name)
-						.mime_override(content_disposition_map)
-						.default_handler(web::to(not_found_handler)))
-					.default_service(web::to(not_found_handler))
+				.service(
+					web::scope(&format!("/{}", name))
+						.wrap(HasRolePredicate::new(*role))
+						.service(
+							web::resource("/").route(
+								web::get().to(move |s, i| images::render_images(s, i, name)),
+							),
+						)
+						.service(
+							Files::new("/static", name)
+								.mime_override(content_disposition_map)
+								.default_handler(web::to(not_found_handler)),
+						)
+						.default_service(web::to(not_found_handler)),
 				)
-				.service(web::resource(&format!("/{}", name)).route(web::get().to(move ||
-					HttpResponse::Found().header("location", format!("/{}/", name)).finish())));
+				.service(web::resource(&format!("/{}", name)).route(web::get().to(move || {
+					HttpResponse::Found().header("location", format!("/{}/", name)).finish()
+				})));
 		}
 
 		app
@@ -655,9 +627,10 @@ async fn main() -> Result<()> {
 			.service(web::resource("/{name}").route(web::get().to(crate::sites)))
 			.service(web::resource("/").route(web::get().to(crate::sites)))
 			.default_service(web::to(not_found_handler))
-	}).bind(address)?
-		.run()
-		.await?;
+	})
+	.bind(address)?
+	.run()
+	.await?;
 
 	Ok(())
 }

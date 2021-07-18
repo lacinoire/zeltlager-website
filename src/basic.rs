@@ -43,17 +43,13 @@ pub struct Basic {
 impl SiteDescriptions {
 	pub fn parse(path: &str) -> Result<Self> {
 		let mut content = String::new();
-		File::open(Path::new("dynamic").join(path))?
-			.read_to_string(&mut content)?;
+		File::open(Path::new("dynamic").join(path))?.read_to_string(&mut content)?;
 		Ok(toml::from_str(&content)?)
 	}
 
 	/// `logged_in_roles` should be `None` if the user is not logged in.
 	pub fn get_site(
-		&self,
-		config: Config,
-		name: &str,
-		logged_in_roles: Option<Vec<Roles>>,
+		&self, config: Config, name: &str, logged_in_roles: Option<Vec<Roles>>,
 	) -> Result<Basic> {
 		// Check if this site exists
 		for site in &self.sites {

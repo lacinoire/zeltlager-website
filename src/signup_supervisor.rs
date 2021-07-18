@@ -9,8 +9,8 @@ use actix_web::*;
 use log::{error, warn};
 use t4rust_derive::Template;
 
-use crate::{db, State, HttpRequest, HttpResponse};
 use crate::form::Form;
+use crate::{db, HttpRequest, HttpResponse, State};
 
 #[derive(Template)]
 #[TemplatePath = "templates/signupSupervisor.tt"]
@@ -21,15 +21,11 @@ pub struct SignupSupervisor {
 }
 
 impl Form for SignupSupervisor {
-	fn get_values(&self) -> Cow<HashMap<String, String>> {
-		Cow::Borrowed(&self.values)
-	}
+	fn get_values(&self) -> Cow<HashMap<String, String>> { Cow::Borrowed(&self.values) }
 }
 
 impl SignupSupervisor {
-	pub fn new(_state: &State, values: HashMap<String, String>) -> Self {
-		Self { values }
-	}
+	pub fn new(_state: &State, values: HashMap<String, String>) -> Self { Self { values } }
 }
 
 #[get("/intern/betreuer-anmeldung")]
@@ -39,10 +35,7 @@ pub async fn signup(state: web::Data<State>, id: Identity, req: HttpRequest) -> 
 
 /// Return the signup site with the prefilled `values`.
 async fn render_signup(
-	state: &State,
-	id: &Identity,
-	req: &HttpRequest,
-	values: HashMap<String, String>,
+	state: &State, id: &Identity, req: &HttpRequest, values: HashMap<String, String>,
 ) -> HttpResponse {
 	let roles = match crate::auth::get_roles(state, id).await {
 		Ok(r) => r,
@@ -51,15 +44,13 @@ async fn render_signup(
 			return crate::error_response(state);
 		}
 	};
-	if let Ok(site) = state.sites["intern"].get_site(
-		state.config.clone(), "betreuer-anmeldung", roles) {
+	if let Ok(site) =
+		state.sites["intern"].get_site(state.config.clone(), "betreuer-anmeldung", roles)
+	{
 		let content = format!("{}", site);
 		let new_content = SignupSupervisor::new(state, values);
-		let content = content
-			.replace("<insert content here>", &format!("{}", new_content));
-		HttpResponse::Ok()
-			.content_type("text/html; charset=utf-8")
-			.body(content)
+		let content = content.replace("<insert content here>", &format!("{}", new_content));
+		HttpResponse::Ok().content_type("text/html; charset=utf-8").body(content)
 	} else {
 		crate::not_found(state, id, req).await
 	}
@@ -68,14 +59,14 @@ async fn render_signup(
 /// show a success site.
 fn signup_success() -> HttpResponse {
 	// Redirect to success site
-	HttpResponse::Found()
-		.header(http::header::LOCATION, "betreuer-anmeldung-erfolgreich")
-		.finish()
+	HttpResponse::Found().header(http::header::LOCATION, "betreuer-anmeldung-erfolgreich").finish()
 }
 
 #[post("/intern/signup-supervisor-send")]
-pub async fn signup_send(state: web::Data<State>, id: Identity, req: HttpRequest,
-	mut body: web::Form<HashMap<String, String>>) -> HttpResponse {
+pub async fn signup_send(
+	state: web::Data<State>, id: Identity, req: HttpRequest,
+	mut body: web::Form<HashMap<String, String>>,
+) -> HttpResponse {
 	let db_addr = state.db_addr.clone();
 	let error_message = state.config.error_message.clone();
 	let birthday_date = state.config.birthday_date.clone();
@@ -93,9 +84,7 @@ pub async fn signup_send(state: web::Data<State>, id: Identity, req: HttpRequest
 		}
 	};
 
-	match db_addr.send(db::SignupSupervisorMessage {
-			supervisor: supervisor.clone(),
-		}).await {
+	match db_addr.send(db::SignupSupervisorMessage { supervisor: supervisor.clone() }).await {
 		Ok(Err(error)) => {
 			warn!("Error inserting into database: {}", error);
 		}
@@ -106,10 +95,8 @@ pub async fn signup_send(state: web::Data<State>, id: Identity, req: HttpRequest
 			if let Some(log_file) = log_file {
 				let res: Result<_, Error> = (|| {
 					let _lock = log_mutex.lock().unwrap();
-					let mut file = std::fs::OpenOptions::new()
-						.create(true)
-						.append(true)
-						.open(log_file)?;
+					let mut file =
+						std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
 					writeln!(file, "Betreuer: {}", serde_json::to_string(&supervisor)?)?;
 
 					Ok(())
@@ -118,11 +105,7 @@ pub async fn signup_send(state: web::Data<State>, id: Identity, req: HttpRequest
 				if let Err(error) = res {
 					body.insert(
 						"error".to_string(),
-						format!(
-							"Es ist ein Fehler beim Speichern \
-							 aufgetreten.\n{}",
-							error_message
-						),
+						format!("Es ist ein Fehler beim Speichern aufgetreten.\n{}", error_message),
 					);
 					warn!("Failed to log new supervisor: {:?}", error);
 					return render_signup(&**state, &id, &req, body.into_inner()).await;
@@ -136,11 +119,7 @@ pub async fn signup_send(state: web::Data<State>, id: Identity, req: HttpRequest
 	// Show error and prefilled form
 	body.insert(
 		"error".to_string(),
-		format!(
-			"Es ist ein Datenbank-Fehler \
-			 aufgetreten.\n{}",
-			error_message
-		),
+		format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message),
 	);
 	render_signup(&**state, &id, &req, body.into_inner()).await
 }

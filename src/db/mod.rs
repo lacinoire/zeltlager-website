@@ -17,15 +17,16 @@ use diesel::result::Error;
 use dotenv::dotenv;
 use ipnetwork::IpNetwork;
 use log::info;
-use scrypt::password_hash::{McfHasher, PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use scrypt::password_hash::{
+	McfHasher, PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
+};
 use scrypt::Scrypt;
 
 use crate::auth;
 
 macro_rules! get_str {
 	($map:ident, $key:expr) => {
-		$map.remove($key)
-			.ok_or_else(|| format_err!("{} fehlt", $key))
+		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key))
 	};
 }
 
@@ -105,16 +106,12 @@ impl Message for DecreaseRateCounterMessage {
 }
 
 pub struct RunOnDbMsg<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>>(pub F);
-impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>> Message
-	for RunOnDbMsg<I, F>
-{
+impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>> Message for RunOnDbMsg<I, F> {
 	type Result = Result<I>;
 }
 
 impl AuthenticateMessage {
-	pub fn from_hashmap(
-		mut map: HashMap<String, String>,
-	) -> Result<AuthenticateMessage> {
+	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<AuthenticateMessage> {
 		Ok(AuthenticateMessage {
 			username: get_str!(map, "username")?,
 			password: get_str!(map, "password")?,
@@ -140,10 +137,7 @@ impl DbExecutor {
 	pub fn new() -> Result<Self> {
 		dotenv().ok();
 		let database_url = env::var("DATABASE_URL").map_err(|e| {
-			format_err!(
-				"DATABASE_URL is not set, are you missing a .env file? ({:?})",
-				e
-			)
+			format_err!("DATABASE_URL is not set, are you missing a .env file? ({:?})", e)
 		})?;
 		let connection = PgConnection::establish(&database_url)?;
 
@@ -154,11 +148,7 @@ impl DbExecutor {
 impl Handler<RunMigrationsMessage> for DbExecutor {
 	type Result = Result<()>;
 
-	fn handle(
-		&mut self,
-		_: RunMigrationsMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, _: RunMigrationsMessage, _: &mut Self::Context) -> Self::Result {
 		let mut s = Vec::new();
 		embedded_migrations::run_with_output(&self.connection, &mut s)?;
 		let s = std::str::from_utf8(&s)?;
@@ -173,11 +163,7 @@ impl Handler<RunMigrationsMessage> for DbExecutor {
 impl Handler<CheckRateMessage> for DbExecutor {
 	type Result = Result<bool>;
 
-	fn handle(
-		&mut self,
-		msg: CheckRateMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, msg: CheckRateMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::rate_limiting::dsl::*;
 		use diesel::dsl::insert_into;
 		use diesel::expression::dsl::now;
@@ -190,19 +176,13 @@ impl Handler<CheckRateMessage> for DbExecutor {
 				ip = msg.ip.parse::<IpAddr>()?.into();
 			}
 		}
-		let entry_res = rate_limiting
-			.find(ip)
-			.first::<models::RateLimiting>(&self.connection);
+		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&self.connection);
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
-				if entry.first_count
-					<= Utc::now().naive_utc() - crate::ratelimit_duration()
-				{
+				if entry.first_count <= Utc::now().naive_utc() - crate::ratelimit_duration() {
 					// reset counter and grant request
-					diesel::update(&entry)
-						.set(counter.eq(1))
-						.execute(&self.connection)?;
+					diesel::update(&entry).set(counter.eq(1)).execute(&self.connection)?;
 					diesel::update(&entry)
 						.set(first_count.eq(now.at_time_zone("utc")))
 						.execute(&self.connection)?;
@@ -235,23 +215,15 @@ impl Handler<CheckRateMessage> for DbExecutor {
 impl Handler<DecreaseRateCounterMessage> for DbExecutor {
 	type Result = Result<()>;
 
-	fn handle(
-		&mut self,
-		msg: DecreaseRateCounterMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, msg: DecreaseRateCounterMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::rate_limiting::dsl::*;
 
 		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
-		let entry_res = rate_limiting
-			.find(ip)
-			.first::<models::RateLimiting>(&self.connection);
+		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&self.connection);
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
-				diesel::update(&entry)
-					.set(counter.eq(counter - 1))
-					.execute(&self.connection)?;
+				diesel::update(&entry).set(counter.eq(counter - 1)).execute(&self.connection)?;
 				Ok(())
 			}
 			Err(Error::NotFound) => {
@@ -262,9 +234,7 @@ impl Handler<DecreaseRateCounterMessage> for DbExecutor {
 	}
 }
 
-impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>>
-	Handler<RunOnDbMsg<I, F>> for DbExecutor
-{
+impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>> Handler<RunOnDbMsg<I, F>> for DbExecutor {
 	type Result = Result<I>;
 	fn handle(&mut self, msg: RunOnDbMsg<I, F>, _: &mut Self::Context) -> Self::Result {
 		msg.0(self)
@@ -274,16 +244,10 @@ impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>>
 impl Handler<SignupMessage> for DbExecutor {
 	type Result = Result<()>;
 
-	fn handle(
-		&mut self,
-		msg: SignupMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 
-		diesel::insert_into(teilnehmer::table)
-			.values(&msg.member)
-			.execute(&self.connection)?;
+		diesel::insert_into(teilnehmer::table).values(&msg.member).execute(&self.connection)?;
 
 		Ok(())
 	}
@@ -292,34 +256,55 @@ impl Handler<SignupMessage> for DbExecutor {
 impl Handler<DownloadMembersMessage> for DbExecutor {
 	type Result = Result<Vec<models::Teilnehmer>>;
 
-	fn handle(
-		&mut self,
-		_: DownloadMembersMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, _: DownloadMembersMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 		use self::schema::teilnehmer::*;
-		pub const ALL_COLUMNS_BUT_ID: (vorname, nachname, geburtsdatum,
-			geschlecht, schwimmer, vegetarier, tetanus_impfung, eltern_name,
-			eltern_mail, eltern_handynummer, strasse, hausnummer, ort, plz,
-			besonderheiten, agb) = (vorname, nachname, geburtsdatum,
-			geschlecht, schwimmer, vegetarier, tetanus_impfung, eltern_name,
-			eltern_mail, eltern_handynummer, strasse, hausnummer, ort, plz,
-			besonderheiten, agb);
+		pub const ALL_COLUMNS_BUT_ID: (
+			vorname,
+			nachname,
+			geburtsdatum,
+			geschlecht,
+			schwimmer,
+			vegetarier,
+			tetanus_impfung,
+			eltern_name,
+			eltern_mail,
+			eltern_handynummer,
+			strasse,
+			hausnummer,
+			ort,
+			plz,
+			besonderheiten,
+			agb,
+		) = (
+			vorname,
+			nachname,
+			geburtsdatum,
+			geschlecht,
+			schwimmer,
+			vegetarier,
+			tetanus_impfung,
+			eltern_name,
+			eltern_mail,
+			eltern_handynummer,
+			strasse,
+			hausnummer,
+			ort,
+			plz,
+			besonderheiten,
+			agb,
+		);
 
-		Ok(teilnehmer::table.select(ALL_COLUMNS_BUT_ID)
-		   .load::<models::Teilnehmer>(&self.connection)?)
+		Ok(teilnehmer::table
+			.select(ALL_COLUMNS_BUT_ID)
+			.load::<models::Teilnehmer>(&self.connection)?)
 	}
 }
 
 impl Handler<DownloadFullMembersMessage> for DbExecutor {
 	type Result = Result<Vec<models::FullTeilnehmer>>;
 
-	fn handle(
-		&mut self,
-		_: DownloadFullMembersMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, _: DownloadFullMembersMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 
 		Ok(teilnehmer::table.load::<models::FullTeilnehmer>(&self.connection)?)
@@ -329,11 +314,7 @@ impl Handler<DownloadFullMembersMessage> for DbExecutor {
 impl Handler<DownloadFullSupervisorsMessage> for DbExecutor {
 	type Result = Result<Vec<models::FullSupervisor>>;
 
-	fn handle(
-		&mut self,
-		_: DownloadFullSupervisorsMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, _: DownloadFullSupervisorsMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::betreuer;
 
 		Ok(betreuer::table.load::<models::FullSupervisor>(&self.connection)?)
@@ -343,41 +324,58 @@ impl Handler<DownloadFullSupervisorsMessage> for DbExecutor {
 impl Handler<DownloadBetreuerMessage> for DbExecutor {
 	type Result = Result<Vec<models::Supervisor>>;
 
-	fn handle(
-		&mut self,
-		_: DownloadBetreuerMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, _: DownloadBetreuerMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::betreuer;
 		use self::schema::betreuer::*;
-		pub const ALL_COLUMNS_BUT_ID: (vorname, nachname, geburtsdatum,
-			geschlecht, juleica_nummer, mail,
-			handynummer, strasse, hausnummer, ort, plz, besonderheiten, agb,
-			selbsterklaerung, fuehrungszeugnis_auststellung,
-			fuehrungszeugnis_eingesehen) = (vorname, nachname, geburtsdatum,
-			geschlecht, juleica_nummer, mail,
-			handynummer, strasse, hausnummer, ort, plz, besonderheiten, agb,
-			selbsterklaerung, fuehrungszeugnis_auststellung,
-			fuehrungszeugnis_eingesehen);
+		pub const ALL_COLUMNS_BUT_ID: (
+			vorname,
+			nachname,
+			geburtsdatum,
+			geschlecht,
+			juleica_nummer,
+			mail,
+			handynummer,
+			strasse,
+			hausnummer,
+			ort,
+			plz,
+			besonderheiten,
+			agb,
+			selbsterklaerung,
+			fuehrungszeugnis_auststellung,
+			fuehrungszeugnis_eingesehen,
+		) = (
+			vorname,
+			nachname,
+			geburtsdatum,
+			geschlecht,
+			juleica_nummer,
+			mail,
+			handynummer,
+			strasse,
+			hausnummer,
+			ort,
+			plz,
+			besonderheiten,
+			agb,
+			selbsterklaerung,
+			fuehrungszeugnis_auststellung,
+			fuehrungszeugnis_eingesehen,
+		);
 
-		Ok(betreuer::table.select(ALL_COLUMNS_BUT_ID)
-		   .load::<models::Supervisor>(&self.connection)?)
+		Ok(betreuer::table
+			.select(ALL_COLUMNS_BUT_ID)
+			.load::<models::Supervisor>(&self.connection)?)
 	}
 }
 
 impl Handler<SignupSupervisorMessage> for DbExecutor {
 	type Result = Result<()>;
 
-	fn handle(
-		&mut self,
-		msg: SignupSupervisorMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, msg: SignupSupervisorMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::betreuer;
 
-		diesel::insert_into(betreuer::table)
-			.values(&msg.supervisor)
-			.execute(&self.connection)?;
+		diesel::insert_into(betreuer::table).values(&msg.supervisor).execute(&self.connection)?;
 
 		Ok(())
 	}
@@ -386,11 +384,7 @@ impl Handler<SignupSupervisorMessage> for DbExecutor {
 impl Handler<CountMemberMessage> for DbExecutor {
 	type Result = Result<i64>;
 
-	fn handle(
-		&mut self,
-		_: CountMemberMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, _: CountMemberMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 
 		Ok(teilnehmer::table.count().get_result(&self.connection)?)
@@ -400,11 +394,7 @@ impl Handler<CountMemberMessage> for DbExecutor {
 impl Handler<AuthenticateMessage> for DbExecutor {
 	type Result = Result<Option<i32>>;
 
-	fn handle(
-		&mut self,
-		msg: AuthenticateMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, msg: AuthenticateMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::users::dsl::*;
 
 		// Fetch user from db
@@ -413,9 +403,15 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			.first::<models::UserQueryResult>(&self.connection)
 		{
 			Ok(user) => {
-				if PasswordHash::new(&user.password).and_then(|hash| scrypt::Scrypt.verify_password(msg.password.as_bytes(), &hash)).is_ok() {
+				if PasswordHash::new(&user.password)
+					.and_then(|hash| scrypt::Scrypt.verify_password(msg.password.as_bytes(), &hash))
+					.is_ok()
+				{
 					Ok(Some(user.id))
-				} else if scrypt::Scrypt.verify_mcf_hash(msg.password.as_bytes(), &msg.password).is_ok() {
+				} else if scrypt::Scrypt
+					.verify_mcf_hash(msg.password.as_bytes(), &msg.password)
+					.is_ok()
+				{
 					// Old password hash format
 					Ok(Some(user.id))
 				} else {
@@ -426,9 +422,9 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 				// Hash a random password so we don’t leak much timing information if a user exists
 				// or not.
 				let salt = SaltString::generate(&mut rand::thread_rng());
-				let pw = Scrypt.hash_password_simple(
-					msg.username.as_bytes(),
-					salt.as_ref())?.to_string();
+				let pw = Scrypt
+					.hash_password_simple(msg.username.as_bytes(), salt.as_ref())?
+					.to_string();
 				let hash = PasswordHash::new(&pw)?;
 				let _ = Scrypt.verify_password(msg.password.as_bytes(), &hash);
 				Ok(None)
@@ -441,18 +437,11 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 impl Handler<GetRolesMessage> for DbExecutor {
 	type Result = Result<Vec<auth::Roles>>;
 
-	fn handle(
-		&mut self,
-		msg: GetRolesMessage,
-		_: &mut Self::Context,
-	) -> Self::Result {
+	fn handle(&mut self, msg: GetRolesMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::roles::dsl::*;
 
 		// Fetch user from db
-		match roles
-			.filter(user_id.eq(msg.user))
-			.get_results::<models::Role>(&self.connection)
-		{
+		match roles.filter(user_id.eq(msg.user)).get_results::<models::Role>(&self.connection) {
 			Ok(mut res) => {
 				// Convert to enum
 				res.drain(..)
