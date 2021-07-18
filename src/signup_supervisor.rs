@@ -59,7 +59,9 @@ async fn render_signup(
 /// show a success site.
 fn signup_success() -> HttpResponse {
 	// Redirect to success site
-	HttpResponse::Found().header(http::header::LOCATION, "betreuer-anmeldung-erfolgreich").finish()
+	HttpResponse::Found()
+		.append_header((http::header::LOCATION, "betreuer-anmeldung-erfolgreich"))
+		.finish()
 }
 
 #[post("/intern/signup-supervisor-send")]

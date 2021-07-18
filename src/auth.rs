@@ -44,8 +44,11 @@ impl Login {
 }
 
 async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
-	let ip =
-		req.connection_info().remote().ok_or_else(|| format_err!("no ip detected"))?.to_string();
+	let ip = req
+		.connection_info()
+		.realip_remote_addr()
+		.ok_or_else(|| format_err!("no ip detected"))?
+		.to_string();
 	match state.db_addr.send(db::CheckRateMessage { ip }).await {
 		Ok(result) => {
 			if result? {
@@ -98,7 +101,7 @@ pub async fn login(
 ) -> HttpResponse {
 	if logged_in_user(&id).is_some() {
 		let redir = args.redirect.as_ref().map(|s| s.as_str()).unwrap_or("/");
-		HttpResponse::Found().header("location", redir).finish()
+		HttpResponse::Found().append_header(("location", redir)).finish()
 	} else {
 		let mut values = HashMap::new();
 		if let Some(redirect) = args.redirect.take() {
@@ -159,7 +162,7 @@ pub async fn login_send(
 				set_logged_in(id, &identity);
 				let ip = match req
 					.connection_info()
-					.remote()
+					.realip_remote_addr()
 					.ok_or_else(|| format_err!("no ip detected"))
 				{
 					Ok(r) => r.to_string(),
@@ -176,9 +179,9 @@ pub async fn login_send(
 				if let Some(redirect) = redirect {
 					let redirect = redirect.trim_start_matches('/');
 					let redirect = format!("/{}", redirect);
-					HttpResponse::Found().header("location", redirect.as_str()).finish()
+					HttpResponse::Found().append_header(("location", redirect.as_str())).finish()
 				} else {
-					HttpResponse::Found().header("location", "/").finish()
+					HttpResponse::Found().append_header(("location", "/")).finish()
 				}
 			}
 			Ok(Ok(None)) => {
@@ -188,7 +191,7 @@ pub async fn login_send(
 					"error".to_string(),
 					"Falsches Passwort oder falscher Benutzername".to_string(),
 				);
-				render_login(&**state, &identity, &req, body.into_inner()).await
+				render_login(&*state, &identity, &req, body.into_inner()).await
 			}
 		}
 	}
@@ -197,7 +200,7 @@ pub async fn login_send(
 #[get("/logout")]
 pub fn logout(id: Identity) -> HttpResponse {
 	id.forget();
-	HttpResponse::Found().header("location", "/").finish()
+	HttpResponse::Found().append_header(("location", "/")).finish()
 }
 
 // Utility methods for other modules

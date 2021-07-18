@@ -3,26 +3,26 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::env;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use std::task::{Context, Poll};
 
 use actix_files::Files;
-use actix_http::cookie::SameSite;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
+use actix_web::body::{AnyBody, MessageBody};
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header::DispositionType;
+use actix_web::web::Data;
 use actix_web::*;
 use anyhow::{format_err, Result};
 use chrono::Duration;
+use futures::future::LocalBoxFuture;
 use futures::prelude::*;
+use lettre::message::Mailbox;
 use log::{error, warn};
 use rand::Rng;
 use structopt::StructOpt;
@@ -69,9 +69,10 @@ pub struct State {
 	log_mutex: Arc<Mutex<()>>,
 }
 
-impl Into<lettre_email::Mailbox> for MailAddress {
-	fn into(self) -> lettre_email::Mailbox {
-		lettre_email::Mailbox { name: self.name, address: self.address }
+impl TryInto<Mailbox> for MailAddress {
+	type Error = anyhow::Error;
+	fn try_into(self) -> Result<Mailbox> {
+		Ok(Mailbox { name: self.name, email: self.address.parse()? })
 	}
 }
 
@@ -80,37 +81,6 @@ fn content_disposition_map(typ: &mime::Name) -> DispositionType {
 		// For images and application/pdf in object tags
 		mime::IMAGE | mime::TEXT | mime::VIDEO | mime::APPLICATION => DispositionType::Inline,
 		_ => DispositionType::Attachment,
-	}
-}
-
-struct CsrfFilter {
-	domain: Option<String>,
-}
-
-struct CsrfFilterMiddleware<S> {
-	service: S,
-	domain: Option<String>,
-}
-
-impl CsrfFilter {
-	fn new(domain: Option<String>) -> Self { Self { domain } }
-}
-
-impl<S: 'static, B> Transform<S> for CsrfFilter
-where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-	S::Future: 'static,
-	B: 'static,
-{
-	type Request = ServiceRequest;
-	type Response = ServiceResponse<B>;
-	type Error = Error;
-	type InitError = ();
-	type Transform = CsrfFilterMiddleware<S>;
-	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
-
-	fn new_transform(&self, service: S) -> Self::Future {
-		future::ok(CsrfFilterMiddleware { service, domain: self.domain.clone() })
 	}
 }
 
@@ -138,53 +108,25 @@ fn get_origin(headers: &http::header::HeaderMap) -> Option<Result<String>> {
 		})
 }
 
-impl<S: 'static, B> Service for CsrfFilterMiddleware<S>
-where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-	S::Future: 'static,
-	B: 'static,
-{
-	type Request = ServiceRequest;
-	type Response = ServiceResponse<B>;
-	type Error = Error;
-	type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
-
-	fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-		self.service.poll_ready(cx)
-	}
-
-	fn call(&mut self, req: ServiceRequest) -> Self::Future {
-		if !req.method().is_safe() {
-			if let Some(domain) = &self.domain {
-				if let Some(header) = get_origin(req.headers()) {
-					match header {
-						Ok(ref origin) if origin.ends_with(domain) => {}
-						Ok(ref origin) => {
-							warn!(
-								"Origin does not match: {:?} does not end with {:?}",
-								origin, domain
-							);
-							return Box::pin(future::err(
-								io::Error::new(io::ErrorKind::Other, "Cross origin request denied")
-									.into(),
-							));
-						}
-						Err(e) => {
-							warn!("Origin not found: {}", e);
-							return Box::pin(future::err(
-								io::Error::new(
-									io::ErrorKind::Other,
-									"Cross origin request failure",
-								)
-								.into(),
-							));
-						}
+fn check_csrf(req: &ServiceRequest, domain: Option<&str>) -> bool {
+	if !req.method().is_safe() {
+		if let Some(domain) = domain {
+			if let Some(header) = get_origin(req.headers()) {
+				match header {
+					Ok(ref origin) if origin.ends_with(domain) => {}
+					Ok(ref origin) => {
+						warn!("Origin does not match: {:?} does not end with {:?}", origin, domain);
+						return false;
+					}
+					Err(e) => {
+						warn!("Origin not found: {}", e);
+						return false;
 					}
 				}
 			}
 		}
-		Box::pin(self.service.call(req))
 	}
+	true
 }
 
 struct HasRolePredicate {
@@ -192,7 +134,7 @@ struct HasRolePredicate {
 }
 
 struct HasRolePredicateMiddleware<S> {
-	service: Rc<RefCell<S>>,
+	service: Rc<S>,
 	role: auth::Roles,
 }
 
@@ -200,111 +142,70 @@ impl HasRolePredicate {
 	fn new(role: auth::Roles) -> Self { Self { role } }
 }
 
-impl<S: 'static, B> Transform<S> for HasRolePredicate
+impl<S, B> Transform<S, ServiceRequest> for HasRolePredicate
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
 	S::Future: 'static,
-	B: 'static,
+	B: MessageBody + 'static,
+	B::Error: std::error::Error,
 {
-	type Request = ServiceRequest;
-	type Response = ServiceResponse<B>;
+	type Response = ServiceResponse;
 	type Error = Error;
 	type InitError = ();
 	type Transform = HasRolePredicateMiddleware<S>;
 	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
 
 	fn new_transform(&self, service: S) -> Self::Future {
-		future::ok(HasRolePredicateMiddleware {
-			service: Rc::new(RefCell::new(service)),
-			role: self.role,
-		})
+		future::ok(HasRolePredicateMiddleware { service: Rc::new(service), role: self.role })
 	}
 }
 
-impl<S: 'static, B> Service for HasRolePredicateMiddleware<S>
+impl<S, B> Service<ServiceRequest> for HasRolePredicateMiddleware<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
 	S::Future: 'static,
-	B: 'static,
+	B: MessageBody + 'static,
+	B::Error: std::error::Error,
 {
-	type Request = ServiceRequest;
-	type Response = ServiceResponse<B>;
+	type Response = ServiceResponse;
 	type Error = Error;
-	type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+	type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
-	fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-		self.service.poll_ready(cx)
-	}
+	actix_service::forward_ready!(service);
 
-	fn call(&mut self, req: ServiceRequest) -> Self::Future {
-		let mut service = self.service.clone();
-		let state = req.app_data::<State>().unwrap();
+	fn call(&self, req: ServiceRequest) -> Self::Future {
+		let service = Rc::clone(&self.service);
+		let state = req.app_data::<Data<State>>().unwrap().clone();
 		let (req, mut pay) = req.into_parts();
 		let identity = Identity::from_request(&req, &mut pay);
 		let role = self.role;
 
-		Box::pin(async move {
+		async move {
 			let identity = identity.await?;
-			let roles = match auth::get_roles(&**state, &identity).await {
+			let roles = match auth::get_roles(&state, &identity).await {
 				Ok(r) => r,
 				Err(e) => {
 					error!("Failed to get roles: {}", e);
 					drop(identity);
-					let req = match ServiceRequest::from_parts(req, pay) {
-						Ok(r) => r,
-						Err(_) => {
-							return Err(io::Error::new(
-								io::ErrorKind::Other,
-								"Failed to reassemble request",
-							)
-							.into());
-						}
-					};
-					return Ok(req.into_response(crate::error_response(&state).into_body()));
+					let req = ServiceRequest::from_parts(req, pay);
+					return Ok(req.into_response(crate::error_response(&state)));
 				}
 			};
 			if let Some(roles) = roles {
 				if roles.contains(&role) {
 					drop(identity);
-					let req = match ServiceRequest::from_parts(req, pay) {
-						Ok(r) => r,
-						Err(_) => {
-							return Err(io::Error::new(
-								io::ErrorKind::Other,
-								"Failed to reassemble request",
-							)
-							.into());
-						}
-					};
-					service.call(req).await
+					let req = ServiceRequest::from_parts(req, pay);
+					Ok(service.call(req).await?.map_body(|_, body| AnyBody::from_message(body)))
 				} else {
-					let res = forbidden(&state, &identity).await.into_body();
+					let res = forbidden(&state, &identity).await;
 					drop(identity);
-					let req = match ServiceRequest::from_parts(req, pay) {
-						Ok(r) => r,
-						Err(_) => {
-							return Err(io::Error::new(
-								io::ErrorKind::Other,
-								"Failed to reassemble request",
-							)
-							.into());
-						}
-					};
+					let req = ServiceRequest::from_parts(req, pay);
 					warn!("Forbidden '{}'", req.path());
 					Ok(req.into_response(res))
 				}
 			} else {
 				drop(identity);
-				let req = match ServiceRequest::from_parts(req, pay) {
-					Ok(r) => r,
-					Err(_) => {
-						return Err(io::Error::new(
-							io::ErrorKind::Other,
-							"Failed to reassemble request",
-						)
-						.into());
-					}
-				};
+				let req = ServiceRequest::from_parts(req, pay);
 				let location = format!(
 					"/login?redirect={}",
 					url::form_urlencoded::byte_serialize(req.path().as_bytes()).collect::<String>()
@@ -312,10 +213,12 @@ where
 				// Not logged in
 				// Redirect to login site with redirect to original site
 				Ok(req.into_response(
-					HttpResponse::Found().header("location", location).finish().into_body(),
+					HttpResponse::Found().append_header(("location", location)).finish(),
 				))
 			}
-		})
+		}
+		.map_ok(|res| res.map_body(|_, body| AnyBody::from_message(body)))
+		.boxed_local()
 	}
 }
 
@@ -537,17 +440,27 @@ async fn main() -> Result<()> {
 	HttpServer::new(move || {
 		let mut identity_policy = CookieIdentityPolicy::new(&key)
 			.name("user")
-			.max_age_time(cookie_maxtime())
+			.max_age_secs(cookie_maxtime().num_seconds())
 			.secure(state.config.secure)
-			.same_site(SameSite::Strict);
+			.same_site(cookie::SameSite::Strict);
 
+		let domain = state.config.domain.clone();
 		let app = App::new()
-			.data(state.clone())
+			.app_data(Data::new(state.clone()))
 			.wrap(middleware::Logger::default())
-			.wrap(CsrfFilter::new(state.config.domain.clone()));
+			.wrap_fn(move |req, srv| {
+				// Test for CSRF, check origin header
+				if !check_csrf(&req, domain.as_deref()) {
+					future::err(
+						io::Error::new(io::ErrorKind::Other, "Cross origin request denied").into(),
+					)
+					.right_future()
+				} else {
+					srv.call(req).left_future()
+				}
+			});
 
 		if let Some(ref domain) = state.config.domain {
-			// TODO Test for CSRF, check origin header
 			identity_policy = identity_policy.domain(domain.clone());
 		}
 
@@ -586,7 +499,9 @@ async fn main() -> Result<()> {
 						.default_service(web::to(not_found_handler)),
 				)
 				.service(web::resource(&format!("/{}", name)).route(web::get().to(move || {
-					HttpResponse::Found().header("location", format!("/{}/", name)).finish()
+					HttpResponse::Found()
+						.append_header(("location", format!("/{}/", name)))
+						.finish()
 				})));
 		}
 
@@ -604,7 +519,7 @@ async fn main() -> Result<()> {
 				.default_service(web::to(not_found_handler))
 			)
 			.service(web::resource("/admin").route(web::get().to(||
-				HttpResponse::Found().header("location", "/admin/").finish())
+				HttpResponse::Found().append_header(("location", "/admin/")).finish())
 			))
 			// erwischt
 			.service(web::scope("/erwischt")
@@ -621,7 +536,7 @@ async fn main() -> Result<()> {
 				.default_service(web::to(not_found_handler))
 			)
 			.service(web::resource("/erwischt").route(web::get().to(||
-				HttpResponse::Found().header("location", "/erwischt/").finish())
+				HttpResponse::Found().append_header(("location", "/erwischt/")).finish())
 			))
 			// Allow an empty name
 			.service(web::resource("/{prefix}/{name:[^/]*}").route(web::get().to(crate::sites)))

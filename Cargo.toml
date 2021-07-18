@@ -5,15 +5,16 @@ authors = ["Flakebi <flakebi@t-online.de>"]
 edition = "2018"
 
 [dependencies]
-actix = "0.9"
-actix-files = "0.2"
-actix-http = "1"
-actix-identity = "0.2"
-actix-rt = "1"
-actix-web = "2"
+actix = "0.12"
+actix-files = "=0.6.0-beta.6"
+actix-identity = "=0.4.0-beta.2"
+actix-rt = "2"
+actix-service = "2"
+actix-web = "=4.0.0-beta.8"
 anyhow = "1"
 base64 = "0.13"
 chrono = { version = "0.4", features = ["serde"] }
+cookie = "0.14"
 csv = "1"
 diesel = { version = "1.4", features = ["chrono", "postgres", "network-address"] }
 diesel_migrations = "1.4"
@@ -21,11 +22,9 @@ dotenv = "0.15"
 env_logger = "0.9"
 futures = "0.3"
 ipnetwork = "0.18"
-lettre = "0.9"
-lettre_email = "0.9"
+lettre = "=0.10.0-rc.3"
 log = "0.4"
 mime = "0.3"
-native-tls = "0.2"
 notify = "4"
 pulldown-cmark = { version = "0.8", default-features = false }
 printpdf = "0.4"
@@ -39,7 +38,7 @@ strum = "0.21"
 strum_macros = "0.21"
 t4rust-derive = "0.3"
 toml = "0.5"
-tokio = { version = "0.2", features = ["macros"] }
+tokio = "1"
 url = "2"
 
 # Compile in release mode to speed up password checking

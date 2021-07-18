@@ -187,7 +187,7 @@ async fn signup_mail(
 		Ok(Ok(())) => {
 			// Redirect to success site
 			return HttpResponse::Found()
-				.header(http::header::LOCATION, "anmeldung-erfolgreich")
+				.append_header((http::header::LOCATION, "anmeldung-erfolgreich"))
 				.finish();
 		}
 	}

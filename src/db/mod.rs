@@ -409,7 +409,7 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 				{
 					Ok(Some(user.id))
 				} else if scrypt::Scrypt
-					.verify_mcf_hash(msg.password.as_bytes(), &msg.password)
+					.verify_mcf_hash(msg.password.as_bytes(), &user.password)
 					.is_ok()
 				{
 					// Old password hash format

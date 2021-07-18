@@ -39,8 +39,6 @@ pub struct MailAddress {
 	pub address: String,
 }
 
-fn submission_port() -> u16 { 587 }
-
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct MailAccount {
@@ -50,8 +48,6 @@ pub struct MailAccount {
 	pub name: Option<String>,
 	/// Password to login to smtp.
 	pub password: String,
-	#[serde(default = "submission_port")]
-	pub port: u16,
 }
 
 #[derive(Deserialize, Debug, Clone)]

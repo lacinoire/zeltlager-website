@@ -1,11 +1,11 @@
+use std::convert::TryInto;
+use std::str::FromStr;
+
 use actix::prelude::*;
 use anyhow::Result;
-use lettre::smtp::authentication::Credentials;
-use lettre::smtp::client::net::{ClientTlsParameters, DEFAULT_TLS_PROTOCOLS};
-use lettre::smtp::ClientSecurity;
-use lettre::{SmtpClient, Transport};
-use lettre_email::EmailBuilder;
-use native_tls::TlsConnector;
+use lettre::message::header;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{SmtpTransport, Transport};
 use t4rust_derive::Template;
 
 use crate::config::Config;
@@ -52,61 +52,41 @@ impl Handler<SignupMessage> for MailExecutor {
 		let subject = format!("{}", Subject { member: &msg.member }).trim().to_string();
 		let body = format!("{}", Body { member: &msg.member }).trim().to_string();
 
-		let mut email_builder = EmailBuilder::new()
-			.to((
-				msg.member.eltern_mail.clone(),
-				msg.member.eltern_name.clone(),
-			))
-			.header(("Content-Transfer-Encoding", "8bit"))
-			.from(self.config.sender_mail.clone())
-			// Subject has to be encoded specially for UTF-8
-			.subject(format!("=?utf-8?B?{}?=", base64::encode(subject.as_bytes())))
-			.text(body);
+		let mut email_builder = lettre::Message::builder()
+			.to((msg.member.eltern_name.clone(), msg.member.eltern_mail.clone()).try_into()?)
+			.header(header::ContentType::TEXT_PLAIN)
+			.from(self.config.sender_mail.clone().try_into()?)
+			.subject(subject);
 
 		if self.config.test_mail.as_ref().map(|m| m != &msg.member.eltern_mail).unwrap_or(true) {
 			// Send to additional receivers in bcc
 			for receiver in &self.config.additional_mail_receivers {
-				email_builder = email_builder.bcc(receiver.clone());
+				email_builder = email_builder.bcc(receiver.clone().try_into()?);
 			}
 		}
 
-		let email = email_builder.build()?;
+		let email = email_builder.body(body)?;
 
-		let mut tls_builder = TlsConnector::builder();
-		tls_builder.min_protocol_version(Some(DEFAULT_TLS_PROTOCOLS[0]));
-		let tls_parameters = ClientTlsParameters::new(
-			self.config.sender_mail_account.host.clone(),
-			tls_builder.build().unwrap(),
-		);
-		let mut mailer = SmtpClient::new(
-			(self.config.sender_mail_account.host.as_str(), self.config.sender_mail_account.port),
-			ClientSecurity::Required(tls_parameters),
-		)?
-		.credentials(Credentials::new(
-			self.config
-				.sender_mail_account
-				.name
-				.clone()
-				.unwrap_or_else(|| self.config.sender_mail.address.clone()),
-			self.config.sender_mail_account.password.clone(),
-		))
-		.transport();
+		let mailer = SmtpTransport::relay(self.config.sender_mail_account.host.as_str())?
+			.credentials(Credentials::new(
+				self.config
+					.sender_mail_account
+					.name
+					.clone()
+					.unwrap_or_else(|| self.config.sender_mail.address.clone()),
+				self.config.sender_mail_account.password.clone(),
+			))
+			.build();
 
 		// Send the email
-		mailer.send(email.into())?;
+		mailer.send(&email)?;
 
 		Ok(())
 	}
 }
 
 pub fn check_parsable(mail_addr: &str) -> Result<()> {
-	EmailBuilder::new()
-		.to((mail_addr, mail_addr))
-		.from(mail_addr)
-		.bcc(mail_addr)
-		.subject("subj")
-		.text("text")
-		.build()?;
+	lettre::Address::from_str(mail_addr)?;
 	Ok(())
 }
 

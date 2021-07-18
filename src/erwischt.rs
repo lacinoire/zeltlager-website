@@ -64,7 +64,7 @@ pub async fn get_games(state: web::Data<State>) -> HttpResponse {
 			error!("Failed to get games: {}", e);
 			HttpResponse::InternalServerError().body("Failed to get games")
 		}
-		Ok(Ok(r)) => HttpResponse::Ok().content_type("text/html; charset=utf-8").json2(&r),
+		Ok(Ok(r)) => HttpResponse::Ok().content_type("text/html; charset=utf-8").json(&r),
 	}
 }
 
@@ -89,7 +89,7 @@ pub async fn get_game(state: web::Data<State>, game_id: web::Path<i32>) -> HttpR
 			error!("Failed to get members: {}", e);
 			HttpResponse::InternalServerError().body("Failed to get members")
 		}
-		Ok(Ok(r)) => HttpResponse::Ok().json2(&r),
+		Ok(Ok(r)) => HttpResponse::Ok().json(&r),
 	}
 }
 
