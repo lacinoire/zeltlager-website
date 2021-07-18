@@ -248,7 +248,7 @@ pub(crate) async fn insert(state: web::Data<State>, data: web::Json<InsertData>)
 					.filter(game.eq(data.game))
 					.select(max(id))
 					.first::<Option<i32>>(&db.connection)?
-					.ok_or_else(|| diesel::result::Error::NotFound)?;
+					.ok_or(diesel::result::Error::NotFound)?;
 
 				diesel::insert_into(erwischt_member::table)
 					.values(NewErwischtMember {
@@ -308,7 +308,7 @@ async fn create_pdf(state: &State, game_id: i32, with_target: bool) -> HttpRespo
 				.filter(game.eq(game_id))
 				.select(max(id))
 				.first::<Option<i32>>(&db.connection)?
-				.ok_or_else(|| diesel::result::Error::NotFound)?;
+				.ok_or(diesel::result::Error::NotFound)?;
 			let id_digits = (last_id as f32).log10().ceil() as usize;
 
 			let members = erwischt_member::table
@@ -318,7 +318,7 @@ async fn create_pdf(state: &State, game_id: i32, with_target: bool) -> HttpRespo
 			let members: HashMap<i32, db::models::ErwischtMember> =
 				members.into_iter().map(|m| (m.id, m)).collect();
 			let mut members_by_name: Vec<i32> = members.keys().cloned().collect();
-			members_by_name.sort_by_key(|i| &members[&i].name);
+			members_by_name.sort_by_key(|i| &members[i].name);
 
 			let width = Mm(210.0);
 			let height = Mm(297.0);
@@ -355,7 +355,7 @@ async fn create_pdf(state: &State, game_id: i32, with_target: bool) -> HttpRespo
 					cur_x_pos = margin;
 				}
 
-				let m = &members[&i];
+				let m = &members[i];
 				let target_index = members_by_name
 					.iter()
 					.position(|i| *i == m.target)

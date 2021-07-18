@@ -471,7 +471,7 @@ impl Supervisor {
 		}
 		// Check Juleica Number
 		if let Some(ref jn) = res.juleica_nummer {
-			if !check_only_numbers(&jn, 11) {
+			if !check_only_numbers(jn, 11) {
 				bail!("Ungültige Juleicanummer ({}, Länge ≠ 11 oder Buchstaben drin)", jn)
 			}
 		}

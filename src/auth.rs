@@ -100,7 +100,7 @@ pub async fn login(
 	state: web::Data<State>, id: Identity, req: HttpRequest, mut args: web::Query<LoginArgs>,
 ) -> HttpResponse {
 	if logged_in_user(&id).is_some() {
-		let redir = args.redirect.as_ref().map(|s| s.as_str()).unwrap_or("/");
+		let redir = args.redirect.as_deref().unwrap_or("/");
 		HttpResponse::Found().append_header(("location", redir)).finish()
 	} else {
 		let mut values = HashMap::new();

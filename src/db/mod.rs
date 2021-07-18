@@ -403,16 +403,13 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			.first::<models::UserQueryResult>(&self.connection)
 		{
 			Ok(user) => {
+				// If parsing in the new format does not work, try the old hash format
 				if PasswordHash::new(&user.password)
 					.and_then(|hash| scrypt::Scrypt.verify_password(msg.password.as_bytes(), &hash))
-					.is_ok()
-				{
-					Ok(Some(user.id))
-				} else if scrypt::Scrypt
+					.is_ok() || scrypt::Scrypt
 					.verify_mcf_hash(msg.password.as_bytes(), &user.password)
 					.is_ok()
 				{
-					// Old password hash format
 					Ok(Some(user.id))
 				} else {
 					Ok(None)

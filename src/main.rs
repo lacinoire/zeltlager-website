@@ -103,7 +103,6 @@ fn get_origin(headers: &http::header::HeaderMap) -> Option<Result<String>> {
 					.as_ref()
 					.and_then(uri_origin)
 					.ok_or_else(|| format_err!("Bad origin"))
-					.map(|o| o.into())
 			})
 		})
 }
@@ -229,7 +228,7 @@ impl Config {
 			mail::check_parsable(&r.address)?;
 		}
 		if let Some(addr) = &self.test_mail {
-			mail::check_parsable(&addr)?;
+			mail::check_parsable(addr)?;
 		}
 		db::models::get_birthday_date(&self.birthday_date);
 		Ok(())
