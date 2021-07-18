@@ -23,6 +23,7 @@ pub enum Roles {
 	ImageDownload2018,
 	ImageDownload2019,
 	ImageDownload2020,
+	ImageDownload2021,
 	ImageUpload,
 }
 
