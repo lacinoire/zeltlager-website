@@ -17,6 +17,8 @@ use diesel::result::Error;
 use dotenv::dotenv;
 use ipnetwork::IpNetwork;
 use log::info;
+use scrypt::password_hash::{McfHasher, PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use scrypt::Scrypt;
 
 use crate::auth;
 
@@ -411,18 +413,24 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			.first::<models::UserQueryResult>(&self.connection)
 		{
 			Ok(user) => {
-				if scrypt::scrypt_check(&msg.password, &user.password).is_ok() {
+				if PasswordHash::new(&user.password).and_then(|hash| scrypt::Scrypt.verify_password(msg.password.as_bytes(), &hash)).is_ok() {
+					Ok(Some(user.id))
+				} else if scrypt::Scrypt.verify_mcf_hash(msg.password.as_bytes(), &msg.password).is_ok() {
+					// Old password hash format
 					Ok(Some(user.id))
 				} else {
 					Ok(None)
 				}
 			}
 			Err(Error::NotFound) => {
-				// Hash a random password so we don’t leak timing information
-				// if a user exists or not.
-				let pw = scrypt::scrypt_simple(&msg.username,
-					&crate::get_scrypt_params()).unwrap();
-				let _ = scrypt::scrypt_check(&msg.password, &pw);
+				// Hash a random password so we don’t leak much timing information if a user exists
+				// or not.
+				let salt = SaltString::generate(&mut rand::thread_rng());
+				let pw = Scrypt.hash_password_simple(
+					msg.username.as_bytes(),
+					salt.as_ref())?.to_string();
+				let hash = PasswordHash::new(&pw)?;
+				let _ = Scrypt.verify_password(msg.password.as_bytes(), &hash);
 				Ok(None)
 			}
 			Err(err) => Err(err.into()),

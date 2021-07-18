@@ -379,10 +379,6 @@ fn escape_html_attribute(s: &str) -> String {
 		.replace('"', "&quot;")
 }
 
-fn get_scrypt_params() -> scrypt::ScryptParams {
-	scrypt::ScryptParams::new(15, 8, 1).unwrap()
-}
-
 fn error_response(state: &State) -> HttpResponse {
 	HttpResponse::InternalServerError()
 		.content_type("text/html; charset=utf-8")

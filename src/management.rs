@@ -6,6 +6,8 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::Connection;
 use dotenv::dotenv;
+use scrypt::password_hash::{PasswordHasher, SaltString};
+use scrypt::Scrypt;
 
 use crate::db;
 use crate::config::Action;
@@ -61,7 +63,8 @@ pub(crate) fn cmd_action(action: Action) -> Result<()> {
 			let pw = rpassword::read_password_from_tty(
 				Some("Please enter the password: "),
 			).unwrap();
-			let pw = scrypt::scrypt_simple(&pw, &crate::get_scrypt_params()).unwrap();
+			let salt = SaltString::generate(&mut rand::thread_rng());
+			let pw = Scrypt.hash_password_simple(pw.as_bytes(), salt.as_ref())?.to_string();
 			if exists {
 				diesel::update(users.filter(username.eq(&name)))
 					.set(password.eq(pw))
