@@ -6,6 +6,7 @@ extern crate diesel_migrations;
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::env;
+use std::fs;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::rc::Rc;
@@ -47,13 +48,6 @@ const DEFAULT_PREFIX: &str = "public";
 const DEFAULT_NAME: &str = "startseite";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
 const KEY_FILE: &str = "secret.key";
-
-static IMAGE_YEARS: &[(&str, auth::Roles)] = &[
-	("Bilder2018", auth::Roles::ImageDownload2018),
-	("Bilder2019", auth::Roles::ImageDownload2019),
-	("Bilder2020", auth::Roles::ImageDownload2020),
-	("Bilder2021", auth::Roles::ImageDownload2021),
-];
 
 fn cookie_maxtime() -> Duration { Duration::minutes(120) }
 fn ratelimit_duration() -> Duration { Duration::days(1) }
@@ -155,7 +149,10 @@ where
 	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
 
 	fn new_transform(&self, service: S) -> Self::Future {
-		future::ok(HasRolePredicateMiddleware { service: Rc::new(service), role: self.role })
+		future::ok(HasRolePredicateMiddleware {
+			service: Rc::new(service),
+			role: self.role.clone(),
+		})
 	}
 }
 
@@ -177,7 +174,7 @@ where
 		let state = req.app_data::<Data<State>>().unwrap().clone();
 		let (req, mut pay) = req.into_parts();
 		let identity = Identity::from_request(&req, &mut pay);
-		let role = self.role;
+		let role = self.role.clone();
 
 		async move {
 			let identity = identity.await?;
@@ -431,9 +428,15 @@ async fn main() -> Result<()> {
 	let state = State { sites, config, db_addr, mail_addr, log_mutex: Arc::new(Mutex::new(())) };
 
 	// Start thumbnail creator
-	for (name, _) in IMAGE_YEARS {
-		let name = *name;
-		std::thread::spawn(move || thumbs::watch_thumbs(name));
+	let mut image_dirs = Vec::new();
+	for d in fs::read_dir(".")? {
+		let d = d?;
+		if let Some(path) =
+			d.path().file_name().and_then(|n| n.to_str()).and_then(|n| n.strip_prefix("Bilder"))
+		{
+			image_dirs.push(path.to_string());
+			std::thread::spawn(move || thumbs::watch_thumbs(d.path()));
+		}
 	}
 
 	HttpServer::new(move || {
@@ -479,29 +482,30 @@ async fn main() -> Result<()> {
 			.service(auth::login_send)
 			.service(auth::logout);
 
-		for (name, role) in IMAGE_YEARS {
-			let name = *name;
-			app = app
-				.service(
-					web::scope(&format!("/{}", name))
-						.wrap(HasRolePredicate::new(*role))
-						.service(
-							web::resource("/").route(
-								web::get().to(move |s, i| images::render_images(s, i, name)),
-							),
-						)
-						.service(
-							Files::new("/static", name)
-								.mime_override(content_disposition_map)
-								.default_handler(web::to(not_found_handler)),
-						)
-						.default_service(web::to(not_found_handler)),
-				)
-				.service(web::resource(&format!("/{}", name)).route(web::get().to(move || {
-					HttpResponse::Found()
-						.append_header(("location", format!("/{}/", name)))
-						.finish()
-				})));
+		for name in &image_dirs {
+			let name2 = name.clone();
+			let name3 = name.clone();
+			app = app.service(
+				web::scope(&format!("/Bilder{}", name))
+					.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone())))
+					.route(
+						"/",
+						web::get().to(move |s, i| images::render_images(s, i, name2.clone())),
+					)
+					.route(
+						"",
+						web::get().to(move || {
+							HttpResponse::Found()
+								.append_header(("location", format!("/Bilder{}/", name3)))
+								.finish()
+						}),
+					)
+					.service(
+						Files::new("/static", format!("Bilder{}", name))
+							.mime_override(content_disposition_map)
+							.default_handler(web::to(not_found_handler)),
+					),
+			);
 		}
 
 		app
@@ -515,11 +519,10 @@ async fn main() -> Result<()> {
 				.service(admin::remove_member)
 				.service(admin::edit_member)
 				.service(admin::edit_supervisor)
-				.default_service(web::to(not_found_handler))
 			)
-			.service(web::resource("/admin").route(web::get().to(||
+			.route("/admin", web::get().to(||
 				HttpResponse::Found().append_header(("location", "/admin/")).finish())
-			))
+			)
 			// erwischt
 			.service(web::scope("/erwischt")
 				.wrap(HasRolePredicate::new(auth::Roles::Erwischt))
@@ -532,11 +535,13 @@ async fn main() -> Result<()> {
 				.service(erwischt::insert)
 				.service(erwischt::create_game_pdf)
 				.service(erwischt::create_members_pdf)
-				.default_service(web::to(not_found_handler))
+				.route("",
+					web::get().to(move || {
+					HttpResponse::Found()
+						.append_header(("location", "/erwischt/"))
+						.finish()
+					}))
 			)
-			.service(web::resource("/erwischt").route(web::get().to(||
-				HttpResponse::Found().append_header(("location", "/erwischt/")).finish())
-			))
 			// Allow an empty name
 			.service(web::resource("/{prefix}/{name:[^/]*}").route(web::get().to(crate::sites)))
 			.service(web::resource("/{name}").route(web::get().to(crate::sites)))

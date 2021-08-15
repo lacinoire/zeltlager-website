@@ -5,7 +5,7 @@ prefix = ""
 [[sites]]
 name = "startseite"
 file_name = "Home.md"
-title = "Startseite"
+title = "Zeltlager"
 description = "Startseite der Zeltlagerwebseite"
 navbar_visible = false
 
@@ -29,34 +29,6 @@ file_name = "Erwischt.html"
 title = "Erwischt"
 description = "Erwischt Spiel des Zeltlagers"
 role = "Erwischt"
-
-[[sites]]
-name = "Bilder2018/"
-file_name = "Empty.txt"
-title = "Bilder"
-description = "Bilder aus dem Zeltlager 2018"
-role = "ImageDownload2018"
-
-[[sites]]
-name = "Bilder2019/"
-file_name = "Empty.txt"
-title = "Bilder"
-description = "Bilder aus dem Zeltlager 2019"
-role = "ImageDownload2019"
-
-[[sites]]
-name = "Bilder2020/"
-file_name = "Empty.txt"
-title = "Bilder"
-description = "Bilder aus dem Zeltlager 2020"
-role = "ImageDownload2020"
-
-[[sites]]
-name = "Bilder2021/"
-file_name = "Empty.txt"
-title = "Bilder"
-description = "Bilder aus dem Zeltlager 2021"
-role = "ImageDownload2021"
 
 [[sites]]
 name = "anmeldung"

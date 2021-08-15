@@ -3,7 +3,7 @@
 	<#
 	use std::fs;
 	// List images
-	let files = match fs::read_dir(&self.name) {
+	let files = match fs::read_dir(&format!("Bilder{}", self.name)) {
 		Ok(files) => files,
 		Err(error) => { #>
 			Fehler: Bilder konnten nicht gefunden werden.

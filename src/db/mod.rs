@@ -441,10 +441,7 @@ impl Handler<GetRolesMessage> for DbExecutor {
 		match roles.filter(user_id.eq(msg.user)).get_results::<models::Role>(&self.connection) {
 			Ok(mut res) => {
 				// Convert to enum
-				res.drain(..)
-					.map(|r| r.role.parse())
-					.collect::<::std::result::Result<_, strum::ParseError>>()
-					.map_err(|e| e.into())
+				res.drain(..).map(|r| r.role.parse()).collect::<Result<_>>().map_err(|e| e.into())
 			}
 			Err(err) => Err(err.into()),
 		}

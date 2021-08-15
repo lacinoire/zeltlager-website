@@ -9,22 +9,18 @@ use actix_web::*;
 use anyhow::{bail, format_err, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use log::{error, info, warn};
-use serde::Deserialize;
-use strum_macros::EnumString;
+use serde::de::Error;
+use serde::{Deserialize, Deserializer};
 use t4rust_derive::Template;
 
 use crate::form::Form;
 use crate::{auth, db, State};
 
-#[derive(Clone, Copy, EnumString, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Roles {
 	Admin,
 	Erwischt,
-	ImageDownload2018,
-	ImageDownload2019,
-	ImageDownload2020,
-	ImageDownload2021,
-	ImageUpload,
+	Images(String),
 }
 
 #[derive(Template)]
@@ -35,6 +31,32 @@ pub struct Login {
 	pub values: HashMap<String, String>,
 }
 
+impl std::str::FromStr for Roles {
+	type Err = anyhow::Error;
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		Ok(match s {
+			"Admin" => Roles::Admin,
+			"Erwischt" => Roles::Erwischt,
+			_ => {
+				if let Some(val) = s.strip_prefix("Images") {
+					Roles::Images(val.to_string())
+				} else {
+					return Err(format_err!("Unknown role '{}'", s));
+				}
+			}
+		})
+	}
+}
+
+impl<'de> Deserialize<'de> for Roles {
+	fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+		let s = String::deserialize(d)?;
+		match s.parse() {
+			Ok(r) => Ok(r),
+			Err(e) => Err(D::Error::custom(e.to_string())),
+		}
+	}
+}
 impl Form for Login {
 	fn get_values(&self) -> Cow<HashMap<String, String>> { Cow::Borrowed(&self.values) }
 }

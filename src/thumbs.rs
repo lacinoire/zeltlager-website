@@ -73,12 +73,14 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 	}
 
 	// TODO Remove outdated thumbnails
-	for file in fs::read_dir(&path.join("thumbs"))? {
-		let file = file?;
-		let name = file.file_name();
-		if !files.iter().any(|f| f.file_name() == name) {
-			if let Err(e) = fs::remove_file(file.path()) {
-				warn!("Failed to remove outdated thumbnail {:?}: {:?}", name, e);
+	if let Ok(thumbs) = fs::read_dir(&path.join("thumbs")) {
+		for file in thumbs {
+			let file = file?;
+			let name = file.file_name();
+			if !files.iter().any(|f| f.file_name() == name) {
+				if let Err(e) = fs::remove_file(file.path()) {
+					warn!("Failed to remove outdated thumbnail {:?}: {:?}", name, e);
+				}
 			}
 		}
 	}

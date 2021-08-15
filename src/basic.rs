@@ -11,6 +11,7 @@ use t4rust_derive::Template;
 
 use crate::auth::Roles;
 use crate::config::Config;
+use crate::images::split_image_name;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct SiteDescription {

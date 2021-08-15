@@ -35,10 +35,3 @@ file_name = "SelbstverpflichtungAnhang.html"
 title = "Anhang Selbstverpflichtungserklärung"
 description = "Anhang Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt"
 navbar_visible = false
-
-[[sites]]
-name = "bilder-upload"
-file_name = "BilderUpload.html"
-title = "Bilder Upload"
-description = "Bilder Hochladen"
-role = "ImageUpload"

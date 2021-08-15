@@ -30,6 +30,20 @@
 			</button>
 			<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
 				<ul class="navbar-nav mr-auto">
+				<# for role in self.logged_in_roles.iter().flatten() {
+					if let Roles::Images(name) = role {
+						let site_name = format!("Bilder{}/", name);
+						if site_name == self.current_site.name { #>
+					<li class="nav-item">
+						<a class="nav-link active" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site_name #>">Bilder <#= split_image_name(&name) #><span class="sr-only">(current)</span></a>
+					</li>
+						<# } else { #>
+					<li class="nav-item">
+						<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site_name #>">Bilder <#= split_image_name(&name) #></a>
+					</li>
+						<# }
+					}
+				} #>
 				<# for site in &self.all_sites.sites {
 					if !site.navbar_visible {
 						continue;
@@ -50,8 +64,8 @@
 					<li class="nav-item">
 						<a class="nav-link" href="/<#= self.all_sites.prefix #><# if !self.all_sites.prefix.is_empty() {#>/<# }#><#= site.name #>"><#= site.title #></a>
 					</li>
-					<# } #>
-				<# } #>
+					<# }
+				} #>
 				</ul>
 				<ul class="navbar-nav login-nav">
 				<# match &self.logged_in_roles { #>
