@@ -292,8 +292,9 @@ function createMemberData(asDate = false) {
 	}
 
 	let data = [["Anwesend", "Bezahlt", "Vorname", "Nachname", "Geschlecht", "Geburtsdatum",
-		"Schwimmer", "Vegetarier", "Tetanus-Impfung", "Eltern", "E-Mail", "Handynummer",
-		"Straße", "Hausnummer", "Ort", "PLZ", "Besonderheiten", "Anmeldedatum"]];
+		"Eltern", "E-Mail", "Handynummer", "Straße", "Hausnummer", "Ort", "PLZ", "Schwimmer",
+		"Krankenversicherung", "Tetanus-Impfung", "Vegetarier", "Allergien", "Unverträglichkeiten",
+		"Medikamente", "Besonderheiten", "Anmeldedatum"]];
 	let lastRegion = undefined;
 	for (let m of members) {
 		const curRegion = getRegion(m.plz, m.ort);
@@ -307,9 +308,10 @@ function createMemberData(asDate = false) {
 		const anmeldedatum = moment.utc(m.anmeldedatum).local();
 		data.push([boolToStr(m.anwesend), boolToStr(m.bezahlt), m.vorname, m.nachname,
 			m.geschlecht === "Male" ? "m" : "w", asDate ? geburtsdatum.toDate() : geburtsdatum.format("DD.MM.YYYY"),
-			boolToStr(m.schwimmer), boolToStr(m.vegetarier), boolToStr(m.tetanus_impfung),
-			m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse, m.hausnummer,
-			m.ort, m.plz, m.besonderheiten, asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
+			m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse, m.hausnummer, m.ort, m.plz,
+			boolToStr(m.schwimmer), m.krankenversicherung, boolToStr(m.tetanus_impfung), boolToStr(m.vegetarier),
+			m.allergien, m.unvertraeglichkeiten, m.medikamente, m.besonderheiten,
+			asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
 	}
 
 	return data;
@@ -323,8 +325,9 @@ function createSupervisorData(asDate = false) {
 
 	let data = [["Vorname", "Nachname", "Geschlecht", "Geburtsdatum", "JuLeiCa",
 		"E-Mail", "Handynummer", "Straße", "Hausnummer", "Ort", "PLZ",
-		"Führungszeugnis Ausstellung", "Führungszeugnis Eingesehen", "Besonderheiten",
-		"Anmeldedatum"]];
+		"Führungszeugnis Ausstellung", "Führungszeugnis Eingesehen", "Krankenversicherung",
+		"Tetanus-Impfung", "Vegetarier", "Allergien", "Unverträglichkeiten", "Medikamente",
+		"Besonderheiten", "Anmeldedatum"]];
 	for (let m of members) {
 		const geburtsdatum = moment.utc(m.geburtsdatum).local();
 		const anmeldedatum = moment.utc(m.anmeldedatum).local();
@@ -336,7 +339,9 @@ function createSupervisorData(asDate = false) {
 			asDate ? geburtsdatum.toDate() : geburtsdatum.format("DD.MM.YYYY"),
 			m.juleica_nummer, m.mail, m.handynummer, m.strasse, m.hausnummer,
 			m.ort, m.plz, fuehrungszeugnis_ausstellung, fuehrungszeugnis_eingesehen,
-			m.besonderheiten, asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
+			m.krankenversicherung, boolToStr(m.tetanus_impfung), boolToStr(m.vegetarier), m.allergien,
+			m.unvertraeglichkeiten, m.medikamente, m.besonderheiten,
+			asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
 	}
 
 	return data;
@@ -376,6 +381,13 @@ function payedSortFn(a, b) {
 function addTextCell(row, text) {
 	const cell = document.createElement("td");
 	cell.innerText = text;
+	row.appendChild(cell);
+	return cell;
+}
+
+function addBoolCell(row, b) {
+	const cell = document.createElement("td");
+	cell.innerHTML = '<input type="checkbox"' + (b ? " checked" : "") + ' disabled>';
 	row.appendChild(cell);
 	return cell;
 }
@@ -470,14 +482,19 @@ function showMembers() {
 			addTextCell(row, m.geschlecht === "Male" ? "m" : "w");
 			addTextCell(row, moment.utc(m.geburtsdatum).local().format("DD.MM.YYYY"));
 
-			for (let c of [m.schwimmer, m.vegetarier, m.tetanus_impfung]) {
-				cell = document.createElement("td");
-				cell.innerHTML = '<input type="checkbox"' + (c ? " checked" : "") + ' disabled>';
-				row.appendChild(cell);
+			for (let c of [m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse + " " + m.hausnummer,
+				m.ort, m.plz]) {
+				addTextCell(row, c);
 			}
 
-			for (let c of [m.eltern_name, m.eltern_mail, m.eltern_handynummer, m.strasse + " " + m.hausnummer,
-				m.ort, m.plz, m.besonderheiten]) {
+			addBoolCell(row, m.schwimmer);
+			addTextCell(row, m.krankenversicherung);
+
+			for (let c of [m.tetanus_impfung, m.vegetarier]) {
+				addBoolCell(row, c);
+			}
+
+			for (let c of [m.allergien, m.unvertraeglichkeiten, m.medikamente, m.besonderheiten]) {
 				addTextCell(row, c);
 			}
 
@@ -700,6 +717,12 @@ function showSupervisors() {
 		};
 		row.appendChild(fuehrungszeugnis_eingesehen_cell);
 
+		addTextCell(row, m.krankenversicherung);
+		addBoolCell(row, m.tetanus_impfung);
+		addBoolCell(row, m.vegetarier);
+		addTextCell(row, m.allergien);
+		addTextCell(row, m.unvertraeglichkeiten);
+		addTextCell(row, m.medikamente);
 		addTextCell(row, m.besonderheiten);
 		addTextCell(row, moment.utc(m.anmeldedatum).local().format("DD.MM.YY HH:mm"));
 

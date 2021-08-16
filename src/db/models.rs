@@ -59,6 +59,10 @@ pub struct Teilnehmer {
 	pub hausnummer: String,
 	pub ort: String,
 	pub plz: String,
+	pub krankenversicherung: String,
+	pub allergien: String,
+	pub unvertraeglichkeiten: String,
+	pub medikamente: String,
 	pub besonderheiten: String,
 	pub agb: bool,
 }
@@ -85,6 +89,10 @@ pub struct FullTeilnehmer {
 	pub anmeldedatum: chrono::NaiveDateTime,
 	pub bezahlt: bool,
 	pub anwesend: bool,
+	pub allergien: String,
+	pub unvertraeglichkeiten: String,
+	pub medikamente: String,
+	pub krankenversicherung: String,
 }
 
 #[derive(Clone, Debug, Insertable, Serialize, Queryable)]
@@ -101,6 +109,12 @@ pub struct Supervisor {
 	pub hausnummer: String,
 	pub ort: String,
 	pub plz: String,
+	pub vegetarier: bool,
+	pub tetanus_impfung: bool,
+	pub krankenversicherung: String,
+	pub allergien: String,
+	pub unvertraeglichkeiten: String,
+	pub medikamente: String,
 	pub besonderheiten: String,
 	pub agb: bool,
 	pub selbsterklaerung: bool,
@@ -128,6 +142,12 @@ pub struct FullSupervisor {
 	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
 	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 	pub anmeldedatum: chrono::NaiveDateTime,
+	pub allergien: String,
+	pub unvertraeglichkeiten: String,
+	pub medikamente: String,
+	pub krankenversicherung: String,
+	pub vegetarier: bool,
+	pub tetanus_impfung: bool,
 }
 
 #[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
@@ -326,6 +346,10 @@ impl Teilnehmer {
 			hausnummer: get_str!(map, "hausnummer")?,
 			ort: get_str!(map, "ort")?,
 			plz: get_str!(map, "plz")?,
+			krankenversicherung: get_str!(map, "krankenversicherung")?,
+			allergien: get_str!(map, "allergien")?,
+			unvertraeglichkeiten: get_str!(map, "unvertraeglichkeiten")?,
+			medikamente: get_str!(map, "medikamente")?,
 			besonderheiten: get_str!(map, "besonderheiten")?,
 
 			agb: get_bool!(map, "agb")?,
@@ -349,6 +373,13 @@ impl Teilnehmer {
 		// Check PLZ
 		if !check_only_numbers(&res.plz, 5) {
 			bail!("Ungültige Postleitzahl ({})", res.plz);
+		}
+		// Check krankenversicherung
+		if res.krankenversicherung != "gesetzlich" && res.krankenversicherung != "privat" && res.krankenversicherung != "anderes" {
+			bail!(
+				"Ungültige Krankenversicherung ({}), muss entweder gesetzlich, privat oder anderes sein",
+				res.krankenversicherung
+			);
 		}
 		// Check mail address
 		if !check_email(&res.eltern_mail) {
@@ -408,6 +439,10 @@ impl Teilnehmer {
 		self.hausnummer = self.hausnummer.trim().into();
 		self.ort = self.ort.trim().into();
 		self.plz = self.plz.trim().into();
+		self.krankenversicherung = self.krankenversicherung.trim().into();
+		self.allergien = self.allergien.trim().into();
+		self.unvertraeglichkeiten = self.unvertraeglichkeiten.trim().into();
+		self.medikamente = self.medikamente.trim().into();
 		self.besonderheiten = self.besonderheiten.trim().into();
 	}
 }
@@ -439,6 +474,12 @@ impl Supervisor {
 			hausnummer: get_str!(map, "hausnummer")?,
 			ort: get_str!(map, "ort")?,
 			plz: get_str!(map, "plz")?,
+			vegetarier: get_bool!(map, "vegetarier")?,
+			tetanus_impfung: get_bool!(map, "tetanus_impfung")?,
+			krankenversicherung: get_str!(map, "krankenversicherung")?,
+			allergien: get_str!(map, "allergien")?,
+			unvertraeglichkeiten: get_str!(map, "unvertraeglichkeiten")?,
+			medikamente: get_str!(map, "medikamente")?,
 			besonderheiten: get_str!(map, "besonderheiten")?,
 			selbsterklaerung: get_bool!(map, "selbsterklaerung")?,
 			fuehrungszeugnis_auststellung,

@@ -1,0 +1,21 @@
+ALTER TABLE teilnehmer
+	DROP COLUMN allergien;
+ALTER TABLE teilnehmer
+	DROP COLUMN unvertraeglichkeiten;
+ALTER TABLE teilnehmer
+	DROP COLUMN medikamente;
+ALTER TABLE teilnehmer
+	DROP COLUMN krankenversicherung;
+
+ALTER TABLE betreuer
+	DROP COLUMN allergien;
+ALTER TABLE betreuer
+	DROP COLUMN unvertraeglichkeiten;
+ALTER TABLE betreuer
+	DROP COLUMN medikamente;
+ALTER TABLE betreuer
+	DROP COLUMN krankenversicherung;
+ALTER TABLE betreuer
+	DROP COLUMN vegetarier;
+ALTER TABLE betreuer
+	DROP COLUMN tetanus_impfung;

@@ -99,6 +99,26 @@
 		</div>
 	</div>
 	<div class="form-group form-row required">
+		<label class="col-4 col-form-label">Krankenversicherung</label>
+		<div class="col-8">
+			<label class="custom-control custom-radio<#= self.bool_active("krankenversicherung", "gesetzlich") #>">
+				<input name="krankenversicherung" class="custom-control-input" value="gesetzlich" required="required" type="radio"<#= self.bool_checked("krankenversicherung", "gesetzlich") #>>
+				<span class="custom-control-indicator"></span>
+				<span class="custom-control-description">Gesetzlich</span>
+			</label>
+			<label class="custom-control custom-radio<#= self.bool_active("krankenversicherung", "privat") #>">
+				<input name="krankenversicherung" class="custom-control-input" value="privat" required="required" type="radio"<#= self.bool_checked("krankenversicherung", "privat") #>>
+				<span class="custom-control-indicator"></span>
+				<span class="custom-control-description">Privat</span>
+			</label>
+			<label class="custom-control custom-radio<#= self.bool_active("krankenversicherung", "anderes") #>">
+				<input name="krankenversicherung" class="custom-control-input" value="anderes" required="required" type="radio"<#= self.bool_checked("krankenversicherung", "anderes") #>>
+				<span class="custom-control-indicator"></span>
+				<span class="custom-control-description">Anderes</span>
+			</label>
+		</div>
+	</div>
+	<div class="form-group form-row required">
 		<label for="eltern_name" class="col-4 col-form-label">Name eines Erziehungsberechtigten</label>
 		<div class="col-8">
 			<input id="eltern_name" name="eltern_name" placeholder="Name eines Erziehungsberechtigten des Kindes" class="form-control here" required="required" type="text"<#= self.opt_val("eltern_name") #>>
@@ -141,10 +161,31 @@
 		</div>
 	</div>
 	<div class="form-group form-row">
+		<label for="allergien" class="col-4 col-form-label">Allergien</label>
+		<div class="col-8">
+			<textarea id="allergien" name="allergien" cols="40" rows="1" class="form-control" aria-describedby="allergienHelpBlock"><#= crate::escape_html_body(self.values.get("allergien").unwrap_or(&String::new())) #></textarea>
+			<span id="allergienHelpBlock" class="form-text text-muted">z.B. Haselnussallergie</span>
+		</div>
+	</div>
+	<div class="form-group form-row">
+		<label for="unvertraeglichkeiten" class="col-4 col-form-label">Lebensmittelunverträglichkeiten</label>
+		<div class="col-8">
+			<textarea id="unvertraeglichkeiten" name="unvertraeglichkeiten" cols="40" rows="1" class="form-control" aria-describedby="unvertraeglichkeitenHelpBlock"><#= crate::escape_html_body(self.values.get("unvertraeglichkeiten").unwrap_or(&String::new())) #></textarea>
+			<span id="unvertraeglichkeitenHelpBlock" class="form-text text-muted">z.B. Laktoseintoleranz, kein Schweinefleisch</span>
+		</div>
+	</div>
+	<div class="form-group form-row">
+		<label for="medikamente" class="col-4 col-form-label">Medikamente</label>
+		<div class="col-8">
+			<textarea id="medikamente" name="medikamente" cols="40" rows="1" class="form-control" aria-describedby="medikamenteHelpBlock"><#= crate::escape_html_body(self.values.get("medikamente").unwrap_or(&String::new())) #></textarea>
+			<span id="medikamenteHelpBlock" class="form-text text-muted">z.B. Asthmaspray; Methylphenidat, 10 mg</span>
+		</div>
+	</div>
+	<div class="form-group form-row">
 		<label for="besonderheiten" class="col-4 col-form-label">Besonderheiten</label>
 		<div class="col-8">
-			<textarea id="besonderheiten" name="besonderheiten" cols="40" rows="5" class="form-control" aria-describedby="besonderheitenHelpBlock"><#= crate::escape_html_body(self.values.get("besonderheiten").unwrap_or(&String::new())) #></textarea>
-			<span id="besonderheitenHelpBlock" class="form-text text-muted">Allergien, Krankheiten, Medikamente, Eigenheiten, etc.</span>
+			<textarea id="besonderheiten" name="besonderheiten" cols="40" rows="2" class="form-control" aria-describedby="besonderheitenHelpBlock"><#= crate::escape_html_body(self.values.get("besonderheiten").unwrap_or(&String::new())) #></textarea>
+			<span id="besonderheitenHelpBlock" class="form-text text-muted">Krankheiten, Eigenheiten, etc.</span>
 		</div>
 	</div>
 	<div class="form-group form-row required">

@@ -1,0 +1,21 @@
+ALTER TABLE teilnehmer
+	ADD COLUMN allergien TEXT NOT NULL DEFAULT '';
+ALTER TABLE teilnehmer
+	ADD COLUMN unvertraeglichkeiten TEXT NOT NULL DEFAULT '';
+ALTER TABLE teilnehmer
+	ADD COLUMN medikamente TEXT NOT NULL DEFAULT '';
+ALTER TABLE teilnehmer
+	ADD COLUMN krankenversicherung TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE betreuer
+	ADD COLUMN allergien TEXT NOT NULL DEFAULT '';
+ALTER TABLE betreuer
+	ADD COLUMN unvertraeglichkeiten TEXT NOT NULL DEFAULT '';
+ALTER TABLE betreuer
+	ADD COLUMN medikamente TEXT NOT NULL DEFAULT '';
+ALTER TABLE betreuer
+	ADD COLUMN krankenversicherung TEXT NOT NULL DEFAULT '';
+ALTER TABLE betreuer
+	ADD COLUMN vegetarier BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE betreuer
+	ADD COLUMN tetanus_impfung BOOLEAN NOT NULL DEFAULT FALSE;

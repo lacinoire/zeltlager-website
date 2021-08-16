@@ -71,6 +71,7 @@ pub async fn signup_test(state: web::Data<State>, id: Identity, req: HttpRequest
 		("hausnummer", "1"),
 		("ort", "i"),
 		("plz", "80000"),
+		("krankenversicherung", "gesetzlich"),
 	];
 
 	let map = map.iter().map(|(a, b)| (a.to_string(), b.to_string()));

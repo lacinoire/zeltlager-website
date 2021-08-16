@@ -18,6 +18,12 @@ table! {
 		fuehrungszeugnis_auststellung -> Nullable<Date>,
 		fuehrungszeugnis_eingesehen -> Nullable<Date>,
 		anmeldedatum -> Timestamptz,
+		allergien -> Text,
+		unvertraeglichkeiten -> Text,
+		medikamente -> Text,
+		krankenversicherung -> Text,
+		vegetarier -> Bool,
+		tetanus_impfung -> Bool,
 	}
 }
 
@@ -76,6 +82,10 @@ table! {
 		anmeldedatum -> Timestamptz,
 		bezahlt -> Bool,
 		anwesend -> Bool,
+		allergien -> Text,
+		unvertraeglichkeiten -> Text,
+		medikamente -> Text,
+		krankenversicherung -> Text,
 	}
 }
 
