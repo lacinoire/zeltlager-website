@@ -1,1 +1,1 @@
-Anmeldung für das Zeltlager 2021 von <#= self.member.vorname #> <#= self.member.nachname #>
+Anmeldung für das Zeltlager 2022 von <#= self.member.vorname #> <#= self.member.nachname #>
