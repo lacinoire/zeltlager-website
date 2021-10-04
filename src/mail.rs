@@ -67,7 +67,7 @@ impl Handler<SignupMessage> for MailExecutor {
 
 		let email = email_builder.body(body)?;
 
-		let mailer = SmtpTransport::relay(self.config.sender_mail_account.host.as_str())?
+		let mailer = SmtpTransport::starttls_relay(self.config.sender_mail_account.host.as_str())?
 			.credentials(Credentials::new(
 				self.config
 					.sender_mail_account
