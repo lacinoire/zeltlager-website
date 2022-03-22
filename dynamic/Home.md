@@ -7,7 +7,7 @@ Sollte uns wider Erwarten dennoch keine Genehmigung erteilt werden, werden alle 
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des TSV Dinkelscherben statt.
+Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des SV Salamander Türkheim statt.
 
 Abfahrt Montag den 01.08.2022 um 10:00 Uhr  
 Rückkehr Freitag den 12.08.2022 um ca. 14:00 Uhr  
