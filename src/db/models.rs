@@ -375,9 +375,13 @@ impl Teilnehmer {
 			bail!("Ungültige Postleitzahl ({})", res.plz);
 		}
 		// Check krankenversicherung
-		if res.krankenversicherung != "gesetzlich" && res.krankenversicherung != "privat" && res.krankenversicherung != "anderes" {
+		if res.krankenversicherung != "gesetzlich"
+			&& res.krankenversicherung != "privat"
+			&& res.krankenversicherung != "anderes"
+		{
 			bail!(
-				"Ungültige Krankenversicherung ({}), muss entweder gesetzlich, privat oder anderes sein",
+				"Ungültige Krankenversicherung ({}), muss entweder gesetzlich, privat oder \
+				 anderes sein",
 				res.krankenversicherung
 			);
 		}
@@ -512,8 +516,8 @@ impl Supervisor {
 		}
 		// Check Juleica Number
 		if let Some(ref jn) = res.juleica_nummer {
-			if !check_only_numbers(jn, 11) {
-				bail!("Ungültige Juleicanummer ({}, Länge ≠ 11 oder Buchstaben drin)", jn)
+			if !jn.chars().all(|c| c.is_numeric()) {
+				bail!("Ungültige Juleicanummer ({}), darf nur Ziffern enthalten", jn)
 			}
 		}
 		// Check birth date
