@@ -45,14 +45,6 @@ Klickt euch durch und meldet euch an!
 Eure Supervisor 😃
 
 
-# Mit großzügiger Unterstützung von
-
-<div class="d-flex flex-wrap sponsor-row align-items-center">
-	<img src="/static/img/sponsors/acqua_pellegrino.jpg" alt="Acqua Panna und S. Pellegrino" class="sponsor-image">
-	<img src="/static/img/sponsors/farnetani.svg" alt="farnetani" class="sponsor-image">
-	<img src="/static/img/sponsors/molisana.jpg" alt="la Molisana" class="sponsor-image">
-</div>
-
 # Eindrücke
 
 <div class="d-flex flex-wrap align-items-start image-list">
