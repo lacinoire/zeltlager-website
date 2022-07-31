@@ -16,6 +16,9 @@
 		<label class="btn btn-secondary">
 			<input type="radio" autocomplete="off" data-sort="payed" /> Bezahlt
 		</label>
+		<label class="btn btn-secondary">
+			<input type="radio" autocomplete="off" data-sort="present" /> Anwesend
+		</label>
 	</div>
 	<div class="mx-sm-3 mb-2">
 		<a href="javascript:createCsv(createMemberData(), true)">.csv</a>
@@ -73,6 +76,30 @@
 		</tr>
 	</thead>
 	<tbody id="memberTableBodyPayed">
+	</tbody>
+</table>
+</div>
+
+<div id="presentTables">
+<table class="table">
+	<thead class="thead-light">
+		<tr>
+			<th scope="col">Anwesend</th>
+			<th scope="col">Name (<span id=countNotPresent></span> Teilnehmer)</th>
+		</tr>
+	</thead>
+	<tbody id="memberTableBodyNotPresent">
+	</tbody>
+</table>
+
+<table class="table">
+	<thead class="thead-light">
+		<tr>
+			<th scope="col">Anwesend</th>
+			<th scope="col">Name (<span id=countPresent></span> Teilnehmer)</th>
+		</tr>
+	</thead>
+	<tbody id="memberTableBodyPresent">
 	</tbody>
 </table>
 </div>

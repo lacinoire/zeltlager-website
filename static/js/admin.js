@@ -1,6 +1,6 @@
 let allMembers;
 let allSupervisors;
-let sorting = ["alphabetical", "region", "payed"].includes(localStorage.adminMemberSorting) ?
+let sorting = ["alphabetical", "region", "payed", "present"].includes(localStorage.adminMemberSorting) ?
 	localStorage.adminMemberSorting : "alphabetical";
 
 async function loadMembers() {
@@ -287,6 +287,8 @@ function createMemberData(asDate = false) {
 		members.sort(regionSortFn);
 	} else if (sorting === "payed") {
 		members.sort(nameSortFn);
+	} else if (sorting === "present") {
+		members.sort(nameSortFn);
 	} else {
 		console.error("Unknown sorting type '" + sorting + "'");
 	}
@@ -378,6 +380,14 @@ function payedSortFn(a, b) {
 	return nameSortFn(a, b);
 }
 
+function presentSortFn(a, b) {
+	if (a.anwesend != b.anwesend) {
+		return a.anwesend ? 1 : -1;
+	}
+
+	return nameSortFn(a, b);
+}
+
 function addTextCell(row, text) {
 	const cell = document.createElement("td");
 	cell.innerText = text;
@@ -394,7 +404,7 @@ function addBoolCell(row, b) {
 
 /// Show the filtered members
 function showMembers() {
-	$("#memberTableBody, #birthdayTableBody, #memberTableBodyNotPayed, #memberTableBodyPayed").children().remove();
+	$("#memberTableBody, #birthdayTableBody, #memberTableBodyNotPayed, #memberTableBodyPayed, #memberTableBodyNotPresent, #memberTableBodyPresent").children().remove();
 	const filter = $("#memberFilter").val().toLowerCase();
 
 	let members = [];
@@ -423,13 +433,17 @@ function showMembers() {
 	} else if (sorting === "payed") {
 		members.sort(payedSortFn);
 		birthdays.sort(nameSortFn);
+	} else if (sorting === "present") {
+		members.sort(presentSortFn);
+		birthdays.sort(nameSortFn);
 	} else {
 		console.error("Unknown sorting type '" + sorting + "'");
 	}
 
-	if (sorting !== "payed") {
+	if (sorting !== "payed" && sorting !== "present") {
 		let list = document.getElementById("memberTableBody");
 		document.getElementById("payedTables").classList.add("hidden");
+		document.getElementById("presentTables").classList.add("hidden");
 		document.getElementById("memberTable").classList.remove("hidden");
 		let lastRegion = undefined;
 		for (let m of members) {
@@ -510,10 +524,11 @@ function showMembers() {
 
 			list.appendChild(row);
 		}
-	} else {
+	} else if (sorting == "payed") {
 		// Payed
 		let list = document.getElementById("memberTableBodyNotPayed");
 		document.getElementById("payedTables").classList.remove("hidden");
+		document.getElementById("presentTables").classList.add("hidden");
 		document.getElementById("memberTable").classList.add("hidden");
 		let count = 0;
 		for (let m of members) {
@@ -581,6 +596,78 @@ function showMembers() {
 			list.appendChild(row);
 		}
 		document.getElementById("countPayed").innerText = count;
+	} else if (sorting == "present") {
+		// Present
+		let list = document.getElementById("memberTableBodyNotPresent");
+		document.getElementById("presentTables").classList.remove("hidden");
+		document.getElementById("payedTables").classList.add("hidden");
+		document.getElementById("memberTable").classList.add("hidden");
+		let count = 0;
+		for (let m of members) {
+			if (m.anwesend)
+				continue;
+			count++;
+
+			const row = document.createElement("tr");
+			let cell;
+			const id = m.id;
+			const bezahlt = m.bezahlt;
+			const anwesend = m.anwesend;
+
+			cell = document.createElement("td");
+			let checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.checked = m.anwesend === true;
+			checkbox.oninput = async function() {
+				await editMember({
+					member: id,
+					bezahlt: bezahlt,
+					anwesend: !anwesend,
+				});
+				showMembers();
+			};
+			cell.appendChild(checkbox);
+			row.appendChild(cell);
+
+			addTextCell(row, m.vorname + " " + m.nachname);
+
+			list.appendChild(row);
+		}
+		document.getElementById("countNotPresent").innerText = count;
+
+		list = document.getElementById("memberTableBodyPresent");
+		count = 0;
+		for (let m of members) {
+			if (!m.anwesend)
+				continue;
+			count++;
+
+			const row = document.createElement("tr");
+			let cell;
+			const id = m.id;
+			const bezahlt = m.bezahlt;
+			const anwesend = m.anwesend;
+
+			cell = document.createElement("td");
+			let checkbox = document.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.checked = m.anwesend === true;
+			checkbox.oninput = async function() {
+				await editMember({
+					member: id,
+					bezahlt: bezahlt,
+					anwesend: !anwesend,
+				});
+				showMembers();
+			};
+			cell.appendChild(checkbox);
+			row.appendChild(cell);
+
+			addTextCell(row, m.vorname + " " + m.nachname);
+
+			list.appendChild(row);
+		}
+		document.getElementById("countPresent").innerText = count;
 	}
 
 	list = document.getElementById("birthdayTableBody");
@@ -745,6 +832,8 @@ window.addEventListener('load', function() {
 			$("#sortSelect label [data-sort='region']").parent().toggleClass('active');
 		if (sorting === "payed")
 			$("#sortSelect label [data-sort='payed']").parent().toggleClass('active');
+		if (sorting === "present")
+			$("#sortSelect label [data-sort='present']").parent().toggleClass('active');
 		loadMembers();
 	} else {
 		loadSupervisors();
