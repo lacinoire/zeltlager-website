@@ -4,10 +4,9 @@ prefix = "intern"
 
 [[sites]]
 name = "startseite"
-file_name = "Betreuer.md"
+file_name = "BetreuerIntern.md"
 title = "Für Betreuer"
-description = "Für Betreuer des Zeltlagers"
-navbar_visible = false
+description = "Informationen für Betreuer des Zeltlagers"
 
 [[sites]]
 name = "betreuer-anmeldung"
@@ -35,3 +34,15 @@ file_name = "SelbstverpflichtungAnhang.html"
 title = "Anhang Selbstverpflichtungserklärung"
 description = "Anhang Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt"
 navbar_visible = false
+
+[[sites]]
+name = "datenschutz"
+file_name = "Datenschutz.html"
+title = "Datenschutz"
+description = "Datenschutzerklärung der Zeltlagerwebsite"
+
+[[sites]]
+name = "impressum"
+file_name = "Impressum.html"
+title = "Impressum"
+description = "Impressum der Zeltlagerwebsite"
