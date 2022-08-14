@@ -49,7 +49,7 @@ const DEFAULT_NAME: &str = "startseite";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
 const KEY_FILE: &str = "secret.key";
 
-fn cookie_maxtime() -> Duration { Duration::minutes(120) }
+fn cookie_maxtime() -> Duration { Duration::days(2) }
 fn ratelimit_duration() -> Duration { Duration::days(1) }
 fn get_true() -> bool { true }
 
