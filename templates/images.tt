@@ -32,7 +32,14 @@
 						path, self.name),
 					Some(name) => {
 						if name != ".gitignore" {
-							list.push(name.to_string());
+							let created = match file.metadata().and_then(|m| m.created()) {
+								Ok(time) => time,
+								Err(error) => {
+									error!("Cannot read created time of picture {} / {} ({:?})", self.name, name, error);
+									std::time::SystemTime::now()
+								}
+							};
+							list.push((name.to_string(), created));
 						}
 					}
 				}
@@ -40,9 +47,10 @@
 		}
 	}
 
-	// Sort the newest file ('largest' filename) first
-	list.sort_unstable_by(|a, b| a.cmp(b).reverse());
-	for name in &list {
+	// Sort the newest file first
+	list.sort_unstable_by(|a, b| a.1.cmp(&b.1).reverse());
+	for file in &list {
+		let name = &file.0;
 		let lower_name = name.to_lowercase();
 		if lower_name.ends_with(".jpg") || lower_name.ends_with(".jpeg") || lower_name.ends_with(".png") { #>
 	<a href="static/<#= name #>" data-toggle="lightbox" data-gallery="image-gallery" class="col-lg-3 col-md-4 col-6 my-3">
