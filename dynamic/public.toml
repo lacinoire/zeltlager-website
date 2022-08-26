@@ -18,7 +18,7 @@ role = "Admin"
 
 [[sites]]
 name = "admin/betreuer"
-file_name = "Betreuer.html"
+file_name = "../frontend/dist/betreuer.html"
 title = "Betreuer"
 description = "Administration des Zeltlagers – Betreuer"
 role = "Admin"

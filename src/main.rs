@@ -473,6 +473,11 @@ async fn main() -> Result<()> {
 					.mime_override(content_disposition_map)
 					.default_handler(web::to(not_found_handler)),
 			)
+			.service(
+				Files::new("/frontend", "frontend/dist")
+					.mime_override(content_disposition_map)
+					.default_handler(web::to(not_found_handler)),
+			)
 			.service(signup::signup)
 			.service(signup::signup_test)
 			.service(signup::signup_send)
