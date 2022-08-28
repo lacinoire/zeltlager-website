@@ -1,7 +1,7 @@
-import Betreuer from './Betreuer.svelte'
+import Betreuer from "./Betreuer.svelte";
 
 const betreuer = new Betreuer({
-  target: document.getElementById('betreuer-app')
-})
+	target: document.getElementById("betreuer-app"),
+});
 
-export default betreuer
+export default betreuer;

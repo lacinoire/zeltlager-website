@@ -1,98 +1,298 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import moment from "moment";
-	import { nameSortFn } from "./utils";
+	import type { Moment } from "moment";
+	import { addressSortFn, getSortByKeyFn, nameSortFn, createCsv, createXlsx } from "./utils";
+	import EditableProperty from "./EditableProperty.svelte";
+	import GlobalCss from "./GlobalCss.svelte";
+	import SortIcon from "./SortIcon.svelte";
 
-	let allSupervisors;
+	const headers = [
+		"Vorname",
+		"Nachname",
+		"Geschlecht",
+		"Geburtsdatum",
+		"Juleica",
+		"E-Mail",
+		"Handynummer",
+		"Straße",
+		"Hausnummer",
+		"Ort",
+		"PLZ",
+		"Führungszeugnis Ausstellung",
+		"Führungszeugnis Eingesehen",
+		"Krankenversicherung",
+		"Tetanus-Impfung",
+		"Vegetarier",
+		"Allergien",
+		"Unverträglichkeiten",
+		"Medikamente",
+		"Besonderheiten",
+		"Anmeldedatum",
+	];
 
-  function createSupervisorData(asDate = false) {
-  	let members = [];
-  	for (let m of allSupervisors)
-  		members.push(m);
-  	members.sort(nameSortFn);
+	interface Supervisor {
+		id: number;
+		vorname: string;
+		nachname: string;
+		geschlecht: "Male" | "Female";
+		geburtsdatum: Moment;
+		juleica_nummer: string | null;
+		mail: string;
+		handynummer: string;
+		strasse: string;
+		hausnummer: string;
+		ort: string;
+		plz: string;
+		fuehrungszeugnis_ausstellung: Moment | null;
+		fuehrungszeugnis_eingesehen: Moment | null;
+		krankenversicherung: string;
+		tetanus_impfung: boolean;
+		vegetarier: boolean;
+		allergien: string;
+		unvertraeglichkeiten: string;
+		medikamente: string;
+		besonderheiten: string;
+		anmeldedatum: Moment;
+	}
 
-  	let data = [["Vorname", "Nachname", "Geschlecht", "Geburtsdatum", "JuLeiCa",
-  		"E-Mail", "Handynummer", "Straße", "Hausnummer", "Ort", "PLZ",
-  		"Führungszeugnis Ausstellung", "Führungszeugnis Eingesehen", "Krankenversicherung",
-  		"Tetanus-Impfung", "Vegetarier", "Allergien", "Unverträglichkeiten", "Medikamente",
-  		"Besonderheiten", "Anmeldedatum"]];
-  	for (let m of members) {
-  		const geburtsdatum = moment.utc(m.geburtsdatum).local();
-  		const anmeldedatum = moment.utc(m.anmeldedatum).local();
-  		let fuehrungszeugnis_ausstellung = moment.utc(m.fuehrungszeugnis_auststellung).local();
-  		let fuehrungszeugnis_eingesehen = moment.utc(m.fuehrungszeugnis_eingesehen).local();
-  		fuehrungszeugnis_ausstellung = m.fuehrungszeugnis_auststellung ? (asDate ? fuehrungszeugnis_ausstellung.toDate() : fuehrungszeugnis_ausstellung.format("DD.MM.YYYY")) : m.fuehrungszeugnis_auststellung;
-  		fuehrungszeugnis_eingesehen = m.fuehrungszeugnis_eingesehen ? (asDate ? fuehrungszeugnis_eingesehen.toDate() : fuehrungszeugnis_eingesehen.format("DD.MM.YYYY")) : m.fuehrungszeugnis_eingesehen;
-  		data.push([m.vorname, m.nachname, m.geschlecht === "Male" ? "m" : "w",
-  			asDate ? geburtsdatum.toDate() : geburtsdatum.format("DD.MM.YYYY"),
-  			m.juleica_nummer, m.mail, m.handynummer, m.strasse, m.hausnummer,
-  			m.ort, m.plz, fuehrungszeugnis_ausstellung, fuehrungszeugnis_eingesehen,
-  			m.krankenversicherung, boolToStr(m.tetanus_impfung), boolToStr(m.vegetarier), m.allergien,
-  			m.unvertraeglichkeiten, m.medikamente, m.besonderheiten,
-  			asDate ? anmeldedatum.toDate() : anmeldedatum.format("DD.MM.YY HH:mm")]);
-  	}
+	let all: Supervisor[];
+	let filtered: Supervisor[];
+	let filter = "";
+	let sortBy = "Name-asc";
 
-  	return data;
-  }
+	function applyFilter(all: Supervisor[], filter: string, sortBy: string) {
+		if (all === undefined) return;
+		if (filter === "") {
+			filtered = all;
+		} else {
+			filter = filter.toLowerCase();
+			filtered = [];
+			for (const m of all) {
+				if (
+					filter.length === 0 ||
+					m.vorname.toLowerCase().includes(filter) ||
+					m.nachname.toLowerCase().includes(filter)
+				)
+					filtered.push(m);
+			}
+		}
 
-	onMount(async () => {
-		allSupervisors = await (await fetch("/admin/betreuer.json")).json();
-		// showSupervisors(); TODO filter
-	});
+		const asc = sortBy.endsWith("asc");
+		if (sortBy.startsWith("Name-")) {
+			filtered.sort((a, b) => {
+				const cmp = nameSortFn(a, b);
+				return asc ? cmp : -cmp;
+			});
+		} else if (sortBy.startsWith("Adresse-")) {
+			filtered.sort((a, b) => {
+				const cmp = addressSortFn(a, b);
+				return asc ? cmp : -cmp;
+			});
+		} else {
+			filtered.sort(getSortByKeyFn(sortBy));
+		}
+	}
+
+	$: applyFilter(all, filter, sortBy);
+
+	function createData(asDate = false) {
+		const entries = [];
+		for (const m of all) entries.push(m);
+		entries.sort(nameSortFn);
+
+		const data = [headers];
+		for (const m of entries) {
+			const fuehrungszeugnis_ausstellung = m.fuehrungszeugnis_ausstellung
+				? asDate
+					? m.fuehrungszeugnis_ausstellung.toDate()
+					: m.fuehrungszeugnis_ausstellung.format("DD.MM.YYYY")
+				: m.fuehrungszeugnis_ausstellung;
+			const fuehrungszeugnis_eingesehen = m.fuehrungszeugnis_eingesehen
+				? asDate
+					? m.fuehrungszeugnis_eingesehen.toDate()
+					: m.fuehrungszeugnis_eingesehen.format("DD.MM.YYYY")
+				: m.fuehrungszeugnis_eingesehen;
+			data.push([
+				m.vorname,
+				m.nachname,
+				m.geschlecht === "Male" ? "m" : "w",
+				asDate ? m.geburtsdatum.toDate() : m.geburtsdatum.format("DD.MM.YYYY"),
+				m.juleica_nummer,
+				m.mail,
+				m.handynummer,
+				m.strasse,
+				m.hausnummer,
+				m.ort,
+				m.plz,
+				fuehrungszeugnis_ausstellung,
+				fuehrungszeugnis_eingesehen,
+				m.krankenversicherung,
+				m.tetanus_impfung,
+				m.vegetarier,
+				m.allergien,
+				m.unvertraeglichkeiten,
+				m.medikamente,
+				m.besonderheiten,
+				asDate ? m.anmeldedatum.toDate() : m.anmeldedatum.format("DD.MM.YY HH:mm"),
+			]);
+		}
+
+		return data;
+	}
+
+	async function loadData() {
+		const data = await (await fetch("/admin/betreuer.json")).json();
+		// Convert dates
+		for (const e of data) {
+			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
+			e.anmeldedatum = moment.utc(e.anmeldedatum).local();
+			// Also fix typo
+			if (e.fuehrungszeugnis_auststellung)
+				e.fuehrungszeugnis_ausstellung = moment
+					.utc(e.fuehrungszeugnis_auststellung)
+					.local();
+			else e.fuehrungszeugnis_ausstellung = e.fuehrungszeugnis_auststellung;
+			delete e.fuehrungszeugnis_auststellung;
+			if (e.fuehrungszeugnis_eingesehen)
+				e.fuehrungszeugnis_eingesehen = moment.utc(e.fuehrungszeugnis_eingesehen).local();
+		}
+		all = data;
+	}
+
+	async function editEntry(entry: Supervisor) {
+		const data = {
+			supervisor: entry.id,
+			juleica_nummer: entry.juleica_nummer,
+			fuehrungszeugnis_ausstellung: entry.fuehrungszeugnis_ausstellung
+				? entry.fuehrungszeugnis_ausstellung.format("YYYY-MM-DD")
+				: entry.fuehrungszeugnis_ausstellung,
+			fuehrungszeugnis_eingesehen: entry.fuehrungszeugnis_eingesehen
+				? entry.fuehrungszeugnis_eingesehen.format("YYYY-MM-DD")
+				: entry.fuehrungszeugnis_eingesehen,
+		};
+		try {
+			const response = await fetch("/admin/betreuer/edit", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(data),
+			});
+			if (!response.ok) {
+				alert("Fehler: Betreuer konnte nicht bearbeitet werden (Server-Fehler)");
+			}
+		} catch (e) {
+			console.error("Failed to edit supervisor", e);
+			alert("Fehler: Betreuer konnte nicht bearbeitet werden");
+		}
+		await loadData();
+	}
+
+	onMount(loadData);
 </script>
 
+<GlobalCss />
 <div class="form-inline">
 	<div class="form-group mx-sm-3 mb-2">
-    <!-- svelte-ignore a11y-autofocus -->
-		<input class="form-control" id="supervisorFilter" type="text" autofocus="autofocus" oninput="showSupervisors()" placeholder="Suchen…" />
+		<!-- svelte-ignore a11y-autofocus -->
+		<input
+			class="form-control"
+			type="text"
+			autofocus={true}
+			bind:value={filter}
+			placeholder="Suchen…"
+		/>
 	</div>
 	<div class="mx-sm-3 mb-2">
-    <!-- svelte-ignore a11y-invalid-attribute -->
-    <a on:click={() => console.log("hi")} href="#">.csv</a>
-		<a href="javascript:createCsv(createSupervisorData(), false)">.csv</a>
-		<a href="javascript:createXlsx(createSupervisorData(true), false)">.xlsx</a>
+		<!-- svelte-ignore a11y-invalid-attribute -->
+		<a on:click={() => createCsv(createData(), false)} href="#">.csv</a>
+		<!-- svelte-ignore a11y-invalid-attribute -->
+		<a on:click={() => createXlsx(createData(true), false)} href="#">.xlsx</a>
 	</div>
 </div>
 
 <table class="table">
 	<thead class="thead-light">
 		<tr>
-			<th scope="col">Name</th>
-			<th scope="col"><!-- Geschlecht --></th>
-			<th scope="col">Geburtsdatum</th>
-			<th scope="col">JuLeiCa</th>
-			<th scope="col">E-Mail</th>
-			<th scope="col">Handy</th>
-			<th scope="col">Adresse</th>
-			<th scope="col">Ort</th>
-			<th scope="col">PLZ</th>
-			<th scope="col">Führungszeugnis Ausstellung</th>
-			<th scope="col">Führungszeugnis Eingesehen</th>
-			<th scope="col">Krankenversicherung</th>
-			<th scope="col">Tetanus-Impfung</th>
-			<th scope="col">Vege&shy;tarier</th>
-			<th scope="col">Allergien</th>
-			<th scope="col">Unverträglichkeiten</th>
-			<th scope="col">Medikamente</th>
-			<th scope="col">Besonderheiten</th>
-			<th scope="col">Anmeldedatum</th>
+			<th scope="col"><SortIcon name="Name" bind:sortBy /></th>
+			<th scope="col"
+				><!-- Geschlecht --><SortIcon name="Geschlecht" displayName="" bind:sortBy /></th
+			>
+			<th scope="col"
+				><SortIcon name="Geburtsdatum" displayName="Geburts&shy;datum" bind:sortBy /></th
+			>
+			<th scope="col"><SortIcon name="Juleica-Nummer" displayName="Juleica" bind:sortBy /></th
+			>
+			<th scope="col"><SortIcon name="Mail" displayName="E-Mail" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="Handynummer" displayName="Handy" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="Adresse" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="Ort" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="PLZ" bind:sortBy /></th>
+			<th scope="col"
+				><SortIcon
+					name="Führungszeugnis Ausstellung"
+					displayName="Führungs&shy;zeugnis Ausstellung"
+					bind:sortBy
+				/></th
+			>
+			<th scope="col"
+				><SortIcon
+					name="Führungszeugnis Eingesehen"
+					displayName="Führungs&shy;zeugnis Eingesehen"
+					bind:sortBy
+				/></th
+			>
+			<th scope="col"
+				><SortIcon
+					name="Krankenversicherung"
+					displayName="Kranken&shy;versicherung"
+					bind:sortBy
+				/></th
+			>
+			<th scope="col"><SortIcon name="Tetanus-Impfung" bind:sortBy /></th>
+			<th scope="col"
+				><SortIcon name="Vegetarier" displayName="Vege&shy;tarier" bind:sortBy /></th
+			>
+			<th scope="col"><SortIcon name="Allergien" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="Unverträglichkeiten" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="Medikamente" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="Besonderheiten" bind:sortBy /></th>
+			<th scope="col"><SortIcon name="Anmeldedatum" bind:sortBy /></th>
 		</tr>
 	</thead>
 	<tbody>
-		{#if allSupervisors !== undefined}
-			{#each allSupervisors as e}
+		{#if filtered !== undefined}
+			{#each filtered as e}
 				<tr>
 					<td>{e.vorname} {e.nachname}</td>
 					<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
 					<td>{moment.utc(e.geburtsdatum).local().format("DD.MM.YYYY")}</td>
-					<td>{e.juleica_nummer || ""}</td>
+					<td
+						><EditableProperty
+							bind:value={e.juleica_nummer}
+							on:edit={() => editEntry(e)}
+						/></td
+					>
 					<td>{e.mail}</td>
 					<td>{e.handynummer}</td>
 					<td>{e.strasse} {e.hausnummer}</td>
 					<td>{e.ort}</td>
 					<td>{e.plz}</td>
-					<td>{e.fuehrungszeugnis_auststellung && moment.utc(e.fuehrungszeugnis_auststellung).local().format("DD.MM.YYYY") || ""}</td>
-					<td>{e.fuehrungszeugnis_eingesehen && moment.utc(e.fuehrungszeugnis_eingesehen).local().format("DD.MM.YYYY") || ""}</td>
+					<td
+						><EditableProperty
+							bind:value={e.fuehrungszeugnis_ausstellung}
+							isMoment={true}
+							on:edit={() => editEntry(e)}
+						/></td
+					>
+					<td
+						><EditableProperty
+							bind:value={e.fuehrungszeugnis_eingesehen}
+							isMoment={true}
+							on:edit={() => editEntry(e)}
+						/></td
+					>
 					<td>{e.krankenversicherung}</td>
 					<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
 					<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
@@ -108,4 +308,12 @@
 </table>
 
 <style>
+	:global(.container) {
+		max-width: 100%;
+	}
+
+	thead {
+		position: sticky;
+		top: 0;
+	}
 </style>
