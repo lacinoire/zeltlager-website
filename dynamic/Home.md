@@ -1,16 +1,11 @@
-# COVID-19
-Unser Zeltlager fand auch 2020 und 2021 mit Zustimmung der Behörden basierend auf unserem Hygienekonzept statt, daher sind wir sehr zuversichtlich unser Zeltlager auch 2022 wieder so erfolgreich durchführen zu dürfen.
-
-Sollte uns wider Erwarten dennoch keine Genehmigung erteilt werden, werden alle Teilnehmerbeiträge komplett rückerstattet.
-
-# Zeltlager 2022 – Elterninfo
+# Zeltlager 2023 – Elterninfo
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des SV Salamander Türkheim statt.
+Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des TSV Dinkelscherben statt.
 
-Abfahrt Montag den 01.08.2022 um 10:00 Uhr  
-Rückkehr Freitag den 12.08.2022 um ca. 14:00 Uhr  
+Abfahrt Montag den 31.07.2023 um 10:00 Uhr  
+Rückkehr Freitag den 11.08.2023 um ca. 14:00 Uhr  
 auf dem Parkplatz Westfriedhof in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
 
 Die Hin- und Rückreise erfolgt mit modernen Reisebussen.
@@ -21,7 +16,7 @@ Die Betreuung und Verpflegung übernimmt das qualifizierte [Zeltlagerteam](ausst
 
 Etwa 4 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle Informationen. Der Elternabend wird ca. 1 Stunde dauern.
 
-Wir freuen uns schon auf das Zeltlager 2022.
+Wir freuen uns schon auf das Zeltlager 2023.
 
 Das Betreuerteam
 
