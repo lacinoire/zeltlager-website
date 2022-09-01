@@ -80,18 +80,8 @@ body {
 	padding: .75rem .75rem;
 }
 
-.hidden, #payedTables.hidden {
+.hidden {
 	display: none;
-}
-
-#payedTables {
-	display: flex;
-	align-items: flex-start;
-	gap: 2em;
-}
-
-#payedTables table {
-	width: 40%;
 }
 
 /* Lightbox */
