@@ -16,6 +16,7 @@ export default defineConfig({
 		rollupOptions: {
 			input: {
 				betreuer: resolve(__dirname, "betreuer.html"),
+				teilnehmer: resolve(__dirname, "teilnehmer.html"),
 			},
 		},
 	},

@@ -37,7 +37,7 @@
 		}
 		editing = false;
 		if (newValue !== value) {
-			value = newValue;
+			if (typeof value !== "boolean") value = newValue;
 			dispatch("edit");
 		}
 	}
@@ -55,7 +55,7 @@
 			{value}
 		{/if}
 	{:else if typeof value === "boolean"}
-		<input type="checkbox" bind:checked={value} />
+		<input type="checkbox" bind:checked={value} on:change={edited} />
 	{/if}
 	{#if typeof value !== "boolean"}
 		{#if !editing}

@@ -97,11 +97,10 @@
 	$: applyFilter(all, filter, sortBy);
 
 	function createData(asDate = false) {
-		const entries = [];
-		for (const m of all) entries.push(m);
+		const entries = [...all];
 		entries.sort(nameSortFn);
 
-		const data = [headers];
+		const data: any[] = [headers];
 		for (const m of entries) {
 			const fuehrungszeugnis_ausstellung = m.fuehrungszeugnis_ausstellung
 				? asDate
@@ -179,9 +178,8 @@
 				},
 				body: JSON.stringify(data),
 			});
-			if (!response.ok) {
+			if (!response.ok)
 				alert("Fehler: Betreuer konnte nicht bearbeitet werden (Server-Fehler)");
-			}
 		} catch (e) {
 			console.error("Failed to edit supervisor", e);
 			alert("Fehler: Betreuer konnte nicht bearbeitet werden");
@@ -216,44 +214,45 @@
 	<thead class="thead-light">
 		<tr>
 			<th scope="col"><SortIcon name="Name" bind:sortBy /></th>
-			<th scope="col"
-				><!-- Geschlecht --><SortIcon name="Geschlecht" displayName="" bind:sortBy /></th
-			>
-			<th scope="col"
-				><SortIcon name="Geburtsdatum" displayName="Geburts&shy;datum" bind:sortBy /></th
-			>
-			<th scope="col"><SortIcon name="Juleica-Nummer" displayName="Juleica" bind:sortBy /></th
-			>
+			<th scope="col">
+				<!-- Geschlecht --><SortIcon name="Geschlecht" displayName="" bind:sortBy />
+			</th>
+			<th scope="col">
+				<SortIcon name="Geburtsdatum" displayName="Geburts&shy;datum" bind:sortBy />
+			</th>
+			<th scope="col">
+				<SortIcon name="Juleica-Nummer" displayName="Juleica" bind:sortBy />
+			</th>
 			<th scope="col"><SortIcon name="Mail" displayName="E-Mail" bind:sortBy /></th>
 			<th scope="col"><SortIcon name="Handynummer" displayName="Handy" bind:sortBy /></th>
 			<th scope="col"><SortIcon name="Adresse" bind:sortBy /></th>
 			<th scope="col"><SortIcon name="Ort" bind:sortBy /></th>
 			<th scope="col"><SortIcon name="PLZ" bind:sortBy /></th>
-			<th scope="col"
-				><SortIcon
+			<th scope="col">
+				<SortIcon
 					name="Führungszeugnis Ausstellung"
 					displayName="Führungs&shy;zeugnis Ausstellung"
 					bind:sortBy
-				/></th
-			>
-			<th scope="col"
-				><SortIcon
+				/>
+			</th>
+			<th scope="col">
+				<SortIcon
 					name="Führungszeugnis Eingesehen"
 					displayName="Führungs&shy;zeugnis Eingesehen"
 					bind:sortBy
-				/></th
-			>
-			<th scope="col"
-				><SortIcon
+				/>
+			</th>
+			<th scope="col">
+				<SortIcon
 					name="Krankenversicherung"
-					displayName="Kranken&shy;versicherung"
+					displayName="Kranken&shy;ver&shy;sicherung"
 					bind:sortBy
-				/></th
-			>
+				/>
+			</th>
 			<th scope="col"><SortIcon name="Tetanus-Impfung" bind:sortBy /></th>
-			<th scope="col"
-				><SortIcon name="Vegetarier" displayName="Vege&shy;tarier" bind:sortBy /></th
-			>
+			<th scope="col">
+				<SortIcon name="Vegetarier" displayName="Vege&shy;tarier" bind:sortBy />
+			</th>
 			<th scope="col"><SortIcon name="Allergien" bind:sortBy /></th>
 			<th scope="col"><SortIcon name="Unverträglichkeiten" bind:sortBy /></th>
 			<th scope="col"><SortIcon name="Medikamente" bind:sortBy /></th>
@@ -267,32 +266,32 @@
 				<tr>
 					<td>{e.vorname} {e.nachname}</td>
 					<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
-					<td>{moment.utc(e.geburtsdatum).local().format("DD.MM.YYYY")}</td>
-					<td
-						><EditableProperty
+					<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
+					<td>
+						<EditableProperty
 							bind:value={e.juleica_nummer}
 							on:edit={() => editEntry(e)}
-						/></td
-					>
+						/>
+					</td>
 					<td>{e.mail}</td>
 					<td>{e.handynummer}</td>
 					<td>{e.strasse} {e.hausnummer}</td>
 					<td>{e.ort}</td>
 					<td>{e.plz}</td>
-					<td
-						><EditableProperty
+					<td>
+						<EditableProperty
 							bind:value={e.fuehrungszeugnis_ausstellung}
 							isMoment={true}
 							on:edit={() => editEntry(e)}
-						/></td
-					>
-					<td
-						><EditableProperty
+						/>
+					</td>
+					<td>
+						<EditableProperty
 							bind:value={e.fuehrungszeugnis_eingesehen}
 							isMoment={true}
 							on:edit={() => editEntry(e)}
-						/></td
-					>
+						/>
+					</td>
 					<td>{e.krankenversicherung}</td>
 					<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
 					<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
@@ -300,7 +299,7 @@
 					<td>{e.unvertraeglichkeiten}</td>
 					<td>{e.medikamente}</td>
 					<td>{e.besonderheiten}</td>
-					<td>{moment.utc(e.anmeldedatum).local().format("DD.MM.YY HH:mm")}</td>
+					<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
 				</tr>
 			{/each}
 		{/if}

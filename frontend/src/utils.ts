@@ -3,7 +3,7 @@ import { utils, writeFile } from "xlsx";
 export function getRegion(plz, ort) {
 	if (inMunich(plz, ort)) return "München";
 	if (inMunichLandkreis(plz, ort)) return "Landkreis München";
-	return "";
+	return "Außerhalb";
 }
 
 export function inMunich(plz, _ort) {
@@ -60,10 +60,11 @@ export function createCsv(data, member) {
 	let res = "";
 	for (const line of data) {
 		let first = true;
-		for (const field of line) {
+		for (let field of line) {
 			if (first) first = false;
 			else res += ",";
 			if (field !== null) {
+				if (typeof field === "boolean") field = boolToStr(field);
 				if (field.includes(",") || field.includes("\n") || field.includes('"')) {
 					res += '"' + field.replace('"', '""') + '"';
 				} else {
@@ -120,11 +121,11 @@ export function createDownload(content, name, type) {
 	document.body.removeChild(link);
 }
 
-export function boolToStr(b) {
+export function boolToStr(b: boolean): string {
 	return b === true ? "ja" : "nein";
 }
 
-export function getSortByKeyFn(sortBy) {
+export function getSortByKeyFn(sortBy: string) {
 	const asc = sortBy.endsWith("asc");
 	const sortName = sortBy.slice(0, sortBy.lastIndexOf("-"));
 	const sortKey = sortName
@@ -176,7 +177,7 @@ export function regionSortFn(a, b) {
 		return aInMunichLandkreis ? -1 : 1;
 	}
 
-	return nameSortFn(a, b);
+	return 0;
 }
 
 export function payedSortFn(a, b) {

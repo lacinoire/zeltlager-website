@@ -25,6 +25,17 @@
 <style>
 	button {
 		border: none;
+		background: none;
+		color: inherit;
+		font-weight: inherit;
+	}
+
+	button:hover {
+		color: #000;
+	}
+
+	button:hover .unsorted {
+		color: #000;
 	}
 
 	.unsorted {

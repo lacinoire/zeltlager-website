@@ -11,7 +11,7 @@ navbar_visible = false
 
 [[sites]]
 name = "admin/teilnehmer"
-file_name = "Teilnehmer.html"
+file_name = "../frontend/dist/teilnehmer.html"
 title = "Teilnehmer"
 description = "Administration des Zeltlagers – Teilnehmer"
 role = "Admin"
