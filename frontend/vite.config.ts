@@ -8,14 +8,16 @@ export default defineConfig({
 	plugins: [svelte()],
 	server: {
 		proxy: {
-			"/static": "http://localhost:8080",
 			"/admin": "http://localhost:8080",
+			"/erwischt": "http://localhost:8080",
+			"/static": "http://localhost:8080",
 		},
 	},
 	build: {
 		rollupOptions: {
 			input: {
 				betreuer: resolve(__dirname, "betreuer.html"),
+				erwischt: resolve(__dirname, "erwischt.html"),
 				teilnehmer: resolve(__dirname, "teilnehmer.html"),
 			},
 		},

@@ -25,7 +25,7 @@ role = "Admin"
 
 [[sites]]
 name = "erwischt/"
-file_name = "Erwischt.html"
+file_name = "../frontend/dist/erwischt.html"
 title = "Erwischt"
 description = "Erwischt Spiel des Zeltlagers"
 role = "Erwischt"
