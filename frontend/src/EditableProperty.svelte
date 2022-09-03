@@ -7,10 +7,15 @@
 	export let isMoment = false;
 	export let momentFormat = "DD.MM.YYYY";
 
-	const dispatch = createEventDispatcher<{ edit: undefined }>();
+	interface EditEvent {
+		setEnabled: (boolean) => void;
+	}
+
+	const dispatch = createEventDispatcher<{ edit: EditEvent }>();
 
 	let editing = false;
 	let editValue: string = "";
+	let enabled = true;
 
 	function edit() {
 		if (isMoment)
@@ -27,6 +32,11 @@
 		editing = false;
 	}
 
+	export function setEnabled(enable: boolean) {
+		console.log("Set enabled", enable);
+		enabled = enable;
+	}
+
 	function edited() {
 		let newValue: any;
 		if (isMoment) {
@@ -38,7 +48,7 @@
 		editing = false;
 		if (newValue !== value) {
 			if (typeof value !== "boolean") value = newValue;
-			dispatch("edit");
+			dispatch("edit", { setEnabled });
 		}
 	}
 </script>
@@ -55,11 +65,13 @@
 			{value}
 		{/if}
 	{:else if typeof value === "boolean"}
-		<input type="checkbox" bind:checked={value} on:change={edited} />
+		<input type="checkbox" bind:checked={value} on:change={edited} disabled={!enabled} />
 	{/if}
 	{#if typeof value !== "boolean"}
 		{#if !editing}
-			<button class="btn px-1" on:click={edit}><Icon name="pencil" /></button>
+			<button class="button" on:click={edit} class:is-loading={!enabled}>
+				<Icon name="pencil" />
+			</button>
 		{:else}
 			<!-- svelte-ignore a11y-autofocus -->
 			<input
@@ -71,7 +83,9 @@
 				bind:value={editValue}
 				on:keydown={keydown}
 			/>
-			<button class="btn px-1" type="submit"><Icon name="content-save" /></button>
+			<button class="button" type="submit">
+				<Icon name="content-save" />
+			</button>
 		{/if}
 	{/if}
 </form>

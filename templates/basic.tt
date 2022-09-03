@@ -23,7 +23,7 @@
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-light">
 		<div class="container">
-			<a class="navbar-brand" href="/startseite"><img src="/static/img/MeinZeltlager.svg" height="60" style="padding: 0;" alt="Logo"/></a>
+			<a class="navbar-brand" href="/startseite"><img src="/static/img/MeinZeltlager.svg" style="padding: 0; height: 60px;" alt="Logo"/></a>
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
 				aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
@@ -92,7 +92,7 @@
 	<#= message #>
 	<# }
 #>
-<h3 style="color: black; text-align: center;"><a target="_blank" href="https://ftgern.de" style="color: black;"><img src="/static/img/GernerWappen.png" style="height: 2em;" />Freie Turnerschaft München Gern e.V.</a> – Zeltlager</h3>
+<h3 class="h3" style="color: black; text-align: center;"><a target="_blank" href="https://ftgern.de" style="color: black;"><img src="/static/img/GernerWappen.png" style="height: 2em;" />Freie Turnerschaft München Gern e.V.</a> – Zeltlager</h3>
 
 <#= self.content #>
 

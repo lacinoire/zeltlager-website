@@ -12,18 +12,18 @@
 		"check": "svelte-check --tsconfig ./tsconfig.json"
 	},
 	"devDependencies": {
-		"@sveltejs/vite-plugin-svelte": "^1.0.1",
+		"@sveltejs/vite-plugin-svelte": "^1.0.4",
 		"@tsconfig/svelte": "^3.0.0",
-		"@typescript-eslint/eslint-plugin": "5.35.1",
-		"@typescript-eslint/parser": "5.35.1",
+		"@typescript-eslint/eslint-plugin": "5.36.1",
+		"@typescript-eslint/parser": "5.36.1",
 		"eslint": "8.23.0",
 		"eslint-config-prettier": "8.5.0",
 		"eslint-plugin-svelte3": "4.0.0",
 		"prettier": "2.7.1",
 		"prettier-plugin-svelte": "2.7.0",
-		"sass": "1.54.5",
-		"svelte": "^3.49.0",
-		"svelte-check": "^2.8.0",
+		"sass": "1.54.8",
+		"svelte": "^3.50.0",
+		"svelte-check": "^2.9.0",
 		"svelte-preprocess": "^4.10.7",
 		"tslib": "^2.4.0",
 		"typescript": "^4.6.4",
@@ -31,6 +31,8 @@
 	},
 	"dependencies": {
 		"@mdi/font": "7.0.96",
+		"bulma": "0.9.4",
+		"bulma-switch": "2.0.4",
 		"moment": "2.29.4",
 		"xlsx": "https://cdn.sheetjs.com/xlsx-0.18.10/xlsx-0.18.10.tgz"
 	}

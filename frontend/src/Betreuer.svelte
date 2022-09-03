@@ -5,6 +5,7 @@
 	import { addressSortFn, getSortByKeyFn, nameSortFn, createCsv, createXlsx } from "./utils";
 	import EditableProperty from "./EditableProperty.svelte";
 	import GlobalCss from "./GlobalCss.svelte";
+	import GlobalScss from "./GlobalScss.svelte";
 	import SortIcon from "./SortIcon.svelte";
 
 	const headers = [
@@ -159,7 +160,8 @@
 		all = data;
 	}
 
-	async function editEntry(entry: Supervisor) {
+	async function editEntry(entry: Supervisor, event: CustomEvent<{ setEnabled: (boolean) => void }>) {
+		event.detail.setEnabled(false);
 		const data = {
 			supervisor: entry.id,
 			juleica_nummer: entry.juleica_nummer,
@@ -185,12 +187,14 @@
 			alert("Fehler: Betreuer konnte nicht bearbeitet werden");
 		}
 		await loadData();
+		event.detail.setEnabled(true);
 	}
 
 	onMount(loadData);
 </script>
 
 <GlobalCss />
+<GlobalScss />
 <div class="form-inline">
 	<div class="form-group mx-sm-3 mb-2">
 		<!-- svelte-ignore a11y-autofocus -->
@@ -270,7 +274,7 @@
 					<td>
 						<EditableProperty
 							bind:value={e.juleica_nummer}
-							on:edit={() => editEntry(e)}
+							on:edit={(ev) => editEntry(e, ev)}
 						/>
 					</td>
 					<td>{e.mail}</td>
@@ -282,14 +286,14 @@
 						<EditableProperty
 							bind:value={e.fuehrungszeugnis_ausstellung}
 							isMoment={true}
-							on:edit={() => editEntry(e)}
+							on:edit={(ev) => editEntry(e, ev)}
 						/>
 					</td>
 					<td>
 						<EditableProperty
 							bind:value={e.fuehrungszeugnis_eingesehen}
 							isMoment={true}
-							on:edit={() => editEntry(e)}
+							on:edit={(ev) => editEntry(e, ev)}
 						/>
 					</td>
 					<td>{e.krankenversicherung}</td>
@@ -311,8 +315,10 @@
 		max-width: 100%;
 	}
 
+	/* TODO Move to global styles */
 	thead {
 		position: sticky;
 		top: 0;
+		z-index: 1;
 	}
 </style>
