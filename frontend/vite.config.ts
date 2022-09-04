@@ -1,11 +1,8 @@
-import { resolve } from "path";
-import { defineConfig } from "vite";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { sveltekit } from "@sveltejs/kit/vite";
+import type { UserConfig } from "vite";
 
-// https://vitejs.dev/config/
-export default defineConfig({
-	base: "/frontend/",
-	plugins: [svelte()],
+const config: UserConfig = {
+	plugins: [sveltekit()],
 	server: {
 		proxy: {
 			"/admin": "http://localhost:8080",
@@ -13,13 +10,6 @@ export default defineConfig({
 			"/static": "http://localhost:8080",
 		},
 	},
-	build: {
-		rollupOptions: {
-			input: {
-				betreuer: resolve(__dirname, "betreuer.html"),
-				erwischt: resolve(__dirname, "erwischt.html"),
-				teilnehmer: resolve(__dirname, "teilnehmer.html"),
-			},
-		},
-	},
-});
+};
+
+export default config;

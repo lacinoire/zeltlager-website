@@ -1,15 +1,18 @@
-import sveltePreprocess from "svelte-preprocess";
+import adapter from "@sveltejs/adapter-static";
+import preprocess from "svelte-preprocess";
+import { markdown } from "svelte-preprocess-markdown";
 
-export default {
+/** @type {import('@sveltejs/kit').Config} */
+const config = {
+	extensions: [".svelte", ".md"],
 	// Consult https://github.com/sveltejs/svelte-preprocess
 	// for more information about preprocessors
-	preprocess: sveltePreprocess({
-		scss: {
-			includePaths: ["src", "node_modules"],
-			// prependData is for preproc >= 4.X
-			prependData: `
-				@use "sass:math";
-			`,
-		},
-	}),
+	preprocess: [markdown(), preprocess()],
+
+	kit: {
+		adapter: adapter(),
+		trailingSlash: "always",
+	},
 };
+
+export default config;

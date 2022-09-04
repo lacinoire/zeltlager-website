@@ -1,0 +1,39 @@
+@import "bulma/sass/base/_all";
+@import "bulma/sass/utilities/_all";
+@import "bulma/sass/components/navbar";
+@import "bulma/sass/elements/box";
+@import "bulma/sass/elements/button";
+@import "bulma/sass/elements/container";
+@import "bulma/sass/elements/content";
+@import "bulma/sass/elements/title";
+@import "bulma/sass/form/_all";
+@import "bulma/sass/helpers/color";
+@import "bulma/sass/helpers/typography";
+@import "bulma/sass/layout/footer";
+@import "bulma-switch/src/sass/index";
+
+@import "./checkbox-switch";
+
+.content h1 {
+	color: navy;
+}
+
+.required .label:after {
+	content: "*";
+	color: #d00;
+	font-weight: normal;
+}
+
+.input::placeholder {
+	color: bulmaRgba($input-color, 0.8);
+}
+
+@media screen and (min-width: 769px), print {
+	.label {
+		font-weight: inherit;
+	}
+
+	.field-body {
+		flex-grow: 3;
+	}
+}

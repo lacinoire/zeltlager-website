@@ -1,33 +1,35 @@
 {
 	"name": "zeltlager-website",
 	"version": "1.0.0",
-	"type": "module",
+	"private": true,
 	"scripts": {
-		"dev": "vite",
+		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
 		"typecheck": "svelte-check --output human",
-		"lint": "eslint --ignore-path .gitignore .",
-		"format": "prettier --ignore-path ./.gitignore --write .",
-		"check": "svelte-check --tsconfig ./tsconfig.json"
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write ."
 	},
 	"devDependencies": {
-		"@sveltejs/vite-plugin-svelte": "^1.0.4",
-		"@tsconfig/svelte": "^3.0.0",
+		"@sveltejs/adapter-static": "next",
+		"@sveltejs/kit": "next",
 		"@typescript-eslint/eslint-plugin": "5.36.1",
 		"@typescript-eslint/parser": "5.36.1",
 		"eslint": "8.23.0",
 		"eslint-config-prettier": "8.5.0",
-		"eslint-plugin-svelte3": "4.0.0",
+		"eslint-plugin-svelte3": "^4.0.0",
 		"prettier": "2.7.1",
-		"prettier-plugin-svelte": "2.7.0",
+		"prettier-plugin-svelte": "^2.7.0",
 		"sass": "1.54.8",
 		"svelte": "^3.50.0",
 		"svelte-check": "^2.9.0",
 		"svelte-preprocess": "^4.10.7",
+		"svelte-preprocess-markdown": "^2.7.3",
 		"tslib": "^2.4.0",
-		"typescript": "^4.6.4",
-		"vite": "^3.0.7"
+		"typescript": "^4.7.4",
+		"vite": "^3.1.0-beta.1"
 	},
 	"dependencies": {
 		"@mdi/font": "7.0.96",
@@ -35,5 +37,6 @@
 		"bulma-switch": "2.0.4",
 		"moment": "2.29.4",
 		"xlsx": "https://cdn.sheetjs.com/xlsx-0.18.10/xlsx-0.18.10.tgz"
-	}
+	},
+	"type": "module"
 }
