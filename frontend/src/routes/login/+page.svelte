@@ -82,6 +82,7 @@
 					name="username"
 					placeholder="Name"
 					required
+					autocomplete="username"
 					class="input"
 					type="text"
 				/>
@@ -94,7 +95,7 @@
 					name="password"
 					placeholder="Passwort"
 					required
-					autocomplete="off"
+					autocomplete="current-password"
 					class="input"
 					bind:this={passwordInput}
 					type="password"

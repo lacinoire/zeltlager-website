@@ -155,6 +155,7 @@
 						placeholder="Vorname des Kindes"
 						required
 						class="input"
+						autocomplete="given-name"
 						type="text"
 					/>
 				</div>
@@ -175,6 +176,7 @@
 						class="input"
 						on:keydown={shortcut}
 						required
+						autocomplete="family-name"
 						type="text"
 					/>
 				</div>
@@ -194,6 +196,7 @@
 						placeholder="TT.MM.JJJJ"
 						class="input"
 						required
+						autocomplete="bday"
 						type="text"
 					/>
 				</div>
@@ -328,6 +331,7 @@
 						placeholder="Name eines Erziehungsberechtigten des Kindes"
 						class="input"
 						required
+						autocomplete="name"
 						type="text"
 					/>
 				</div>
@@ -347,7 +351,9 @@
 						placeholder="E-Mail des Erziehungsberechtigten"
 						class="input"
 						required
-						type="text"
+						autocomplete="email"
+						inputmode="email"
+						type="email"
 					/>
 				</div>
 			</div>
@@ -368,6 +374,8 @@
 						placeholder="Handynummer des Erziehungsberechtigten"
 						class="input"
 						required
+						autocomplete="tel"
+						inputmode="tel"
 						type="text"
 					/>
 				</div>
@@ -420,6 +428,8 @@
 						placeholder="PLZ"
 						class="input"
 						required
+						autocomplete="postal-code"
+						inputmode="numeric"
 						type="text"
 					/>
 				</div>

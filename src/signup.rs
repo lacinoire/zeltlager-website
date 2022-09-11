@@ -90,10 +90,6 @@ async fn signup_mail(
 		}
 		Ok(Ok(())) => {
 			// Signup successful
-			// TODO redirect in nojs
-			/*return HttpResponse::Found()
-			.append_header((http::header::LOCATION, "anmeldung-erfolgreich"))
-			.finish();*/
 			return (StatusCode::OK, SignupResult { error: None });
 		}
 	}

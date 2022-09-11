@@ -130,7 +130,7 @@
 	</div>
 </nav>
 
-<div class="container" class:wide={isWide}>
+<div class="container main" class:wide={isWide}>
 	{#if menuData.globalMessage !== undefined}
 		<div class="globalMessage">
 			{@html menuData.globalMessage}
@@ -160,10 +160,13 @@
 </footer>
 
 <style>
-	.container.wide {
-		max-width: 100%;
+	.container.main {
 		margin-left: 1em;
 		margin-right: 1em;
+	}
+
+	.container.main.wide {
+		max-width: 100%;
 	}
 
 	.globalMessage :global(.message) {

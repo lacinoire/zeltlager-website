@@ -142,6 +142,7 @@
 						placeholder="Vorname des Kindes"
 						required
 						class="input"
+						autocomplete="given-name"
 						type="text"
 					/>
 				</div>
@@ -162,6 +163,7 @@
 						class="input"
 						on:keydown={shortcut}
 						required
+						autocomplete="family-name"
 						type="text"
 					/>
 				</div>
@@ -181,6 +183,7 @@
 						placeholder="TT.MM.JJJJ"
 						class="input"
 						required
+						autocomplete="bday"
 						type="text"
 					/>
 				</div>
@@ -293,6 +296,7 @@
 						name="juleica_nummer"
 						placeholder="Juleicanummer"
 						class="input"
+						inputmode="numeric"
 						type="text"
 					/>
 				</div>
@@ -312,7 +316,9 @@
 						placeholder="E-Mailadresse"
 						class="input"
 						required
-						type="text"
+						autocomplete="email"
+						inputmode="email"
+						type="email"
 					/>
 				</div>
 			</div>
@@ -331,6 +337,8 @@
 						placeholder="Handynummer"
 						class="input"
 						required
+						autocomplete="tel"
+						inputmode="tel"
 						type="text"
 					/>
 				</div>
@@ -383,6 +391,8 @@
 						placeholder="PLZ"
 						class="input"
 						required
+						autocomplete="postal-code"
+						inputmode="numeric"
 						type="text"
 					/>
 				</div>
