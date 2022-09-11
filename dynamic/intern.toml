@@ -1,48 +1,11 @@
-# The list of all sites which get rendered with the basic template + intern navbar
+# The list of all sites which are shown on the intern navbar
 
 prefix = "intern"
 
 [[sites]]
-name = "startseite"
-file_name = "BetreuerIntern.md"
+name = ""
 title = "Für Betreuer"
-description = "Informationen für Betreuer des Zeltlagers"
 
 [[sites]]
 name = "betreuer-anmeldung"
-file_name = "Empty.txt"
 title = "Betreueranmeldung"
-description = "Anmeldung für Betreuer des Zeltlagers"
-
-[[sites]]
-name = "betreuer-anmeldung-erfolgreich"
-file_name = "AnmeldungBetreuerErfolgreich.md"
-title = "Betreueranmeldung erfolgreich"
-description = "Betreueranmeldung für’s Zeltlager war erfolgreich"
-navbar_visible = false
-
-[[sites]]
-name = "selbstverpflichtung"
-file_name = "Selbstverpflichtung.html"
-title = "Selbstverpflichtungserklärung"
-description = "Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt"
-navbar_visible = false
-
-[[sites]]
-name = "selbstverpflichtung-anhang"
-file_name = "SelbstverpflichtungAnhang.html"
-title = "Anhang Selbstverpflichtungserklärung"
-description = "Anhang Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt"
-navbar_visible = false
-
-[[sites]]
-name = "datenschutz"
-file_name = "Datenschutz.html"
-title = "Datenschutz"
-description = "Datenschutzerklärung der Zeltlagerwebsite"
-
-[[sites]]
-name = "impressum"
-file_name = "Impressum.html"
-title = "Impressum"
-description = "Impressum der Zeltlagerwebsite"

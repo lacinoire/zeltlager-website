@@ -6,7 +6,7 @@ use log::{error, warn};
 use t4rust_derive::Template;
 
 use crate::auth;
-use crate::basic::{Basic, SiteDescription};
+use crate::basic::SiteDescription;
 use crate::State;
 
 #[derive(Template)]
@@ -43,7 +43,7 @@ pub fn split_image_name(s: &str) -> String {
 	res
 }
 
-pub async fn render_images(state: web::Data<State>, id: Identity, name: String) -> HttpResponse {
+/*pub async fn render_images(state: web::Data<State>, id: Identity, name: String) -> HttpResponse {
 	let roles = match auth::get_roles(&**state, &id).await {
 		Ok(r) => r,
 		Err(e) => {
@@ -70,4 +70,4 @@ pub async fn render_images(state: web::Data<State>, id: Identity, name: String) 
 	let content = format!("{}", site);
 
 	HttpResponse::Ok().content_type("text/html; charset=utf-8").body(content)
-}
+}*/

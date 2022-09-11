@@ -71,10 +71,6 @@ pub struct Config {
 	///
 	/// This should be in the format `mm-dd`.
 	pub birthday_date: String,
-	/// The message which will be shown when the maximum number of members is
-	/// reached.
-	// TODO Remove max_members_reached
-	pub max_members_reached: String,
 	/// An error message, which will be displayed on generic errors.
 	///
 	/// Put here something like: Please write us an e-mail.
@@ -94,9 +90,6 @@ pub struct Config {
 	/// If set, it restricts the authentication cookie to a domain
 	/// and protects against csrf using the referer and origin header.
 	pub domain: Option<String>,
-
-	/// The sentry DSN.
-	pub sentry: Option<String>,
 
 	/// Path to a log file to log signups.
 	pub log_file: Option<PathBuf>,

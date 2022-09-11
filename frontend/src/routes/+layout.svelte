@@ -23,7 +23,15 @@
 	let menuData: MenuData = { isLoggedIn: false, globalMessage: undefined, items: [] };
 
 	async function loadMenuItems() {
-		menuData = await (await fetch("/api/menu")).json();
+		const params = new URLSearchParams();
+		if ($page.routeId !== null) {
+			let routeId = $page.routeId;
+			const i = routeId.indexOf("/");
+			if (i !== -1)
+				routeId = routeId.slice(0, i);
+			params.append("prefix", routeId);
+		}
+		menuData = await (await fetch("/api/menu?" + params.toString())).json();
 	}
 
 	function stripSlashes(s: string) {
@@ -31,8 +39,6 @@
 		if (s.endsWith("/")) s = s.slice(0, -1);
 		return s;
 	}
-
-	// TODO Set html title
 
 	onMount(loadMenuItems);
 </script>
@@ -145,7 +151,6 @@
 	<slot />
 </div>
 
-<!-- TODO Always move footer to the very bottom -->
 <footer class="footer">
 	<div class="has-text-centered">
 		<a href="https://github.com/lacinoire/zeltlager-website" class="has-text-grey">

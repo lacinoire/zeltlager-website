@@ -26,7 +26,6 @@ lettre = "=0.10.0-rc.3"
 log = "0.4"
 mime = "0.3"
 notify = "4"
-pulldown-cmark = { version = "0.8", default-features = false }
 printpdf = "0.4"
 rand = "0.8"
 rpassword = "5"

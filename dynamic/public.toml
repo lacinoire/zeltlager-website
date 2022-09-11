@@ -1,109 +1,42 @@
-# The list of all sites which get rendered with the basic template
+# The list of all sites visible on the default homepage
 
 prefix = ""
 
 [[sites]]
-name = "startseite"
-file_name = "Home.md"
-title = "Zeltlager"
-description = "Startseite der Zeltlagerwebseite"
-navbar_visible = false
-
-[[sites]]
 name = "admin/teilnehmer"
-file_name = "../frontend/dist/teilnehmer.html"
 title = "Teilnehmer"
-description = "Administration des Zeltlagers – Teilnehmer"
 role = "Admin"
 
 [[sites]]
 name = "admin/betreuer"
-file_name = "../frontend/dist/betreuer.html"
 title = "Betreuer"
-description = "Administration des Zeltlagers – Betreuer"
 role = "Admin"
 
 [[sites]]
 name = "erwischt/"
-file_name = "../frontend/dist/erwischt.html"
 title = "Erwischt"
-description = "Erwischt Spiel des Zeltlagers"
 role = "Erwischt"
 
 [[sites]]
 name = "anmeldung"
-file_name = "Empty.txt"
 title = "Anmeldung"
-description = "Anmeldung für’s Zeltlager"
-
-[[sites]]
-name = "anmeldung-erfolgreich"
-file_name = "AnmeldungErfolgreich.md"
-title = "Anmeldung erfolgreich"
-description = "Anmeldung für’s Zeltlager war erfolgreich"
-navbar_visible = false
 
 [[sites]]
 name = "packliste"
-file_name = "Packliste.md"
 title = "Packliste"
-description = "Packliste für das Zeltlagers"
-
-[[sites]]
-name = "team"
-file_name = "Team.md"
-title = "Team"
-description = "Team des Zeltlagers"
-navbar_visible = false
 
 [[sites]]
 name = "ausstattung"
-file_name = "Ausstattung.md"
 title = "Ausstattung und Team"
-description = "Ausstattung und Team des Zeltlagers"
 
 [[sites]]
 name = "betreuer"
-file_name = "Betreuer.md"
 title = "Für Betreuer"
-description = "Für Betreuer des Zeltlagers"
-
-[[sites]]
-name = "agb"
-file_name = "Agb.html"
-title = "Allgemeine Geschäftsbedingungen"
-description = "Allgemeine Geschäftsbedingungen des Zeltlagers"
-navbar_visible = false
 
 [[sites]]
 name = "datenschutz"
-file_name = "Datenschutz.html"
 title = "Datenschutz"
-description = "Datenschutzerklärung der Zeltlagerwebsite"
 
 [[sites]]
 name = "impressum"
-file_name = "Impressum.html"
 title = "Impressum"
-description = "Impressum der Zeltlagerwebsite"
-
-[[sites]]
-name = "notfound"
-file_name = "NotFound.md"
-title = "404 – Nicht gefunden"
-description = "404 – Nicht gefunden"
-navbar_visible = false
-
-[[sites]]
-name = "forbidden"
-file_name = "Forbidden.md"
-title = "403 – Zugriff verweigert"
-description = "403 – Zugriff verweigert"
-navbar_visible = false
-
-[[sites]]
-name = "login"
-file_name = "Empty.txt"
-title = "Login"
-description = "Login der Zeltlagerwebsite"
-navbar_visible = false

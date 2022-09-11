@@ -26,7 +26,7 @@ use futures::prelude::*;
 use lettre::message::Mailbox;
 use log::{error, warn};
 use rand::Rng;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 
 mod admin;
@@ -35,7 +35,6 @@ mod basic;
 mod config;
 mod db;
 mod erwischt;
-mod form;
 mod images;
 mod mail;
 mod management;
@@ -46,7 +45,6 @@ mod thumbs;
 use config::{Config, MailAddress};
 
 const DEFAULT_PREFIX: &str = "public";
-const DEFAULT_NAME: &str = "startseite";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
 const KEY_FILE: &str = "secret.key";
 
@@ -76,6 +74,11 @@ struct MenuData {
 	is_logged_in: bool,
 	global_message: Option<String>,
 	items: Vec<MenuItem>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct MenuRequestData {
+	prefix: Option<String>,
 }
 
 impl TryInto<Mailbox> for MailAddress {
@@ -208,7 +211,7 @@ where
 					let req = ServiceRequest::from_parts(req, pay);
 					Ok(service.call(req).await?.map_body(|_, body| AnyBody::from_message(body)))
 				} else {
-					let res = forbidden(&state, &identity).await;
+					let res = forbidden().await;
 					drop(identity);
 					let req = ServiceRequest::from_parts(req, pay);
 					warn!("Forbidden '{}'", req.path());
@@ -268,130 +271,32 @@ fn escape_html_body(s: &str) -> String {
 		.replace('/', "&#x2F;")
 }
 
-/// Escape a string so it can be put into a html attribute.
-///
-/// # Example
-///
-/// Put a string into `<inupt value="*your string goes here*"/>`. You need to
-/// use double quotes then.
-///
-/// # Escapes
-///
-/// - & to &amp;
-/// - < to &lt;
-/// - " to &quot;
-///
-/// Reference: https://stackoverflow.com/a/9189067
-fn escape_html_attribute(s: &str) -> String {
-	s.replace('&', "&amp;").replace('<', "&lt;").replace('"', "&quot;")
-}
-
 fn error_response(state: &State) -> HttpResponse {
 	HttpResponse::InternalServerError()
-		.content_type("text/html; charset=utf-8")
 		.body(format!("Es ist ein interner Fehler aufgetreten.\n{}", state.config.error_message))
 }
 
-async fn sites(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
-	let prefix: String;
-	let name: String;
-	if let Some(n) =
-		req.match_info().get("name").and_then(|s| if s.is_empty() { None } else { Some(s) })
-	{
-		if let Some(p) = req.match_info().get("prefix") {
-			prefix = p.to_string();
-			name = n.to_string();
-		} else if state.sites.get(n).is_some() {
-			// Check if the name is actually a prefix
-			prefix = n.to_string();
-			name = DEFAULT_NAME.to_string();
-		} else {
-			prefix = DEFAULT_PREFIX.to_string();
-			name = n.to_string();
-		}
-	} else {
-		name = DEFAULT_NAME.to_string();
-		prefix = req.match_info().get("prefix").unwrap_or(DEFAULT_PREFIX).to_string();
-	}
-
-	match site(&**state, &id, &prefix, &name).await {
-		Some(res) => res,
-		None => not_found(&*state, &id, &req).await,
-	}
-}
-
-async fn site(state: &State, id: &Identity, prefix: &str, name: &str) -> Option<HttpResponse> {
-	if let Some(site_descriptions) = state.sites.get(prefix) {
-		let name = name.to_string();
-		let roles = match auth::get_roles(state, id).await {
-			Ok(r) => r,
-			Err(e) => {
-				error!("Failed to get roles: {}", e);
-				return Some(crate::error_response(state));
-			}
-		};
-		site_descriptions.get_site(state.config.clone(), &name, roles).ok().map(|site| {
-			let content = format!("{}", site);
-
-			HttpResponse::Ok().content_type("text/html; charset=utf-8").body(content)
-		})
-	} else {
-		None
-	}
-}
-
-async fn not_found_handler(
-	state: web::Data<State>, id: Identity, req: HttpRequest,
-) -> HttpResponse {
-	not_found(&**state, &id, &req).await
-}
-
-async fn not_found(state: &State, id: &Identity, req: &HttpRequest) -> HttpResponse {
+async fn not_found(req: HttpRequest) -> HttpResponse {
 	warn!("File not found '{}'", req.path());
-	let roles = match auth::get_roles(state, id).await {
-		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get roles: {}", e);
-			return crate::error_response(state);
-		}
-	};
-	let site = match state.sites["public"].get_site(state.config.clone(), "notfound", roles) {
-		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get site: {}", e);
-			return error_response(state);
-		}
-	};
-	let content = format!("{}", site);
-	HttpResponse::NotFound().content_type("text/html; charset=utf-8").body(content)
+	HttpResponse::NotFound().body("Page not found")
 }
 
-async fn forbidden(state: &State, id: &Identity) -> HttpResponse {
+async fn forbidden() -> HttpResponse {
 	// This gets printed sometimes without a request being forbidden because
 	// we need the request.
-	let roles = match auth::get_roles(state, id).await {
-		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get roles: {}", e);
-			return crate::error_response(state);
-		}
-	};
-	let site = match state.sites["public"].get_site(state.config.clone(), "forbidden", roles) {
-		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get site: {}", e);
-			return error_response(state);
-		}
-	};
-	let content = format!("{}", site);
-	HttpResponse::NotFound().content_type("text/html; charset=utf-8").body(content)
+	HttpResponse::NotFound().body("Page not found")
 }
 
 #[get("/menu")]
-async fn menu(state: web::Data<State>, id: Identity) -> HttpResponse {
-	let prefix = DEFAULT_PREFIX;
-
-	if let Some(site_descriptions) = state.sites.get(prefix) {
+async fn menu(
+	state: web::Data<State>, data: web::Query<MenuRequestData>, id: Identity,
+) -> HttpResponse {
+	if let Some(site_descriptions) = data
+		.prefix
+		.as_deref()
+		.and_then(|p| state.sites.get(p))
+		.or_else(|| state.sites.get(DEFAULT_PREFIX))
+	{
 		let roles = match auth::get_roles(&**state, &id).await {
 			Ok(r) => r,
 			Err(e) => {
@@ -399,67 +304,52 @@ async fn menu(state: web::Data<State>, id: Identity) -> HttpResponse {
 				return crate::error_response(&**state);
 			}
 		};
-		let is_logged_in = roles.is_some();
-		match site_descriptions.get_site(state.config.clone(), DEFAULT_NAME, roles) {
-			Ok(basic_site) => {
-				let mut menu_items = Vec::new();
-				for role in basic_site.logged_in_roles.iter().flatten() {
-					if let auth::Roles::Images(name) = role {
-						let site_name = format!("Bilder{}/", name);
-						menu_items.push(MenuItem {
-							title: format!("Bilder {}", images::split_image_name(name)),
-							link: format!(
-								"/{}{}{}",
-								site_descriptions.prefix,
-								if site_descriptions.prefix.is_empty() { "" } else { "/" },
-								site_name,
-							),
-						});
-					}
-				}
+		let mut menu_items = Vec::new();
 
-				for site in &site_descriptions.sites {
-					if !site.navbar_visible {
-						continue;
-					}
-					match &site.role {
-						Some(role) => {
-							if !basic_site
-								.logged_in_roles
-								.as_ref()
-								.map(|v| v.as_slice())
-								.unwrap_or(&[])
-								.contains(&role)
-							{
-								continue;
-							}
-						}
-						None => {}
-					}
-					menu_items.push(MenuItem {
-						title: site.title.clone(),
-						link: format!(
-							"/{}{}{}",
-							site_descriptions.prefix,
-							if site_descriptions.prefix.is_empty() { "" } else { "/" },
-							site.name,
-						),
-					});
-				}
-
-				HttpResponse::Ok().json(MenuData {
-					is_logged_in,
-					global_message: state.config.global_message.clone(),
-					items: menu_items,
-				})
-			}
-			Err(e) => {
-				error!("Failed to get site: {}", e);
-				return crate::error_response(&**state);
+		// Links to images
+		for role in roles.iter().flatten() {
+			if let auth::Roles::Images(name) = role {
+				let site_name = format!("Bilder{}/", name);
+				menu_items.push(MenuItem {
+					title: format!("Bilder {}", images::split_image_name(name)),
+					link: format!(
+						"/{}{}{}",
+						site_descriptions.prefix,
+						if site_descriptions.prefix.is_empty() { "" } else { "/" },
+						site_name,
+					),
+				});
 			}
 		}
+
+		// Links to other sites
+		for site in &site_descriptions.sites {
+			match &site.role {
+				Some(role) => {
+					if !roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) {
+						continue;
+					}
+				}
+				None => {}
+			}
+			menu_items.push(MenuItem {
+				title: site.title.clone(),
+				link: format!(
+					"/{}{}{}",
+					site_descriptions.prefix,
+					if site_descriptions.prefix.is_empty() { "" } else { "/" },
+					site.name,
+				),
+			});
+		}
+
+		HttpResponse::Ok().json(MenuData {
+			is_logged_in: roles.is_some(),
+			global_message: state.config.global_message.clone(),
+			items: menu_items,
+		})
 	} else {
-		error!("Did not find site prefix '{}'", prefix);
+		error!("Did not find site prefix {:?}", data.prefix);
 		return crate::error_response(&**state);
 	}
 }
@@ -561,11 +451,14 @@ async fn main() -> Result<()> {
 		let mut app = app.wrap(IdentityService::new(identity_policy)).service(
 			web::scope("/api")
 				.service(auth::login)
+				.service(auth::login_nojs)
 				.service(auth::logout)
 				.service(menu)
 				.service(signup::signup_state)
 				.service(signup::signup)
+				.service(signup::signup_nojs)
 				.service(signup_supervisor::signup)
+				.service(signup_supervisor::signup_nojs)
 				.service(
 					web::scope("/admin")
 						.wrap(HasRolePredicate::new(auth::Roles::Admin))
@@ -596,10 +489,10 @@ async fn main() -> Result<()> {
 			app = app.service(
 				web::scope(&format!("/Bilder{}", name))
 					.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone())))
-					.route(
+					/*.route(
 						"/",
 						web::get().to(move |s, i| images::render_images(s, i, name2.clone())),
-					)
+					)*/
 					.route(
 						"",
 						web::get().to(move || {
@@ -611,19 +504,19 @@ async fn main() -> Result<()> {
 					.service(
 						Files::new("/static", format!("Bilder{}", name))
 							.mime_override(content_disposition_map)
-							.default_handler(web::to(not_found_handler)),
+							.default_handler(web::to(not_found)),
 					),
 			);
 		}
 
-		app
-			.service(
-				Files::new("/frontend", "frontend/build")
-					.mime_override(content_disposition_map)
-					.default_handler(web::to(not_found_handler)),
-			)
-			// TODO Remove basic template
-			.default_service(web::to(not_found_handler))
+		// Serve frontend files
+		app.service(
+			Files::new("", "frontend/build")
+				.mime_override(content_disposition_map)
+				.index_file("index.html")
+				.default_handler(web::to(not_found)),
+		)
+		.default_service(web::to(not_found))
 	})
 	.bind(address)?
 	.run()

@@ -1,76 +1,20 @@
-//! The signup template.
-
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::Write;
 
-use actix_identity::Identity;
-use actix_web::*;
-use log::{error, warn};
+use actix_web::{http::StatusCode, *};
+use log::warn;
 use serde::Serialize;
-use t4rust_derive::Template;
 
-use crate::form::Form;
-use crate::{db, HttpRequest, HttpResponse, State};
-
-#[derive(Template)]
-#[TemplatePath = "templates/signupSupervisor.tt"]
-#[derive(Debug)]
-pub struct SignupSupervisor {
-	/// Already entered values, which should be inserted into the form.
-	pub values: HashMap<String, String>,
-}
+use crate::{db, HttpResponse, State};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
 	error: Option<String>,
 }
 
-impl Form for SignupSupervisor {
-	fn get_values(&self) -> Cow<HashMap<String, String>> { Cow::Borrowed(&self.values) }
-}
-
-impl SignupSupervisor {
-	pub fn new(_state: &State, values: HashMap<String, String>) -> Self { Self { values } }
-}
-
-/// Return the signup site with the prefilled `values`.
-async fn render_signup(
-	state: &State, id: &Identity, req: &HttpRequest, values: HashMap<String, String>,
-) -> HttpResponse {
-	let roles = match crate::auth::get_roles(state, id).await {
-		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get roles: {}", e);
-			return crate::error_response(state);
-		}
-	};
-	if let Ok(site) =
-		state.sites["intern"].get_site(state.config.clone(), "betreuer-anmeldung", roles)
-	{
-		let content = format!("{}", site);
-		let new_content = SignupSupervisor::new(state, values);
-		let content = content.replace("<insert content here>", &format!("{}", new_content));
-		HttpResponse::Ok().content_type("text/html; charset=utf-8").body(content)
-	} else {
-		crate::not_found(state, id, req).await
-	}
-}
-
-/// show a success site.
-fn signup_success() -> HttpResponse {
-	// Redirect to success site
-	// TODO for nojs
-	/*HttpResponse::Found()
-	.append_header((http::header::LOCATION, "betreuer-anmeldung-erfolgreich"))
-	.finish()*/
-	HttpResponse::Ok().json(SignupResult { error: None })
-}
-
-#[post("/signup-supervisor")]
-pub async fn signup(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
+async fn signup_internal(
+	state: &State, body: HashMap<String, String>,
+) -> (StatusCode, SignupResult) {
 	let db_addr = state.db_addr.clone();
 	let error_message = state.config.error_message.clone();
 	let birthday_date = state.config.birthday_date.clone();
@@ -82,8 +26,7 @@ pub async fn signup(
 		Ok(supervisor) => supervisor,
 		Err(error) => {
 			warn!("Error handling form content: {}", error);
-			return HttpResponse::BadRequest()
-				.json(SignupResult { error: Some(error.to_string()) });
+			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error.to_string()) });
 		}
 	};
 
@@ -111,11 +54,34 @@ pub async fn signup(
 				}
 			}
 
-			return signup_success();
+			return (StatusCode::OK, SignupResult { error: None });
 		}
 	}
 
-	HttpResponse::InternalServerError().json(SignupResult {
+	(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
 		error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
 	})
+}
+
+#[post("/signup-supervisor")]
+pub async fn signup(
+	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
+) -> HttpResponse {
+	let (status, result) = signup_internal(&**state, body.into_inner()).await;
+	HttpResponse::build(status).json(result)
+}
+
+#[post("/signup-supervisor-nojs")]
+pub async fn signup_nojs(
+	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
+) -> HttpResponse {
+	let (status, result) = signup_internal(&**state, body.into_inner()).await;
+	if let Some(error) = result.error {
+		HttpResponse::build(status).body(error)
+	} else {
+		debug_assert_eq!(status, StatusCode::OK);
+		HttpResponse::Found()
+			.append_header(("location", "/intern/betreuer-anmeldung-erfolgreich"))
+			.finish()
+	}
 }

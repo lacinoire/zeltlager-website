@@ -41,6 +41,13 @@
 	let insertMember = false;
 	let filter = "";
 
+	if (browser) {
+		lastActions = localStorage.erwischtLastActions
+			? JSON.parse(localStorage.erwischtLastActions)
+			: [];
+		showTarget = localStorage.erwischtShowTarget === "true";
+	}
+
 	function findMember(id: number) {
 		if (id === undefined) return undefined;
 		const target = currentGame[id];
@@ -302,10 +309,6 @@
 	}
 
 	onMount(() => {
-		lastActions = localStorage.erwischtLastActions
-			? JSON.parse(localStorage.erwischtLastActions)
-			: [];
-		showTarget = localStorage.erwischtShowTarget === "true";
 		loadGames();
 	});
 </script>
