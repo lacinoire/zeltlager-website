@@ -26,6 +26,7 @@ use futures::prelude::*;
 use lettre::message::Mailbox;
 use log::{error, warn};
 use rand::Rng;
+use serde::Serialize;
 use structopt::StructOpt;
 
 mod admin;
@@ -61,6 +62,20 @@ pub struct State {
 	mail_addr: actix::Addr<mail::MailExecutor>,
 	/// Used to lock access to the log file.
 	log_mutex: Arc<Mutex<()>>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MenuItem {
+	title: String,
+	link: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MenuData {
+	is_logged_in: bool,
+	global_message: Option<String>,
+	items: Vec<MenuItem>,
 }
 
 impl TryInto<Mailbox> for MailAddress {
@@ -372,6 +387,83 @@ async fn forbidden(state: &State, id: &Identity) -> HttpResponse {
 	HttpResponse::NotFound().content_type("text/html; charset=utf-8").body(content)
 }
 
+#[get("/menu")]
+async fn menu(state: web::Data<State>, id: Identity) -> HttpResponse {
+	let prefix = DEFAULT_PREFIX;
+
+	if let Some(site_descriptions) = state.sites.get(prefix) {
+		let roles = match auth::get_roles(&**state, &id).await {
+			Ok(r) => r,
+			Err(e) => {
+				error!("Failed to get roles: {}", e);
+				return crate::error_response(&**state);
+			}
+		};
+		let is_logged_in = roles.is_some();
+		match site_descriptions.get_site(state.config.clone(), DEFAULT_NAME, roles) {
+			Ok(basic_site) => {
+				let mut menu_items = Vec::new();
+				for role in basic_site.logged_in_roles.iter().flatten() {
+					if let auth::Roles::Images(name) = role {
+						let site_name = format!("Bilder{}/", name);
+						menu_items.push(MenuItem {
+							title: format!("Bilder {}", images::split_image_name(name)),
+							link: format!(
+								"/{}{}{}",
+								site_descriptions.prefix,
+								if site_descriptions.prefix.is_empty() { "" } else { "/" },
+								site_name,
+							),
+						});
+					}
+				}
+
+				for site in &site_descriptions.sites {
+					if !site.navbar_visible {
+						continue;
+					}
+					match &site.role {
+						Some(role) => {
+							if !basic_site
+								.logged_in_roles
+								.as_ref()
+								.map(|v| v.as_slice())
+								.unwrap_or(&[])
+								.contains(&role)
+							{
+								continue;
+							}
+						}
+						None => {}
+					}
+					menu_items.push(MenuItem {
+						title: site.title.clone(),
+						link: format!(
+							"/{}{}{}",
+							site_descriptions.prefix,
+							if site_descriptions.prefix.is_empty() { "" } else { "/" },
+							site.name,
+						),
+					});
+				}
+
+				HttpResponse::Ok().json(MenuData {
+					is_logged_in,
+					global_message: state.config.global_message.clone(),
+					items: menu_items,
+				})
+			}
+			Err(e) => {
+				error!("Failed to get site: {}", e);
+				return crate::error_response(&**state);
+			}
+		}
+	} else {
+		error!("Did not find site prefix '{}'", prefix);
+		return crate::error_response(&**state);
+	}
+}
+
 #[actix_rt::main]
 async fn main() -> Result<()> {
 	if env::var("RUST_LOG").is_err() {
@@ -466,26 +558,37 @@ async fn main() -> Result<()> {
 			identity_policy = identity_policy.domain(domain.clone());
 		}
 
-		let mut app = app
-			.wrap(IdentityService::new(identity_policy))
-			.service(
-				Files::new("/static", "static")
-					.mime_override(content_disposition_map)
-					.default_handler(web::to(not_found_handler)),
-			)
-			.service(
-				Files::new("/frontend", "frontend/dist")
-					.mime_override(content_disposition_map)
-					.default_handler(web::to(not_found_handler)),
-			)
-			.service(signup::signup)
-			.service(signup::signup_test)
-			.service(signup::signup_send)
-			.service(signup_supervisor::signup)
-			.service(signup_supervisor::signup_send)
-			.service(auth::login)
-			.service(auth::login_send)
-			.service(auth::logout);
+		let mut app = app.wrap(IdentityService::new(identity_policy)).service(
+			web::scope("/api")
+				.service(auth::login)
+				.service(auth::logout)
+				.service(menu)
+				.service(signup::signup_state)
+				.service(signup::signup)
+				.service(signup_supervisor::signup)
+				.service(
+					web::scope("/admin")
+						.wrap(HasRolePredicate::new(auth::Roles::Admin))
+						.service(admin::download_members)
+						.service(admin::download_supervisors)
+						.service(admin::remove_member)
+						.service(admin::edit_member)
+						.service(admin::edit_supervisor),
+				)
+				.service(
+					web::scope("/erwischt")
+						.wrap(HasRolePredicate::new(auth::Roles::Erwischt))
+						.service(erwischt::get_games)
+						.service(erwischt::get_game)
+						.service(erwischt::create_game)
+						.service(erwischt::delete_game)
+						.service(erwischt::catch)
+						.service(erwischt::insert)
+						.service(erwischt::create_game_pdf)
+						.service(erwischt::create_members_pdf),
+				),
+		);
+		// TODO Bilder
 
 		for name in &image_dirs {
 			let name2 = name.clone();
@@ -514,43 +617,12 @@ async fn main() -> Result<()> {
 		}
 
 		app
-			// admin
-			.service(web::scope("/admin")
-				.wrap(HasRolePredicate::new(auth::Roles::Admin))
-				.service(admin::render_members)
-				.service(admin::render_supervisors)
-				.service(admin::download_members_json)
-				.service(admin::download_supervisors_json)
-				.service(admin::remove_member)
-				.service(admin::edit_member)
-				.service(admin::edit_supervisor)
+			.service(
+				Files::new("/frontend", "frontend/build")
+					.mime_override(content_disposition_map)
+					.default_handler(web::to(not_found_handler)),
 			)
-			.route("/admin", web::get().to(||
-				HttpResponse::Found().append_header(("location", "/admin/")).finish())
-			)
-			// erwischt
-			.service(web::scope("/erwischt")
-				.wrap(HasRolePredicate::new(auth::Roles::Erwischt))
-				.service(erwischt::render_erwischt)
-				.service(erwischt::get_games)
-				.service(erwischt::get_game)
-				.service(erwischt::create_game)
-				.service(erwischt::delete_game)
-				.service(erwischt::catch)
-				.service(erwischt::insert)
-				.service(erwischt::create_game_pdf)
-				.service(erwischt::create_members_pdf)
-				.route("",
-					web::get().to(move || {
-					HttpResponse::Found()
-						.append_header(("location", "/erwischt/"))
-						.finish()
-					}))
-			)
-			// Allow an empty name
-			.service(web::resource("/{prefix}/{name:[^/]*}").route(web::get().to(crate::sites)))
-			.service(web::resource("/{name}").route(web::get().to(crate::sites)))
-			.service(web::resource("/").route(web::get().to(crate::sites)))
+			// TODO Remove basic template
 			.default_service(web::to(not_found_handler))
 	})
 	.bind(address)?

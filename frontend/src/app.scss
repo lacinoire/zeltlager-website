@@ -1,18 +1,33 @@
 @import "bulma/sass/base/_all";
 @import "bulma/sass/utilities/_all";
+@import "bulma/sass/components/dropdown";
+@import "bulma/sass/components/message";
 @import "bulma/sass/components/navbar";
+@import "bulma/sass/components/tabs";
 @import "bulma/sass/elements/box";
 @import "bulma/sass/elements/button";
 @import "bulma/sass/elements/container";
 @import "bulma/sass/elements/content";
+@import "bulma/sass/elements/table";
 @import "bulma/sass/elements/title";
 @import "bulma/sass/form/_all";
 @import "bulma/sass/helpers/color";
 @import "bulma/sass/helpers/typography";
+@import "bulma/sass/helpers/visibility";
 @import "bulma/sass/layout/footer";
 @import "bulma-switch/src/sass/index";
 
 @import "./checkbox-switch";
+
+html {
+	height: 100%;
+	width: 100%;
+}
+
+body {
+	min-height: 100%;
+	width: 100%;
+}
 
 .content h1 {
 	color: navy;
@@ -26,6 +41,46 @@
 
 .input::placeholder {
 	color: bulmaRgba($input-color, 0.8);
+}
+
+img {
+	padding: 0.3125rem; /* 5px */
+	image-orientation: from-image;
+}
+
+.image-list img {
+	max-width: 90vw;
+	width: 36em;
+}
+
+.navbar-brand {
+	padding: 0.3125rem;
+}
+
+.footer {
+	margin-top: 2em;
+	width: 100%;
+}
+
+.table thead,
+td.special {
+	background: #e9ecef;
+}
+
+.table thead.is-sticky {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.radio-buttons-as-buttons {
+	label {
+		@extend button;
+	}
+
+	input {
+		display: none;
+	}
 }
 
 @media screen and (min-width: 769px), print {

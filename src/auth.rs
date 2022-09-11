@@ -10,7 +10,7 @@ use anyhow::{bail, format_err, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use log::{error, info, warn};
 use serde::de::Error;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use t4rust_derive::Template;
 
 use crate::form::Form;
@@ -21,6 +21,11 @@ pub enum Roles {
 	Admin,
 	Erwischt,
 	Images(String),
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct LoginResult {
+	error: Option<String>,
 }
 
 #[derive(Template)]
@@ -117,7 +122,7 @@ pub struct LoginArgs {
 	redirect: Option<String>,
 }
 
-#[get("/login")]
+/*#[get("/login")]
 pub async fn login(
 	state: web::Data<State>, id: Identity, req: HttpRequest, mut args: web::Query<LoginArgs>,
 ) -> HttpResponse {
@@ -131,7 +136,7 @@ pub async fn login(
 		}
 		render_login(&state, &id, &req, values).await
 	}
-}
+}*/
 
 fn set_logged_in(id: i32, identity: &Identity) {
 	// Logged in: Store "user id|timeout"
@@ -143,42 +148,41 @@ fn set_logged_in(id: i32, identity: &Identity) {
 }
 
 #[post("/login")]
-pub async fn login_send(
+pub async fn login(
 	state: web::Data<State>, req: HttpRequest, identity: Identity,
-	mut body: web::Form<HashMap<String, String>>,
+	body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
 	// Search user in database
 	let db_addr = state.db_addr.clone();
-	let error_message = state.config.error_message.clone();
+	let error_message = &state.config.error_message;
 
 	// Check rate limit
-	let redirect = body.get("redirect").map(Clone::clone);
 	let msg = match db::AuthenticateMessage::from_hashmap(body.clone()) {
 		Ok(r) => r,
 		Err(e) => {
 			error!("Failed to get authentication message: {}", e);
-			return crate::error_response(&**state);
+			return HttpResponse::InternalServerError().json(LoginResult {
+				error: Some(format!("Es ist ein interner Fehler aufgetreten.\n{}", error_message)),
+			});
 		}
 	};
-	body.remove("password");
 
 	if let Err(error) = rate_limit(&**state, &req).await {
-		body.insert(
-			"error".to_string(),
-			"Zu viele Login Anfragen. Probieren Sie es später noch einmal.".to_string(),
-		);
 		info!("Rate limit exceeded ({:?})", error);
-		render_login(&**state, &identity, &req, body.into_inner()).await
+		HttpResponse::Forbidden().json(LoginResult {
+			error: Some("Zu viele Login Anfragen. Probieren Sie es später noch einmal.".into()),
+		})
 	} else {
 		match db_addr.send(msg).await.map_err(|e| e.into()) {
 			Err(error) | Ok(Err(error)) => {
-				// Show error and prefilled form
-				body.insert(
-					"error".to_string(),
-					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message),
-				);
+				// Show error
 				warn!("Error by auth message: {}", error);
-				render_login(&**state, &identity, &req, body.into_inner()).await
+				HttpResponse::InternalServerError().json(LoginResult {
+					error: Some(format!(
+						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+						error_message
+					)),
+				})
 			}
 			Ok(Ok(Some(id))) => {
 				set_logged_in(id, &identity);
@@ -190,34 +194,32 @@ pub async fn login_send(
 					Ok(r) => r.to_string(),
 					Err(e) => {
 						error!("Failed to get ip: {}", e);
-						return crate::error_response(&**state);
+						return HttpResponse::InternalServerError().json(LoginResult {
+							error: Some(format!(
+								"Es ist ein interner Fehler aufgetreten.\n{}",
+								error_message
+							)),
+						});
 					}
 				};
 				if let Err(e) = state.db_addr.send(db::DecreaseRateCounterMessage { ip }).await {
 					error!("Failed to decrease rate limiting counter: {}", e);
 				}
-				// Redirect somewhere else if there is a
-				// redirect argument.
-				if let Some(redirect) = redirect {
-					let redirect = redirect.trim_start_matches('/');
-					let redirect = format!("/{}", redirect);
-					HttpResponse::Found().append_header(("location", redirect.as_str())).finish()
-				} else {
-					HttpResponse::Found().append_header(("location", "/")).finish()
-				}
+				// TODO Redirect in js
+				HttpResponse::Ok().json(LoginResult { error: None })
 			}
 			Ok(Ok(None)) => {
 				// Wrong username or password
 				// Show error and prefilled form
-				body.insert(
-					"error".to_string(),
-					"Falsches Passwort oder falscher Benutzername".to_string(),
-				);
-				render_login(&*state, &identity, &req, body.into_inner()).await
+				HttpResponse::Forbidden().json(LoginResult {
+					error: Some("Falsches Passwort oder falscher Benutzername".into()),
+				})
 			}
 		}
 	}
 }
+
+// TODO login-nojs
 
 #[get("/logout")]
 pub fn logout(id: Identity) -> HttpResponse {

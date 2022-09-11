@@ -155,8 +155,8 @@ pub(crate) async fn edit_supervisor(
 }
 
 /// Return all current members as json.
-#[get("/teilnehmer.json")]
-pub async fn download_members_json(state: web::Data<State>) -> HttpResponse {
+#[get("/teilnehmer")]
+pub async fn download_members(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::DownloadFullMembersMessage).await.map_err(|e| e.into()) {
 		Ok(Err(error)) | Err(error) => {
 			warn!("Error fetching from database: {}", error);
@@ -167,8 +167,8 @@ pub async fn download_members_json(state: web::Data<State>) -> HttpResponse {
 }
 
 /// Return all current members as json.
-#[get("/betreuer.json")]
-pub async fn download_supervisors_json(state: web::Data<State>) -> HttpResponse {
+#[get("/betreuer")]
+pub async fn download_supervisors(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::DownloadFullSupervisorsMessage).await.map_err(|e| e.into()) {
 		Ok(Err(error)) | Err(error) => {
 			warn!("Error fetching from database: {}", error);

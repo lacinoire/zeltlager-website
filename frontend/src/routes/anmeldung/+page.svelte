@@ -1,13 +1,147 @@
-// Show error if there is one
-<div class="alert alert-danger" role="alert">
-	// Show only note if the maximum count is reached
+<script lang="ts">
+	import { goto } from "$app/navigation";
+	import { onMount } from "svelte";
 
-	<p>Unsere <a href="/agb">AGB</a> und <a href="/datenschutz">Datenschutzbestimmungen</a>.</p>
-</div>
+	let error: string | undefined;
+	let isFull = false;
+	let signupForm: HTMLFormElement | undefined;
+	let errorMsg: HTMLElement | undefined;
+
+	async function loadState() {
+		isFull = false;
+		let response: Response;
+		try {
+			response = await fetch("/api/signup-state");
+		} catch (e) {
+			console.error("Failed to make signup state web request", e);
+			error = "Verbindung fehlgeschlagen. Ist das Internet erreichbar?";
+			return;
+		}
+		let respText: string;
+		try {
+			respText = await response.text();
+		} catch (e) {
+			console.error("Failed to read signup state response", e);
+			error = "Verbindung abgebrochen";
+			return;
+		}
+		try {
+			const resp = JSON.parse(respText);
+			isFull = resp.isFull;
+		} catch (e) {
+			console.error("Failed to convert signup state request to json", e);
+			error = respText;
+			return;
+		}
+	}
+
+	function setError(msg: string) {
+		error = msg;
+		errorMsg?.scrollIntoView({ behavior: "smooth" });
+	}
+
+	async function signup() {
+		error = undefined;
+		let response: Response;
+		try {
+			response = await fetch("/api/signup", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+				},
+				body: new URLSearchParams(new FormData(signupForm) as any),
+			});
+		} catch (e) {
+			console.error("Failed to make signup web request", e);
+			setError("Verbindung fehlgeschlagen. Ist das Internet erreichbar?");
+			return;
+		}
+		let respText: string;
+		try {
+			respText = await response.text();
+		} catch (e) {
+			console.error("Failed to read signup response", e);
+			setError("Verbindung abgebrochen");
+			return;
+		}
+		try {
+			const resp = JSON.parse(respText);
+			if (resp.error !== null) {
+				setError(resp.error);
+			} else {
+				// Signup successful
+				goto("/anmeldung-erfolgreich");
+				return;
+			}
+		} catch (e) {
+			console.error("Failed to convert signup request to json", e);
+			setError(respText);
+			return;
+		}
+		// Refetch status
+		await loadState();
+	}
+
+	function fillTestData() {
+		if (signupForm === undefined) return;
+		signupForm.vorname.value = "a";
+		signupForm.nachname.value = "b";
+		signupForm.geburtsdatum.value = "1.1.2010";
+		signupForm.geschlecht.value = "w";
+		signupForm.schwimmer.value = "true";
+		signupForm.vegetarier.value = "false";
+		signupForm.tetanus_impfung.value = "true";
+		signupForm.krankenversicherung.value = "gesetzlich";
+		signupForm.eltern_name.value = "c";
+		signupForm.eltern_mail.value = "@";
+		signupForm.eltern_handynummer.value = "d";
+		signupForm.strasse.value = "e";
+		signupForm.hausnummer.value = "1";
+		signupForm.plz.value = "80000";
+		signupForm.ort.value = "f";
+	}
+
+	function shortcut(e: KeyboardEvent) {
+		// Press Alt+Escape in Nachname to fill in test data
+		if (e.altKey && e.key === "Escape") fillTestData();
+	}
+
+	onMount(loadState);
+</script>
+
+<svelte:head>
+	<title>Anmeldung – Zeltlager – FT München Gern e.V.</title>
+</svelte:head>
 
 <h1 class="title">Anmeldung für das Zeltlager 2023</h1>
 
-<form method="post" action="signup-send">
+<div bind:this={errorMsg} class="error-msg">
+	{#if error !== undefined}
+		<article class="message is-danger">
+			<div class="message-body">
+				{error}
+			</div>
+		</article>
+	{/if}
+</div>
+
+{#if isFull}
+	<article class="message is-info">
+		<div class="message-body">Das Zeltlager für dieses Jahr ist leider schon voll.</div>
+	</article>
+
+	<p>
+		Unsere <a href="/agb">AGB</a> und <a href="/datenschutz">Datenschutzbestimmungen</a>.
+	</p>
+{/if}
+
+<form
+	method="post"
+	action="/api/signup-nojs"
+	class:is-hidden={isFull}
+	on:submit|preventDefault={signup}
+	bind:this={signupForm}
+>
 	<div class="field is-horizontal required">
 		<div class="field-label">
 			<label for="vorname" class="label">Vorname</label>
@@ -39,6 +173,7 @@
 						name="nachname"
 						placeholder="Nachname des Kindes"
 						class="input"
+						on:keydown={shortcut}
 						required
 						type="text"
 					/>
@@ -412,9 +547,15 @@
 		<div class="field-body">
 			<div class="field">
 				<div class="control">
-					<button name="submit" type="submit" class="button is-link">Anmelden</button>
+					<button type="submit" class="button is-link">Anmelden</button>
 				</div>
 			</div>
 		</div>
 	</div>
 </form>
+
+<style>
+	.error-msg {
+		margin-bottom: 1em;
+	}
+</style>

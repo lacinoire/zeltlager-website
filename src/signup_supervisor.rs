@@ -7,6 +7,7 @@ use std::io::Write;
 use actix_identity::Identity;
 use actix_web::*;
 use log::{error, warn};
+use serde::Serialize;
 use t4rust_derive::Template;
 
 use crate::form::Form;
@@ -20,17 +21,17 @@ pub struct SignupSupervisor {
 	pub values: HashMap<String, String>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+struct SignupResult {
+	error: Option<String>,
+}
+
 impl Form for SignupSupervisor {
 	fn get_values(&self) -> Cow<HashMap<String, String>> { Cow::Borrowed(&self.values) }
 }
 
 impl SignupSupervisor {
 	pub fn new(_state: &State, values: HashMap<String, String>) -> Self { Self { values } }
-}
-
-#[get("/intern/betreuer-anmeldung")]
-pub async fn signup(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
-	render_signup(&**state, &id, &req, HashMap::new()).await
 }
 
 /// Return the signup site with the prefilled `values`.
@@ -59,15 +60,16 @@ async fn render_signup(
 /// show a success site.
 fn signup_success() -> HttpResponse {
 	// Redirect to success site
-	HttpResponse::Found()
-		.append_header((http::header::LOCATION, "betreuer-anmeldung-erfolgreich"))
-		.finish()
+	// TODO for nojs
+	/*HttpResponse::Found()
+	.append_header((http::header::LOCATION, "betreuer-anmeldung-erfolgreich"))
+	.finish()*/
+	HttpResponse::Ok().json(SignupResult { error: None })
 }
 
-#[post("/intern/signup-supervisor-send")]
-pub async fn signup_send(
-	state: web::Data<State>, id: Identity, req: HttpRequest,
-	mut body: web::Form<HashMap<String, String>>,
+#[post("/signup-supervisor")]
+pub async fn signup(
+	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
 	let db_addr = state.db_addr.clone();
 	let error_message = state.config.error_message.clone();
@@ -79,10 +81,9 @@ pub async fn signup_send(
 	let supervisor = match db::models::Supervisor::from_hashmap(body.clone(), &birthday_date) {
 		Ok(supervisor) => supervisor,
 		Err(error) => {
-			// Show error and prefilled form
-			body.insert("error".to_string(), format!("{}", error));
 			warn!("Error handling form content: {}", error);
-			return render_signup(&**state, &id, &req, body.into_inner()).await;
+			return HttpResponse::BadRequest()
+				.json(SignupResult { error: Some(error.to_string()) });
 		}
 	};
 
@@ -105,12 +106,8 @@ pub async fn signup_send(
 				})();
 
 				if let Err(error) = res {
-					body.insert(
-						"error".to_string(),
-						format!("Es ist ein Fehler beim Speichern aufgetreten.\n{}", error_message),
-					);
 					warn!("Failed to log new supervisor: {:?}", error);
-					return render_signup(&**state, &id, &req, body.into_inner()).await;
+					// Ignore logging failure as it was saved in the db
 				}
 			}
 
@@ -118,10 +115,7 @@ pub async fn signup_send(
 		}
 	}
 
-	// Show error and prefilled form
-	body.insert(
-		"error".to_string(),
-		format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message),
-	);
-	render_signup(&**state, &id, &req, body.into_inner()).await
+	HttpResponse::InternalServerError().json(SignupResult {
+		error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+	})
 }

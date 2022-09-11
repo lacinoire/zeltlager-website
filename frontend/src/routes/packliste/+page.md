@@ -1,3 +1,7 @@
+<svelte:head>
+<title>Packliste – Zeltlager – FT München Gern e.V.</title>
+</svelte:head>
+
 <div class="content">
 
 # Packliste

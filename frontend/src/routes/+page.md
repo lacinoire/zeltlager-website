@@ -1,3 +1,7 @@
+<svelte:head>
+<title>Zeltlager – FT München Gern e.V.</title>
+</svelte:head>
+
 <div class="content">
 
 # Zeltlager 2023 – Elterninfo

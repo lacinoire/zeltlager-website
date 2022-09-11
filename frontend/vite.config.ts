@@ -5,9 +5,7 @@ const config: UserConfig = {
 	plugins: [sveltekit()],
 	server: {
 		proxy: {
-			"/admin": "http://localhost:8080",
-			"/erwischt": "http://localhost:8080",
-			"/static": "http://localhost:8080",
+			"/api": "http://localhost:8080",
 		},
 	},
 };

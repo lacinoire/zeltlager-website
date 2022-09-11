@@ -1,3 +1,7 @@
+<svelte:head>
+<title>Betreueranmeldung erfolgreich – Zeltlager – FT München Gern e.V.</title>
+</svelte:head>
+
 <div class="content">
 
 # Deine Anmeldung als Betreuer war erfolgreich!

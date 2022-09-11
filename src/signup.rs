@@ -10,6 +10,7 @@ use actix_identity::Identity;
 use actix_web::*;
 use anyhow::Result;
 use log::{error, warn};
+use serde::Serialize;
 use t4rust_derive::Template;
 
 use crate::form::Form;
@@ -22,6 +23,17 @@ pub struct Signup {
 	/// Already entered values, which should be inserted into the form.
 	pub values: HashMap<String, String>,
 	pub reached_max_members: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct SignupResult {
+	error: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SignupState {
+	is_full: bool,
 }
 
 impl Form for Signup {
@@ -47,11 +59,6 @@ impl Signup {
 			}),
 		}
 	}
-}
-
-#[get("/anmeldung")]
-pub async fn signup(state: web::Data<State>, id: Identity, req: HttpRequest) -> HttpResponse {
-	render_signup(&**state, &id, &req, HashMap::new()).await
 }
 
 #[get("/anmeldung-test")]
@@ -111,20 +118,19 @@ async fn render_signup(
 async fn signup_check_count(
 	count: i64, max_members: i64, db_addr: &actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>, member: db::models::Teilnehmer,
-	mut body: HashMap<String, String>, error_message: String, log_file: Option<PathBuf>,
-	log_mutex: Arc<Mutex<()>>, state: &State, id: &Identity, req: &HttpRequest,
+	error_message: String, log_file: Option<PathBuf>, log_mutex: Arc<Mutex<()>>, state: &State,
 ) -> HttpResponse {
 	if state.config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
 		// Don't insert test signup into database and discourse
-		signup_mail(&mail_addr, member, body, error_message, state, id, req).await
+		signup_mail(&mail_addr, member, error_message).await
 	} else if count >= max_members {
 		// Show error
-		body.insert(
-			"error".to_string(),
-			"Während Ihrer Anmeldung ist das Zeltlager leider schon voll geworden.".to_string(),
-		);
 		warn!("Already too many members registered (from {})", member.eltern_mail);
-		render_signup(state, id, req, body).await
+		HttpResponse::BadRequest().json(SignupResult {
+			error: Some(
+				"Während Ihrer Anmeldung ist das Zeltlager leider schon voll geworden.".to_string(),
+			),
+		})
 	} else {
 		match db_addr.send(db::SignupMessage { member: member.clone() }).await {
 			Err(error) => {
@@ -145,36 +151,25 @@ async fn signup_check_count(
 					})();
 
 					if let Err(error) = res {
-						body.insert(
-							"error".to_string(),
-							format!(
-								"Es ist ein Fehler beim Speichern aufgetreten.\n{}",
-								error_message
-							),
-						);
 						warn!("Failed to log new member: {:?}", error);
-						return render_signup(state, id, req, body).await;
+						// Ignore as it was saved in the db
 					}
 				}
 
-				return signup_mail(&mail_addr, member, body, error_message, state, id, req).await;
+				return signup_mail(&mail_addr, member, error_message).await;
 			}
 		}
 
-		// Show error and prefilled form
-		body.insert(
-			"error".to_string(),
-			format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message),
-		);
-		render_signup(state, id, req, body).await
+		HttpResponse::InternalServerError().json(SignupResult {
+			error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+		})
 	}
 }
 
 /// Write an email and show a success site.
 async fn signup_mail(
 	mail_addr: &actix::Addr<mail::MailExecutor>, member: db::models::Teilnehmer,
-	mut body: HashMap<String, String>, error_message: String, state: &State, id: &Identity,
-	req: &HttpRequest,
+	error_message: String,
 ) -> HttpResponse {
 	// Write an e-mail
 	let mail = member.eltern_mail.clone();
@@ -186,29 +181,41 @@ async fn signup_mail(
 			error!("Error sending e-mail to {:?}: {:?}", mail, error);
 		}
 		Ok(Ok(())) => {
-			// Redirect to success site
-			return HttpResponse::Found()
-				.append_header((http::header::LOCATION, "anmeldung-erfolgreich"))
-				.finish();
+			// Signup successful
+			// TODO redirect in nojs
+			/*return HttpResponse::Found()
+			.append_header((http::header::LOCATION, "anmeldung-erfolgreich"))
+			.finish();*/
+			return HttpResponse::Ok().json(SignupResult { error: None });
 		}
 	}
 
-	// Show error and prefilled form
-	body.insert(
-		"error".to_string(),
-		format!(
+	HttpResponse::InternalServerError().json(SignupResult {
+		error: Some(format!(
 			"Ihre Daten wurden erfolgreich gespeichert.\nEs ist leider ein Fehler beim E-Mail \
 			 senden aufgetreten.\n{}",
 			error_message
-		),
-	);
-	render_signup(state, id, req, body).await
+		)),
+	})
 }
 
-#[post("/signup-send")]
-pub async fn signup_send(
-	state: web::Data<State>, id: Identity, req: HttpRequest,
-	mut body: web::Form<HashMap<String, String>>,
+#[get("/signup-state")]
+pub async fn signup_state(state: web::Data<State>) -> HttpResponse {
+	match state.db_addr.send(db::CountMemberMessage).await.map_err(|e| e.into()) {
+		Err(error) | Ok(Err(error)) => {
+			error!("Failed to get current member count: {:?}", error);
+			crate::error_response(&**state)
+		}
+		Ok(Ok(count)) => {
+			return HttpResponse::Ok()
+				.json(SignupState { is_full: count >= state.config.max_members });
+		}
+	}
+}
+
+#[post("/signup")]
+pub async fn signup(
+	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
 	let db_addr = state.db_addr.clone();
 	let mail_addr = state.mail_addr.clone();
@@ -223,10 +230,9 @@ pub async fn signup_send(
 	let mut member = match db::models::Teilnehmer::from_hashmap(body.clone(), &birthday_date) {
 		Ok(member) => member,
 		Err(error) => {
-			// Show error and prefilled form
-			body.insert("error".to_string(), format!("{}", error));
 			warn!("Error handling form content: {}", error);
-			return render_signup(&**state, &id, &req, body.into_inner()).await;
+			return HttpResponse::BadRequest()
+				.json(SignupResult { error: Some(error.to_string()) });
 		}
 	};
 
@@ -235,30 +241,16 @@ pub async fn signup_send(
 
 	match db_addr.send(db::CountMemberMessage).await {
 		Err(error) => {
-			// Show error and prefilled form
-			body.insert(
-				"error".to_string(),
-				format!(
-					"\
-				Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-					error_message
-				),
-			);
 			warn!("Error inserting into database: {}", error);
-			render_signup(&**state, &id, &req, body.into_inner()).await
+			return HttpResponse::InternalServerError().json(SignupResult {
+				error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+			});
 		}
 		Ok(Err(error)) => {
-			// Show error and prefilled form
-			body.insert(
-				"error".to_string(),
-				format!(
-					"\
-				Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-					error_message
-				),
-			);
 			warn!("Error inserting into database: {}", error);
-			render_signup(&**state, &id, &req, body.into_inner()).await
+			return HttpResponse::InternalServerError().json(SignupResult {
+				error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+			});
 		}
 		Ok(Ok(count)) => {
 			signup_check_count(
@@ -267,15 +259,14 @@ pub async fn signup_send(
 				&db_addr2,
 				mail_addr,
 				member,
-				body.into_inner(),
 				error_message,
 				log_file,
 				log_mutex,
 				&**state,
-				&id,
-				&req,
 			)
 			.await
 		}
 	}
 }
+
+// TODO signup-nojs

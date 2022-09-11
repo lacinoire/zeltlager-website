@@ -1,3 +1,7 @@
+<svelte:head>
+	<title>Allgemeine Geschäftsbedingungen – Zeltlager – FT München Gern e.V.</title>
+</svelte:head>
+
 <h1 class="title">Allgemeine Geschäftsbedingungen des Zeltlagers</h1>
 
 <object

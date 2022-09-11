@@ -1,4 +1,6 @@
-<h1>Anhang Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt</h1>
+<h1 class="title">
+	Anhang Selbstverpflichtungserklärung des FT Gern zur Prävention von sexualisierter Gewalt
+</h1>
 
 <object
 	data="/files/SelbstverpflichtungserklaerungAnhang.pdf"

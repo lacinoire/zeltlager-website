@@ -73,6 +73,7 @@ pub struct Config {
 	pub birthday_date: String,
 	/// The message which will be shown when the maximum number of members is
 	/// reached.
+	// TODO Remove max_members_reached
 	pub max_members_reached: String,
 	/// An error message, which will be displayed on generic errors.
 	///
