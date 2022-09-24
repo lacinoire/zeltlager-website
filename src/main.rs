@@ -81,6 +81,76 @@ struct MenuRequestData {
 	prefix: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+struct ImagesPathRewriter {
+	image_dirs: Vec<String>,
+}
+
+pub struct ImagesPathRewriterTransform<S> {
+	service: S,
+	image_dirs: Vec<String>,
+}
+
+impl<S, B> Transform<S, ServiceRequest> for ImagesPathRewriter
+where
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S::Future: 'static,
+{
+	type Response = ServiceResponse<B>;
+	type Error = Error;
+	type Transform = ImagesPathRewriterTransform<S>;
+	type InitError = ();
+	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
+
+	fn new_transform(&self, service: S) -> Self::Future {
+		future::ready(Ok(ImagesPathRewriterTransform {
+			service,
+			image_dirs: self.image_dirs.clone(),
+		}))
+	}
+}
+
+impl<S, B> Service<ServiceRequest> for ImagesPathRewriterTransform<S>
+where
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+	S::Future: 'static,
+{
+	type Response = ServiceResponse<B>;
+	type Error = Error;
+	type Future = S::Future;
+
+	actix_service::forward_ready!(service);
+
+	fn call(&self, mut req: ServiceRequest) -> Self::Future {
+		let head = req.head_mut();
+
+		let original_path = head.uri.path();
+		let mut path = original_path;
+		if original_path.starts_with("/Bilder") {
+			for name in &self.image_dirs {
+				if original_path.trim_end_matches("/") == &format!("/Bilder{}", name) {
+					path = "/images/";
+				}
+			}
+		}
+		if path != original_path {
+			let mut parts = head.uri.clone().into_parts();
+			let query = parts.path_and_query.as_ref().and_then(|pq| pq.query());
+
+			let path = match query {
+				Some(q) => web::Bytes::from(format!("{}?{}", path, q)),
+				None => web::Bytes::copy_from_slice(path.as_bytes()),
+			};
+			parts.path_and_query = Some(http::PathAndQuery::from_maybe_shared(path).unwrap());
+
+			let uri = http::Uri::from_parts(parts).unwrap();
+			req.match_info_mut().get_mut().update(&uri);
+			req.head_mut().uri = uri;
+		}
+		self.service.call(req)
+	}
+}
+
 impl TryInto<Mailbox> for MailAddress {
 	type Error = anyhow::Error;
 	fn try_into(self) -> Result<Mailbox> {
@@ -141,16 +211,20 @@ fn check_csrf(req: &ServiceRequest, domain: Option<&str>) -> bool {
 }
 
 struct HasRolePredicate {
+	/// The role to check for
 	role: auth::Roles,
+	/// If this is an API endpoint or a user-facing endpoint
+	is_api: bool,
 }
 
 struct HasRolePredicateMiddleware<S> {
 	service: Rc<S>,
 	role: auth::Roles,
+	is_api: bool,
 }
 
 impl HasRolePredicate {
-	fn new(role: auth::Roles) -> Self { Self { role } }
+	fn new(role: auth::Roles, is_api: bool) -> Self { Self { role, is_api } }
 }
 
 impl<S, B> Transform<S, ServiceRequest> for HasRolePredicate
@@ -170,6 +244,7 @@ where
 		future::ok(HasRolePredicateMiddleware {
 			service: Rc::new(service),
 			role: self.role.clone(),
+			is_api: self.is_api,
 		})
 	}
 }
@@ -193,6 +268,7 @@ where
 		let (req, mut pay) = req.into_parts();
 		let identity = Identity::from_request(&req, &mut pay);
 		let role = self.role.clone();
+		let is_api = self.is_api;
 
 		async move {
 			let identity = identity.await?;
@@ -218,17 +294,25 @@ where
 					Ok(req.into_response(res))
 				}
 			} else {
+				// Not logged in
 				drop(identity);
 				let req = ServiceRequest::from_parts(req, pay);
-				let location = format!(
-					"/login?redirect={}",
-					url::form_urlencoded::byte_serialize(req.path().as_bytes()).collect::<String>()
-				);
-				// Not logged in
-				// Redirect to login site with redirect to original site
-				Ok(req.into_response(
-					HttpResponse::Found().append_header(("location", location)).finish(),
-				))
+				if is_api {
+					// Return an error that can be displayed
+					Ok(req.into_response(
+						HttpResponse::Unauthorized().body("Bitte anmelden, Sie sind ausgeloggt."),
+					))
+				} else {
+					let location = format!(
+						"/login?redirect={}",
+						url::form_urlencoded::byte_serialize(req.path().as_bytes())
+							.collect::<String>()
+					);
+					// Redirect to login site with redirect to original site
+					Ok(req.into_response(
+						HttpResponse::Found().append_header(("location", location)).finish(),
+					))
+				}
 			}
 		}
 		.map_ok(|res| res.map_body(|_, body| AnyBody::from_message(body)))
@@ -461,7 +545,7 @@ async fn main() -> Result<()> {
 				.service(signup_supervisor::signup_nojs)
 				.service(
 					web::scope("/admin")
-						.wrap(HasRolePredicate::new(auth::Roles::Admin))
+						.wrap(HasRolePredicate::new(auth::Roles::Admin, true))
 						.service(admin::download_members)
 						.service(admin::download_supervisors)
 						.service(admin::remove_member)
@@ -470,7 +554,7 @@ async fn main() -> Result<()> {
 				)
 				.service(
 					web::scope("/erwischt")
-						.wrap(HasRolePredicate::new(auth::Roles::Erwischt))
+						.wrap(HasRolePredicate::new(auth::Roles::Erwischt, true))
 						.service(erwischt::get_games)
 						.service(erwischt::get_game)
 						.service(erwischt::create_game)
@@ -485,38 +569,32 @@ async fn main() -> Result<()> {
 
 		for name in &image_dirs {
 			let name2 = name.clone();
-			let name3 = name.clone();
-			app = app.service(
-				web::scope(&format!("/Bilder{}", name))
-					.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone())))
-					/*.route(
-						"/",
-						web::get().to(move |s, i| images::render_images(s, i, name2.clone())),
-					)*/
-					.route(
-						"",
-						web::get().to(move || {
-							HttpResponse::Found()
-								.append_header(("location", format!("/Bilder{}/", name3)))
-								.finish()
-						}),
-					)
-					.service(
-						Files::new("/static", format!("Bilder{}", name))
-							.mime_override(content_disposition_map)
-							.default_handler(web::to(not_found)),
-					),
-			);
+			app = app
+				.service(
+					web::scope(&format!("/Bilder{}/list", name))
+						.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone()), true))
+						.route("", web::get().to(move || images::list_images(name2.clone()))),
+				)
+				.service(
+					web::scope(&format!("/Bilder{}/static", name))
+						.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone()), false))
+						.service(
+							Files::new("", format!("Bilder{}", name))
+								.mime_override(content_disposition_map)
+								.default_handler(web::to(not_found)),
+						),
+				);
 		}
 
 		// Serve frontend files
-		app.service(
-			Files::new("", "frontend/build")
-				.mime_override(content_disposition_map)
-				.index_file("index.html")
-				.default_handler(web::to(not_found)),
-		)
-		.default_service(web::to(not_found))
+		app.wrap(ImagesPathRewriter { image_dirs: image_dirs.clone() })
+			.service(
+				Files::new("", "frontend/build")
+					.mime_override(content_disposition_map)
+					.index_file("index.html")
+					.default_handler(web::to(not_found)),
+			)
+			.default_service(web::to(not_found))
 	})
 	.bind(address)?
 	.run()

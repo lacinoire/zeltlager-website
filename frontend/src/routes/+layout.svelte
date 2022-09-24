@@ -27,8 +27,7 @@
 		if ($page.routeId !== null) {
 			let routeId = $page.routeId;
 			const i = routeId.indexOf("/");
-			if (i !== -1)
-				routeId = routeId.slice(0, i);
+			if (i !== -1) routeId = routeId.slice(0, i);
 			params.append("prefix", routeId);
 		}
 		menuData = await (await fetch("/api/menu?" + params.toString())).json();
@@ -56,56 +55,50 @@
 				aria-label="menu"
 				aria-expanded={showNavbar}
 				class:is-active={showNavbar}
-				on:click={() => (showNavbar = !showNavbar)}
-			>
+				on:click={() => (showNavbar = !showNavbar)}>
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />
 			</a>
 		</div>
 
-		<div class="navbar-menu" class:is-active={showNavbar}>
+		<div class="navbar-menu" class:is-active={showNavbar} on:click={() => (showNavbar = false)}>
 			<div class="navbar-start">
 				{#each menuData.items as item}
 					{#if !["/anmeldung", "/packliste", "/ausstattung", "/betreuer", "/datenschutz", "/impressum"].includes(item.link)}
 						<a
 							class="navbar-item"
 							href={item.link}
-							class:is-active={$page.routeId === stripSlashes(item.link)}
-							>{item.title}</a
-						>
+							class:is-active={$page.routeId === stripSlashes(item.link)}>
+							<!-- set active for images links -->
+							{item.title}
+						</a>
 					{/if}
 				{/each}
 				<a
 					class="navbar-item"
 					href="/anmeldung"
-					class:is-active={$page.routeId === "anmeldung"}>Anmeldung</a
-				>
+					class:is-active={$page.routeId === "anmeldung"}>Anmeldung</a>
 				<a
 					class="navbar-item"
 					href="/packliste"
-					class:is-active={$page.routeId === "packliste"}>Packliste</a
-				>
+					class:is-active={$page.routeId === "packliste"}>Packliste</a>
 				<a
 					class="navbar-item"
 					href="/ausstattung"
-					class:is-active={$page.routeId === "ausstattung"}>Ausstattung und Team</a
-				>
+					class:is-active={$page.routeId === "ausstattung"}>Ausstattung und Team</a>
 				<a
 					class="navbar-item"
 					href="/betreuer"
-					class:is-active={$page.routeId === "betreuer"}>Für Betreuer</a
-				>
+					class:is-active={$page.routeId === "betreuer"}>Für Betreuer</a>
 				<a
 					class="navbar-item"
 					href="/datenschutz"
-					class:is-active={$page.routeId === "datenschutz"}>Datenschutz</a
-				>
+					class:is-active={$page.routeId === "datenschutz"}>Datenschutz</a>
 				<a
 					class="navbar-item"
 					href="/impressum"
-					class:is-active={$page.routeId === "impressum"}>Impressum</a
-				>
+					class:is-active={$page.routeId === "impressum"}>Impressum</a>
 			</div>
 
 			<div class="navbar-end">
@@ -114,8 +107,7 @@
 						<a
 							class="button is-primary"
 							href="/login"
-							class:is-hidden={menuData.isLoggedIn}
-						>
+							class:is-hidden={menuData.isLoggedIn}>
 							<strong>Login</strong>
 						</a>
 						{#if menuData.isLoggedIn}
@@ -142,8 +134,7 @@
 			<img
 				src="/img/GernerWappen.png"
 				style="height: 2em; vertical-align: middle;"
-				alt="FT Gern Wappen"
-			/>
+				alt="FT Gern Wappen" />
 			Freie Turnerschaft München Gern e.V.
 		</a> – Zeltlager
 	</h4>
@@ -160,13 +151,17 @@
 </footer>
 
 <style>
-	.container.main {
-		margin-left: 1em;
-		margin-right: 1em;
+	@media screen and (max-width: 1023px) {
+		.container.main {
+			margin-left: 1em;
+			margin-right: 1em;
+		}
 	}
 
 	.container.main.wide {
 		max-width: 100%;
+		margin-left: 1em;
+		margin-right: 1em;
 	}
 
 	.globalMessage :global(.message) {

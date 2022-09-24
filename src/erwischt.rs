@@ -42,7 +42,7 @@ pub async fn get_games(state: web::Data<State>) -> HttpResponse {
 			error!("Failed to get games: {}", e);
 			HttpResponse::InternalServerError().body("Failed to get games")
 		}
-		Ok(Ok(r)) => HttpResponse::Ok().content_type("text/html; charset=utf-8").json(&r),
+		Ok(Ok(r)) => HttpResponse::Ok().json(&r),
 	}
 }
 

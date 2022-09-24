@@ -35,6 +35,7 @@
 		"@mdi/font": "7.0.96",
 		"bulma": "0.9.4",
 		"bulma-switch": "2.0.4",
+		"glightbox": "^3.2.0",
 		"moment": "2.29.4",
 		"xlsx": "https://cdn.sheetjs.com/xlsx-0.18.10/xlsx-0.18.10.tgz"
 	},

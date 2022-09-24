@@ -1,20 +1,20 @@
 import { utils, writeFile } from "xlsx";
 
-export function getRegion(plz, ort) {
+export function getRegion(plz: number, ort: string) {
 	if (inMunich(plz, ort)) return "München";
 	if (inMunichLandkreis(plz, ort)) return "Landkreis München";
 	return "Außerhalb";
 }
 
-export function inMunich(plz, _ort) {
+export function inMunich(plz: number, ort: string) {
 	return plz >= 80331 && plz <= 81929;
 }
 
-export function inMunichLandkreis(plz, ort) {
+export function inMunichLandkreis(plz: number, ort: string) {
 	// Complicated, we need to check plz and ort
 	// E.g. plz 82131 can be either in Neuried (im Landkreis München) or
 	// Gauting (nicht im Landkreis München).
-	const places = [
+	const places: [number, string][] = [
 		[82008, "Unterhaching"],
 		[82024, "Taufkirchen"],
 		[82031, "Grünwald"],
@@ -56,7 +56,7 @@ export function inMunichLandkreis(plz, ort) {
 	return false;
 }
 
-export function createCsv(data, member) {
+export function createCsv(data, member: boolean) {
 	let res = "";
 	for (const line of data) {
 		let first = true;
@@ -78,7 +78,7 @@ export function createCsv(data, member) {
 	createDownload(res, member ? "teilnehmer.csv" : "betreuer.csv", "text/csv");
 }
 
-export function createXlsx(data, member) {
+export function createXlsx(data, member: boolean) {
 	for (let i = 1; i < data.length; i++) {
 		const row = data[i];
 		for (let j = 0; j < row.length; j++) {
@@ -111,7 +111,7 @@ export function createXlsx(data, member) {
 	writeFile(workbook, member ? "teilnehmer.xlsx" : "betreuer.xlsx");
 }
 
-export function createDownload(content, name, type) {
+export function createDownload(content: BlobPart, name: string, type: string) {
 	const blob = new Blob([content], { type: type });
 	const link = window.document.createElement("a");
 	link.href = window.URL.createObjectURL(blob);
@@ -194,4 +194,23 @@ export function presentSortFn(a, b) {
 	}
 
 	return nameSortFn(a, b);
+}
+
+export function splitImageName(s: string): string {
+	enum CharType {
+		Letter,
+		Number,
+		None,
+	}
+
+	let lastType = CharType.None;
+	let res = "";
+	for (const c of s) {
+		const newType = c >= '0' && c <= '9' ? CharType.Number : CharType.Letter;
+		if (newType !== lastType && lastType !== CharType.None)
+			res += " ";
+		res += c;
+		lastType = newType;
+	}
+	return res;
 }
