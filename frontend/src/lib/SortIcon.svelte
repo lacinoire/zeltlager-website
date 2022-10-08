@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mdiSort, mdiSortAscending, mdiSortDescending } from "@mdi/js";
 	import Icon from "./Icon.svelte";
 
 	export let name: string;
@@ -14,11 +15,11 @@
 <button on:click={flipSort}>
 	{displayName === undefined ? name : displayName}
 	{#if sortBy === name + "-asc"}
-		<Icon name="sort-ascending" />
+		<Icon name={mdiSortAscending} />
 	{:else if sortBy === name + "-desc"}
-		<Icon name="sort-descending" />
+		<Icon name={mdiSortDescending} />
 	{:else}
-		<span class="unsorted"><Icon name="sort" /></span>
+		<span class="unsorted"><Icon name={mdiSort} /></span>
 	{/if}
 </button>
 

@@ -3,6 +3,7 @@
 	import moment from "moment";
 	import type { Moment } from "moment";
 	import { browser } from "$app/environment";
+	import { mdiChevronDown } from "@mdi/js";
 	import Icon from "$lib/Icon.svelte";
 
 	interface Member {
@@ -366,7 +367,7 @@
 		<div class="dropdown-trigger">
 			<button class="button" aria-haspopup="true" aria-controls="gameoptions">
 				<span>Mehr</span>
-				<Icon name="chevron-down" />
+				<Icon name={mdiChevronDown} />
 			</button>
 		</div>
 		<div class="dropdown-menu" id="gameoptions" role="menu">

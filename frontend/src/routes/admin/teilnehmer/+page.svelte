@@ -122,11 +122,20 @@
 				return sortFn(a, b);
 			});
 
+			const countPerRegion: Record<string, number> = {};
+			for (const e of filtered) {
+				const curRegion = getRegion(parseInt(e.plz), e.ort);
+				countPerRegion[curRegion] = (countPerRegion[curRegion] ?? 0) + 1;
+			}
+
 			displayFiltered = [];
 			let lastRegion = undefined;
 			for (const e of filtered) {
-				const curRegion = getRegion(e.plz, e.ort);
-				if (curRegion !== lastRegion) displayFiltered.push(curRegion);
+				const curRegion = getRegion(parseInt(e.plz), e.ort);
+				if (curRegion !== lastRegion) {
+					const count = countPerRegion[curRegion];
+					displayFiltered.push(`${curRegion} (${count})`);
+				}
 				displayFiltered.push(e);
 				lastRegion = curRegion;
 			}

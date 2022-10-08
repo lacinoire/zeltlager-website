@@ -33,8 +33,8 @@ KEINE Wertsachen mitnehmen!
 Alle Kleidungsstücke, sowie die Liege und der Schlafsack deutlich mit Namen kennzeichnen. Wir empfehlen einen Wäschestift zur Beschriftung der Etiketten.
 
 <div class="d-flex flex-wrap align-items-start image-list">
-	<img src="/img/ausstattung/ZeltInnen.jpg" alt="Zelt von innen" class="responsive-image">
-	<img src="/img/ausstattung/ZelteLeer.jpg" alt="Zelt vor dem einräumen" class="responsive-image">
+	<img src="/img/ausstattung/ZeltInnen.jpg" alt="Zelt von innen" width="auto" height="100%" loading="lazy">
+	<img src="/img/ausstattung/ZelteLeer.jpg" alt="Zelt vor dem einräumen" width="auto" height="100%" loading="lazy">
 </div>
 
 </div>

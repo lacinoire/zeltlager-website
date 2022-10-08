@@ -1,6 +1,7 @@
 <script lang="ts">
 	import moment from "moment";
 	import { createEventDispatcher } from "svelte";
+	import { mdiPencil, mdiContentSave } from "@mdi/js";
 	import Icon from "./Icon.svelte";
 
 	export let value: any;
@@ -8,7 +9,7 @@
 	export let momentFormat = "DD.MM.YYYY";
 
 	interface EditEvent {
-		setEnabled: (boolean) => void;
+		setEnabled: (enabled: boolean) => void;
 	}
 
 	const dispatch = createEventDispatcher<{ edit: EditEvent }>();
@@ -70,7 +71,7 @@
 	{#if typeof value !== "boolean"}
 		{#if !editing}
 			<button class="button" on:click={edit} class:is-loading={!enabled}>
-				<Icon name="pencil" />
+				<Icon name={mdiPencil} />
 			</button>
 		{:else}
 			<!-- svelte-ignore a11y-autofocus -->
@@ -84,7 +85,7 @@
 				on:keydown={keydown}
 			/>
 			<button class="button" type="submit">
-				<Icon name="content-save" />
+				<Icon name={mdiContentSave} />
 			</button>
 		{/if}
 	{/if}

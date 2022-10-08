@@ -100,8 +100,9 @@
 			<a
 				href={`static/${image}`}
 				class="glightbox box">
+				<!-- Set some preliminary width and height to support lazy loading -->
 				<!-- svelte-ignore a11y-missing-attribute -->
-				<img src={`static/thumbs/${image}`} />
+				<img src={`static/thumbs/${image}`} width="auto" height="100%" loading="lazy" />
 			</a>
 		{:else}
 			<a href={`static/${image}`} target="_blank" class="box">
@@ -123,6 +124,11 @@
 
 		.box {
 			padding: 0.5em;
+			min-width: 150px;
+			min-height: 150px;
+			&:last-child {
+				margin-bottom: 1.5rem;
+			}
 		}
 	}
 

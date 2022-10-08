@@ -14,15 +14,14 @@
 	{#if raw}
 		{raw}
 	{:else}
-		<i
-			class="mdi mdi-{name ?? 'dummy'}"
-			style="font-size:{typeof size === 'number' ? size + 'px' : size};{style}"
-		/>
+		<svg viewBox="0 0 24 24" style="width: {typeof size === 'number' ? size + 'px' : size}; height: {typeof size === 'number' ? size + 'px' : size}; {style}">
+			<path d={name}></path>
+		</svg>
 	{/if}
 </span>
 
-<style lang="scss">
-	.mdi-dummy::before {
-		content: "";
+<style>
+	svg {
+		vertical-align: middle;
 	}
 </style>

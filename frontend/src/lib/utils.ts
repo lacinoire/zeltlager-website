@@ -56,7 +56,7 @@ export function inMunichLandkreis(plz: number, ort: string) {
 	return false;
 }
 
-export function createCsv(data, member: boolean) {
+export function createCsv(data: any[], member: boolean) {
 	let res = "";
 	for (const line of data) {
 		let first = true;
@@ -78,7 +78,7 @@ export function createCsv(data, member: boolean) {
 	createDownload(res, member ? "teilnehmer.csv" : "betreuer.csv", "text/csv");
 }
 
-export function createXlsx(data, member: boolean) {
+export function createXlsx(data: any[], member: boolean) {
 	for (let i = 1; i < data.length; i++) {
 		const row = data[i];
 		for (let j = 0; j < row.length; j++) {
@@ -136,7 +136,7 @@ export function getSortByKeyFn(sortBy: string) {
 		.replaceAll("ö", "oe")
 		.replaceAll("ü", "ue");
 	console.log("Sorting by key " + sortKey);
-	return (aRow, bRow) => {
+	return (aRow: any, bRow: any) => {
 		const a = aRow[sortKey];
 		const b = bRow[sortKey];
 		let cmp;
@@ -152,27 +152,42 @@ export function getSortByKeyFn(sortBy: string) {
 	};
 }
 
-export function addressSortFn(a, b) {
+interface HasAddress {
+	strasse: string;
+	hausnummer: string;
+}
+
+export function addressSortFn(a: HasAddress, b: HasAddress) {
 	const strCmp = a.strasse.localeCompare(b.strasse);
 	if (strCmp === 0) return a.hausnummer.localeCompare(b.hausnummer);
 	return strCmp;
 }
 
-export function nameSortFn(a, b) {
+interface HasName {
+	vorname: string;
+	nachname: string;
+}
+
+export function nameSortFn(a: HasName, b: HasName) {
 	const vorCmp = a.vorname.localeCompare(b.vorname);
 	if (vorCmp === 0) return a.nachname.localeCompare(b.nachname);
 	return vorCmp;
 }
 
-export function regionSortFn(a, b) {
-	const aInMunich = inMunich(a.plz, a.ort);
-	const bInMunich = inMunich(b.plz, b.ort);
+interface HasRegion {
+	plz: string;
+	ort: string;
+}
+
+export function regionSortFn(a: HasRegion, b: HasRegion) {
+	const aInMunich = inMunich(parseInt(a.plz), a.ort);
+	const bInMunich = inMunich(parseInt(b.plz), b.ort);
 	if (aInMunich != bInMunich) {
 		return aInMunich ? -1 : 1;
 	}
 
-	const aInMunichLandkreis = inMunichLandkreis(a.plz, a.ort);
-	const bInMunichLandkreis = inMunichLandkreis(b.plz, b.ort);
+	const aInMunichLandkreis = inMunichLandkreis(parseInt(a.plz), a.ort);
+	const bInMunichLandkreis = inMunichLandkreis(parseInt(b.plz), b.ort);
 	if (aInMunichLandkreis != bInMunichLandkreis) {
 		return aInMunichLandkreis ? -1 : 1;
 	}
@@ -180,7 +195,12 @@ export function regionSortFn(a, b) {
 	return 0;
 }
 
-export function payedSortFn(a, b) {
+interface HasProp {
+	bezahlt: boolean;
+	anwesend: boolean;
+}
+
+export function payedSortFn(a: HasProp & HasName, b: HasProp & HasName) {
 	if (a.bezahlt != b.bezahlt) {
 		return a.bezahlt ? 1 : -1;
 	}
@@ -188,7 +208,7 @@ export function payedSortFn(a, b) {
 	return nameSortFn(a, b);
 }
 
-export function presentSortFn(a, b) {
+export function presentSortFn(a: HasProp & HasName, b: HasProp & HasName) {
 	if (a.anwesend != b.anwesend) {
 		return a.anwesend ? 1 : -1;
 	}

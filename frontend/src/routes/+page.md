@@ -10,8 +10,8 @@ Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder
 
 Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des TSV Dinkelscherben statt.
 
-Abfahrt Montag den 31.07.2023 um 10:00 Uhr
-Rückkehr Freitag den 11.08.2023 um ca. 14:00 Uhr
+Abfahrt Montag den 31.07.2023 um 10:00 Uhr  
+Rückkehr Freitag den 11.08.2023 um ca. 14:00 Uhr  
 auf dem Parkplatz Westfriedhof in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
 
 Die Hin- und Rückreise erfolgt mit modernen Reisebussen.
@@ -46,12 +46,13 @@ Eure Supervisor 😃
 # Eindrücke
 
 <div class="d-flex flex-wrap align-items-start image-list">
-	<img src="/img/programm/SpieleSonne.jpg" alt="Volleyball spielen" class="responsive-image">
-	<img src="/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness" class="responsive-image">
-	<img src="/img/programm/HoliFest.jpg" alt="Farbfest" class="responsive-image">
-	<img src="/img/programm/SpieleSchatten.jpg" alt="Werwolf im Schatten" class="responsive-image">
-	<img src="/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag" class="responsive-image">
-	<img src="/img/programm/SpieleFussballplatz.jpg" alt="Fußball" class="responsive-image">
+	<!-- Set some preliminary width and height to support lazy loading -->
+	<img src="/img/programm/SpieleSonne.jpg" alt="Volleyball spielen" width="auto" height="100%" loading="lazy">
+	<img src="/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness" width="auto" height="100%" loading="lazy">
+	<img src="/img/programm/HoliFest.jpg" alt="Farbfest" width="auto" height="100%" loading="lazy">
+	<img src="/img/programm/SpieleSchatten.jpg" alt="Werwolf im Schatten" width="auto" height="100%" loading="lazy">
+	<img src="/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag" width="auto" height="100%" loading="lazy">
+	<img src="/img/programm/SpieleFussballplatz.jpg" alt="Fußball" width="auto" height="100%" loading="lazy">
 </div>
 
 </div>

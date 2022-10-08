@@ -1,5 +1,4 @@
 <script lang="ts">
-	import "@mdi/font/css/materialdesignicons.min.css";
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
 
