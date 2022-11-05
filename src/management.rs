@@ -35,12 +35,12 @@ pub(crate) fn cmd_action(action: Action) -> Result<()> {
 	let database_url = env::var("DATABASE_URL").map_err(|e| {
 		format_err!("DATABASE_URL is not set, are you missing a .env file? ({:?})", e)
 	})?;
-	let connection = PgConnection::establish(&database_url)?;
+	let mut connection = PgConnection::establish(&database_url)?;
 	match action {
 		Action::AddUser { username: name, force } => {
 			let name = name.unwrap_or_else(ask_username);
 			let exists = diesel::select(diesel::dsl::exists(users.filter(username.eq(&name))))
-				.get_result(&connection)?;
+				.get_result(&mut connection)?;
 			// Check if the user exists
 			// Ask for confirmation
 			if !force
@@ -52,22 +52,24 @@ pub(crate) fn cmd_action(action: Action) -> Result<()> {
 				return Ok(());
 			}
 
-			let pw =
-				rpassword::read_password_from_tty(Some("Please enter the password: ")).unwrap();
+			let pw = rpassword::prompt_password("Please enter the password: ").unwrap();
 			let salt = SaltString::generate(&mut rand::thread_rng());
 			let pw = Scrypt.hash_password_simple(pw.as_bytes(), salt.as_ref())?.to_string();
 			if exists {
 				diesel::update(users.filter(username.eq(&name)))
 					.set(password.eq(pw))
-					.execute(&connection)?;
+					.execute(&mut connection)?;
 			} else {
 				let user = db::models::User { username: name, password: pw };
-				diesel::insert_into(db::schema::users::table).values(&user).execute(&connection)?;
+				diesel::insert_into(db::schema::users::table)
+					.values(&user)
+					.execute(&mut connection)?;
 			}
 		}
 		Action::DelUser { username: name } => {
 			let name = name.unwrap_or_else(ask_username);
-			let count = diesel::delete(users.filter(username.eq(&name))).execute(&connection)?;
+			let count =
+				diesel::delete(users.filter(username.eq(&name))).execute(&mut connection)?;
 			if count == 0 {
 				println!("User not found");
 			} else {

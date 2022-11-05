@@ -84,32 +84,3 @@ pub async fn list_images(name: String) -> HttpResponse {
 	let list = list.into_iter().map(|i| i.0).collect::<Vec<_>>();
 	HttpResponse::Ok().json(list)
 }
-
-/*pub async fn render_images(state: web::Data<State>, id: Identity, name: String) -> HttpResponse {
-	let roles = match auth::get_roles(&**state, &id).await {
-		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get roles: {}", e);
-			return crate::error_response(&**state);
-		}
-	};
-
-	let images = format!("{}", Images::new("Bilder".to_string(), name.clone()));
-	let site = Basic {
-		logged_in_roles: roles,
-		config: state.config.clone(),
-		all_sites: state.sites["public"].clone(),
-		current_site: SiteDescription {
-			name: format!("Bilder{}/", name),
-			file_name: "Empty.txt".into(),
-			title: format!("Bilder {}", split_image_name(&name)),
-			description: format!("Bilder aus dem Zeltlager {}", name),
-			navbar_visible: true,
-			role: Some(auth::Roles::Images(name.into())),
-		},
-		content: images,
-	};
-	let content = format!("{}", site);
-
-	HttpResponse::Ok().content_type("text/html; charset=utf-8").body(content)
-}*/

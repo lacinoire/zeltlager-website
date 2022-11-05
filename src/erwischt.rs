@@ -33,7 +33,7 @@ pub async fn get_games(state: web::Data<State>) -> HttpResponse {
 
 			Ok(erwischt_game::table
 				.order(erwischt_game::columns::created)
-				.get_results::<db::models::ErwischtGame>(&db.connection)?)
+				.get_results::<db::models::ErwischtGame>(&mut db.connection)?)
 		}))
 		.await
 		.map_err(|e| e.into())
@@ -58,7 +58,7 @@ pub async fn get_game(state: web::Data<State>, game_id: web::Path<i32>) -> HttpR
 				.filter(game.eq(*game_id))
 				.select((id, name, target, catcher, last_change))
 				.order(id)
-				.get_results::<db::models::ErwischtMember>(&db.connection)?)
+				.get_results::<db::models::ErwischtMember>(&mut db.connection)?)
 		}))
 		.await
 		.map_err(|e| e.into())
@@ -83,13 +83,13 @@ pub async fn create_game(state: web::Data<State>) -> HttpResponse {
 
 			let new_game: db::models::ErwischtGame = diesel::insert_into(erwischt_game::table)
 				.default_values()
-				.get_result(&db.connection)?;
+				.get_result(&mut db.connection)?;
 
 			let mut member = Vec::new();
 
 			let teilnehmer_member = teilnehmer::table
 				.select((teilnehmer::columns::vorname, teilnehmer::columns::nachname))
-				.get_results::<(String, String)>(&db.connection)?;
+				.get_results::<(String, String)>(&mut db.connection)?;
 
 			for m in teilnehmer_member {
 				let m_id = member.len() as i32;
@@ -103,7 +103,7 @@ pub async fn create_game(state: web::Data<State>) -> HttpResponse {
 
 			let supervisor_member = betreuer::table
 				.select((betreuer::columns::vorname, betreuer::columns::nachname))
-				.get_results::<(String, String)>(&db.connection)?;
+				.get_results::<(String, String)>(&mut db.connection)?;
 
 			for m in supervisor_member {
 				let m_id = member.len() as i32;
@@ -127,7 +127,9 @@ pub async fn create_game(state: web::Data<State>) -> HttpResponse {
 			}
 			member[len - 1].target = member[0].id;
 
-			diesel::insert_into(erwischt_member::table).values(member).execute(&db.connection)?;
+			diesel::insert_into(erwischt_member::table)
+				.values(member)
+				.execute(&mut db.connection)?;
 
 			Ok(new_game.id)
 		}))
@@ -153,10 +155,10 @@ pub async fn delete_game(state: web::Data<State>, game_id: web::Path<i32>) -> Ht
 
 			diesel::delete(erwischt_member::table)
 				.filter(game.eq(*game_id))
-				.execute(&db.connection)?;
+				.execute(&mut db.connection)?;
 			let r = diesel::delete(erwischt_game::table)
 				.filter(erwischt_game::columns::id.eq(*game_id))
-				.execute(&db.connection)?;
+				.execute(&mut db.connection)?;
 
 			if r == 0 {
 				bail!("Game not found");
@@ -186,7 +188,7 @@ pub(crate) async fn catch(state: web::Data<State>, data: web::Json<CatchData>) -
 			let r = diesel::update(erwischt_member::table)
 				.filter(game.eq(data.game).and(id.eq(data.member)))
 				.set((catcher.eq(data.catcher), last_change.eq(Some(Utc::now().naive_utc()))))
-				.execute(&db.connection)?;
+				.execute(&mut db.connection)?;
 			if r == 0 {
 				bail!("Member not found");
 			}
@@ -215,17 +217,17 @@ pub(crate) async fn insert(state: web::Data<State>, data: web::Json<InsertData>)
 			use db::schema::erwischt_member::columns::*;
 
 			// Result will be `after` `new` `before`
-			db.connection.transaction::<_, diesel::result::Error, _>(|| {
+			db.connection.transaction::<_, diesel::result::Error, _>(|con| {
 				// Find current member before `before`
 				let after = erwischt_member::table
 					.filter(game.eq(data.game).and(target.eq(data.before)))
 					.select(id)
-					.get_result::<i32>(&db.connection)?;
+					.get_result::<i32>(con)?;
 
 				let last_id = erwischt_member::table
 					.filter(game.eq(data.game))
 					.select(max(id))
-					.first::<Option<i32>>(&db.connection)?
+					.first::<Option<i32>>(con)?
 					.ok_or(diesel::result::Error::NotFound)?;
 
 				diesel::insert_into(erwischt_member::table)
@@ -235,12 +237,12 @@ pub(crate) async fn insert(state: web::Data<State>, data: web::Json<InsertData>)
 						name: data.name.clone(),
 						target: data.before,
 					})
-					.execute(&db.connection)?;
+					.execute(con)?;
 
 				diesel::update(erwischt_member::table)
 					.filter(game.eq(data.game).and(id.eq(after)))
 					.set(target.eq(last_id + 1))
-					.execute(&db.connection)?;
+					.execute(con)?;
 
 				Ok(())
 			})?;
@@ -285,14 +287,14 @@ async fn create_pdf(state: &State, game_id: i32, with_target: bool) -> HttpRespo
 			let last_id = erwischt_member::table
 				.filter(game.eq(game_id))
 				.select(max(id))
-				.first::<Option<i32>>(&db.connection)?
+				.first::<Option<i32>>(&mut db.connection)?
 				.ok_or(diesel::result::Error::NotFound)?;
 			let id_digits = (last_id as f32).log10().ceil() as usize;
 
 			let members = erwischt_member::table
 				.filter(game.eq(game_id))
 				.select((id, name, target, catcher, last_change))
-				.get_results::<db::models::ErwischtMember>(&db.connection)?;
+				.get_results::<db::models::ErwischtMember>(&mut db.connection)?;
 			let members: HashMap<i32, db::models::ErwischtMember> =
 				members.into_iter().map(|m| (m.id, m)).collect();
 			let mut members_by_name: Vec<i32> = members.keys().cloned().collect();

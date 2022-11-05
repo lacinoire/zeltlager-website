@@ -14,6 +14,7 @@ use chrono::Utc;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
+use diesel_migrations::MigrationHarness;
 use dotenv::dotenv;
 use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
@@ -35,7 +36,8 @@ pub mod models;
 // Generate with `diesel print-schema > src/db/schema.rs`
 pub mod schema;
 
-diesel_migrations::embed_migrations!();
+pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations =
+	diesel_migrations::embed_migrations!();
 
 pub struct DbExecutor {
 	pub(crate) connection: PgConnection,
@@ -150,11 +152,12 @@ impl Handler<RunMigrationsMessage> for DbExecutor {
 	type Result = Result<()>;
 
 	fn handle(&mut self, _: RunMigrationsMessage, _: &mut Self::Context) -> Self::Result {
-		let mut s = Vec::new();
-		embedded_migrations::run_with_output(&self.connection, &mut s)?;
-		let s = std::str::from_utf8(&s)?;
-		if !s.is_empty() {
-			info!("Run database migrations: {}", s);
+		let migrated = self
+			.connection
+			.run_pending_migrations(MIGRATIONS)
+			.map_err(|e| format_err!("Failed to run migrations: {}", e))?;
+		if !migrated.is_empty() {
+			info!("Run database migrations: {:?}", migrated);
 		}
 
 		Ok(())
@@ -167,7 +170,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 	fn handle(&mut self, msg: CheckRateMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::rate_limiting::dsl::*;
 		use diesel::dsl::insert_into;
-		use diesel::expression::dsl::now;
+		use diesel::dsl::now;
 
 		let parse_result = msg.ip.parse::<SocketAddr>();
 		let ip: IpNetwork;
@@ -177,16 +180,16 @@ impl Handler<CheckRateMessage> for DbExecutor {
 				ip = msg.ip.parse::<IpAddr>()?.into();
 			}
 		}
-		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&self.connection);
+		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&mut self.connection);
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
 				if entry.first_count <= Utc::now().naive_utc() - crate::ratelimit_duration() {
 					// reset counter and grant request
-					diesel::update(&entry).set(counter.eq(1)).execute(&self.connection)?;
+					diesel::update(&entry).set(counter.eq(1)).execute(&mut self.connection)?;
 					diesel::update(&entry)
 						.set(first_count.eq(now.at_time_zone("utc")))
-						.execute(&self.connection)?;
+						.execute(&mut self.connection)?;
 					Ok(true)
 				} else if entry.counter >= crate::RATELIMIT_MAX_COUNTER {
 					// limit reached
@@ -194,7 +197,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 				} else {
 					diesel::update(&entry)
 						.set(counter.eq(counter + 1))
-						.execute(&self.connection)?;
+						.execute(&mut self.connection)?;
 					Ok(true)
 				}
 			}
@@ -205,7 +208,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 						counter.eq(1),
 						first_count.eq(now.at_time_zone("utc")),
 					))
-					.execute(&self.connection)?;
+					.execute(&mut self.connection)?;
 				Ok(true)
 			}
 			Err(e) => Err(e.into()),
@@ -220,11 +223,13 @@ impl Handler<DecreaseRateCounterMessage> for DbExecutor {
 		use self::schema::rate_limiting::dsl::*;
 
 		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
-		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&self.connection);
+		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&mut self.connection);
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
-				diesel::update(&entry).set(counter.eq(counter - 1)).execute(&self.connection)?;
+				diesel::update(&entry)
+					.set(counter.eq(counter - 1))
+					.execute(&mut self.connection)?;
 				Ok(())
 			}
 			Err(Error::NotFound) => {
@@ -248,7 +253,7 @@ impl Handler<SignupMessage> for DbExecutor {
 	fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 
-		diesel::insert_into(teilnehmer::table).values(&msg.member).execute(&self.connection)?;
+		diesel::insert_into(teilnehmer::table).values(&msg.member).execute(&mut self.connection)?;
 
 		Ok(())
 	}
@@ -306,7 +311,7 @@ impl Handler<DownloadMembersMessage> for DbExecutor {
 
 		Ok(teilnehmer::table
 			.select(ALL_COLUMNS_BUT_ID)
-			.load::<models::Teilnehmer>(&self.connection)?)
+			.load::<models::Teilnehmer>(&mut self.connection)?)
 	}
 }
 
@@ -316,7 +321,7 @@ impl Handler<DownloadFullMembersMessage> for DbExecutor {
 	fn handle(&mut self, _: DownloadFullMembersMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 
-		Ok(teilnehmer::table.load::<models::FullTeilnehmer>(&self.connection)?)
+		Ok(teilnehmer::table.load::<models::FullTeilnehmer>(&mut self.connection)?)
 	}
 }
 
@@ -326,7 +331,7 @@ impl Handler<DownloadFullSupervisorsMessage> for DbExecutor {
 	fn handle(&mut self, _: DownloadFullSupervisorsMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::betreuer;
 
-		Ok(betreuer::table.load::<models::FullSupervisor>(&self.connection)?)
+		Ok(betreuer::table.load::<models::FullSupervisor>(&mut self.connection)?)
 	}
 }
 
@@ -386,7 +391,7 @@ impl Handler<DownloadBetreuerMessage> for DbExecutor {
 
 		Ok(betreuer::table
 			.select(ALL_COLUMNS_BUT_ID)
-			.load::<models::Supervisor>(&self.connection)?)
+			.load::<models::Supervisor>(&mut self.connection)?)
 	}
 }
 
@@ -396,7 +401,9 @@ impl Handler<SignupSupervisorMessage> for DbExecutor {
 	fn handle(&mut self, msg: SignupSupervisorMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::betreuer;
 
-		diesel::insert_into(betreuer::table).values(&msg.supervisor).execute(&self.connection)?;
+		diesel::insert_into(betreuer::table)
+			.values(&msg.supervisor)
+			.execute(&mut self.connection)?;
 
 		Ok(())
 	}
@@ -408,7 +415,7 @@ impl Handler<CountMemberMessage> for DbExecutor {
 	fn handle(&mut self, _: CountMemberMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 
-		Ok(teilnehmer::table.count().get_result(&self.connection)?)
+		Ok(teilnehmer::table.count().get_result(&mut self.connection)?)
 	}
 }
 
@@ -421,7 +428,7 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 		// Fetch user from db
 		match users
 			.filter(username.eq(&msg.username))
-			.first::<models::UserQueryResult>(&self.connection)
+			.first::<models::UserQueryResult>(&mut self.connection)
 		{
 			Ok(user) => {
 				// If parsing in the new format does not work, try the old hash format
@@ -459,7 +466,7 @@ impl Handler<GetRolesMessage> for DbExecutor {
 		use self::schema::roles::dsl::*;
 
 		// Fetch user from db
-		match roles.filter(user_id.eq(msg.user)).get_results::<models::Role>(&self.connection) {
+		match roles.filter(user_id.eq(msg.user)).get_results::<models::Role>(&mut self.connection) {
 			Ok(mut res) => {
 				// Convert to enum
 				res.drain(..).map(|r| r.role.parse()).collect::<Result<_>>().map_err(|e| e.into())

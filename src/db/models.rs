@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::io::Write;
 
 use anyhow::{bail, format_err, Result};
 use chrono::{self, Date, Datelike, NaiveDate, Utc};
+use diesel::backend::{self, Backend};
 use diesel::deserialize::{self, FromSql};
-use diesel::pg::Pg;
-use diesel::serialize::{self, IsNull, Output, ToSql};
+use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Text;
 use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
@@ -46,7 +45,7 @@ macro_rules! check_empty {
 }
 
 #[derive(Clone, Debug, Insertable, Serialize, Queryable)]
-#[table_name = "teilnehmer"]
+#[diesel(table_name = teilnehmer)]
 pub struct Teilnehmer {
 	pub vorname: String,
 	pub nachname: String,
@@ -99,7 +98,7 @@ pub struct FullTeilnehmer {
 }
 
 #[derive(Clone, Debug, Insertable, Serialize, Queryable)]
-#[table_name = "betreuer"]
+#[diesel(table_name = betreuer)]
 pub struct Supervisor {
 	pub vorname: String,
 	pub nachname: String,
@@ -154,8 +153,8 @@ pub struct FullSupervisor {
 }
 
 #[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
-#[primary_key(ip_addr)]
-#[table_name = "rate_limiting"]
+#[diesel(primary_key(ip_addr))]
+#[diesel(table_name = rate_limiting)]
 pub struct RateLimiting {
 	pub ip_addr: IpNetwork,
 	pub counter: i32,
@@ -163,7 +162,7 @@ pub struct RateLimiting {
 }
 
 #[derive(Clone, Debug, Insertable)]
-#[table_name = "users"]
+#[diesel(table_name = users)]
 pub struct User {
 	pub username: String,
 	pub password: String,
@@ -189,7 +188,7 @@ pub struct ErwischtGame {
 }
 
 #[derive(Clone, Debug, Insertable)]
-#[table_name = "erwischt_member"]
+#[diesel(table_name = erwischt_member)]
 pub struct NewErwischtMember {
 	pub game: i32,
 	pub id: i32,
@@ -294,7 +293,7 @@ pub fn check_house_number(text: &str) -> bool {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression, Serialize)]
-#[sql_type = "Text"]
+#[diesel(sql_type = Text)]
 pub enum Gender {
 	Male,
 	Female,
@@ -306,21 +305,28 @@ impl fmt::Display for Gender {
 	}
 }
 
-impl ToSql<Text, Pg> for Gender {
-	fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
+impl<DB> ToSql<Text, DB> for Gender
+where
+	DB: Backend,
+	str: ToSql<Text, DB>,
+{
+	fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, DB>) -> serialize::Result {
 		match *self {
-			Gender::Male => out.write_all(b"m")?,
-			Gender::Female => out.write_all(b"w")?,
+			Gender::Male => "m".to_sql(out),
+			Gender::Female => "w".to_sql(out),
 		}
-		Ok(IsNull::No)
 	}
 }
 
-impl FromSql<Text, Pg> for Gender {
-	fn from_sql(bytes: Option<&[u8]>) -> deserialize::Result<Self> {
-		match not_none!(bytes) {
-			b"m" => Ok(Gender::Male),
-			b"w" => Ok(Gender::Female),
+impl<DB> FromSql<Text, DB> for Gender
+where
+	DB: Backend,
+	String: FromSql<Text, DB>,
+{
+	fn from_sql(bytes: backend::RawValue<DB>) -> deserialize::Result<Self> {
+		match String::from_sql(bytes)?.as_str() {
+			"m" => Ok(Gender::Male),
+			"w" => Ok(Gender::Female),
 			_ => Err("Unrecognized enum variant".into()),
 		}
 	}

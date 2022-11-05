@@ -10,7 +10,8 @@ use std::time::Duration;
 
 use anyhow::{bail, format_err, Result};
 use log::{error, warn};
-use notify::{watcher, RecursiveMode, Watcher};
+use notify::RecursiveMode;
+use notify_debouncer_mini::new_debouncer;
 
 pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 	// Create a channel to receive the events.
@@ -20,13 +21,13 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 		error!("Error when scanning files: {:?}", e);
 	}
 
-	// Create a watcher object, delivering debounced events.
-	// The notification back-end is selected based on the platform.
-	let mut watcher = watcher(tx, Duration::from_secs(10)).unwrap();
-
+	let mut debouncer = new_debouncer(Duration::from_secs(10), None, tx).unwrap();
 	// Add a path to be watched. All files and directories at that path and
 	// below will be monitored for changes.
-	watcher.watch(&path, RecursiveMode::Recursive).expect("Cannot watch directory");
+	debouncer
+		.watcher()
+		.watch(path.as_ref(), RecursiveMode::Recursive)
+		.expect("Cannot watch directory");
 
 	loop {
 		match rx.recv() {

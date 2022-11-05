@@ -1,33 +1,32 @@
 use std::path::PathBuf;
 
+use clap::{Parser, Subcommand};
 use serde::Deserialize;
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
 pub struct Args {
 	/// Default action is to start the server
-	#[structopt(subcommand)]
+	#[command(subcommand)]
 	pub action: Option<Action>,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Subcommand, Debug)]
 pub enum Action {
 	/// Add a user to the database.
 	/// It will ask for the password on the command line.
-	#[structopt(name = "adduser")]
+	#[command(name = "adduser")]
 	AddUser {
 		/// Name of the added user
-		#[structopt()]
 		username: Option<String>,
 		/// Overwrite password of user without asking
-		#[structopt(long, short)]
+		#[arg(long, short)]
 		force: bool,
 	},
 	/// Remove a user from the database
-	#[structopt(name = "deluser")]
+	#[command(name = "deluser")]
 	DelUser {
 		/// Name of the user to delete
-		#[structopt()]
 		username: Option<String>,
 	},
 }

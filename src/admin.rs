@@ -37,7 +37,7 @@ pub(crate) async fn remove_member(
 			use db::schema::teilnehmer::columns::*;
 
 			let r = diesel::delete(teilnehmer::table.filter(id.eq(data.member)))
-				.execute(&db.connection)?;
+				.execute(&mut db.connection)?;
 			if r == 0 {
 				bail!("Member not found");
 			}
@@ -66,7 +66,7 @@ pub(crate) async fn edit_member(
 
 			diesel::update(teilnehmer::table.filter(id.eq(data.member)))
 				.set((bezahlt.eq(data.bezahlt), anwesend.eq(data.anwesend)))
-				.execute(&db.connection)?;
+				.execute(&mut db.connection)?;
 			Ok(())
 		}))
 		.await
@@ -96,7 +96,7 @@ pub(crate) async fn edit_supervisor(
 					fuehrungszeugnis_auststellung.eq(&data.fuehrungszeugnis_ausstellung),
 					fuehrungszeugnis_eingesehen.eq(&data.fuehrungszeugnis_eingesehen),
 				))
-				.execute(&db.connection)?;
+				.execute(&mut db.connection)?;
 			Ok(())
 		}))
 		.await

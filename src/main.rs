@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate diesel_migrations;
 
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
@@ -13,21 +11,23 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use actix_files::Files;
-use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
-use actix_web::body::{AnyBody, MessageBody};
+use actix_identity::{Identity, IdentityExt, IdentityMiddleware};
+use actix_session::config::{PersistentSession, TtlExtensionPolicy};
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::body::MessageBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header::DispositionType;
 use actix_web::web::Data;
 use actix_web::*;
 use anyhow::{format_err, Result};
 use chrono::Duration;
+use clap::Parser;
 use futures::future::LocalBoxFuture;
 use futures::prelude::*;
 use lettre::message::Mailbox;
 use log::{error, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use structopt::StructOpt;
 
 mod admin;
 mod auth;
@@ -103,10 +103,7 @@ where
 	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
 
 	fn new_transform(&self, service: S) -> Self::Future {
-		future::ready(Ok(ImagesPathRewriterTransform {
-			service,
-			image_dirs: self.image_dirs.clone(),
-		}))
+		future::ok(ImagesPathRewriterTransform { service, image_dirs: self.image_dirs.clone() })
 	}
 }
 
@@ -141,7 +138,7 @@ where
 				Some(q) => web::Bytes::from(format!("{}?{}", path, q)),
 				None => web::Bytes::copy_from_slice(path.as_bytes()),
 			};
-			parts.path_and_query = Some(http::PathAndQuery::from_maybe_shared(path).unwrap());
+			parts.path_and_query = Some(http::uri::PathAndQuery::from_maybe_shared(path).unwrap());
 
 			let uri = http::Uri::from_parts(parts).unwrap();
 			req.match_info_mut().get_mut().update(&uri);
@@ -232,7 +229,6 @@ where
 	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
 	S::Future: 'static,
 	B: MessageBody + 'static,
-	B::Error: std::error::Error,
 {
 	type Response = ServiceResponse;
 	type Error = Error;
@@ -254,7 +250,6 @@ where
 	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
 	S::Future: 'static,
 	B: MessageBody + 'static,
-	B::Error: std::error::Error,
 {
 	type Response = ServiceResponse;
 	type Error = Error;
@@ -265,38 +260,29 @@ where
 	fn call(&self, req: ServiceRequest) -> Self::Future {
 		let service = Rc::clone(&self.service);
 		let state = req.app_data::<Data<State>>().unwrap().clone();
-		let (req, mut pay) = req.into_parts();
-		let identity = Identity::from_request(&req, &mut pay);
+		let identity = req.get_identity();
 		let role = self.role.clone();
 		let is_api = self.is_api;
 
 		async move {
-			let identity = identity.await?;
+			let identity = identity.ok();
 			let roles = match auth::get_roles(&state, &identity).await {
 				Ok(r) => r,
 				Err(e) => {
 					error!("Failed to get roles: {}", e);
-					drop(identity);
-					let req = ServiceRequest::from_parts(req, pay);
 					return Ok(req.into_response(crate::error_response(&state)));
 				}
 			};
 			if let Some(roles) = roles {
 				if roles.contains(&role) {
-					drop(identity);
-					let req = ServiceRequest::from_parts(req, pay);
-					Ok(service.call(req).await?.map_body(|_, body| AnyBody::from_message(body)))
+					Ok(service.call(req).await?.map_into_boxed_body())
 				} else {
 					let res = forbidden().await;
-					drop(identity);
-					let req = ServiceRequest::from_parts(req, pay);
 					warn!("Forbidden '{}'", req.path());
 					Ok(req.into_response(res))
 				}
 			} else {
 				// Not logged in
-				drop(identity);
-				let req = ServiceRequest::from_parts(req, pay);
 				if is_api {
 					// Return an error that can be displayed
 					Ok(req.into_response(
@@ -315,7 +301,6 @@ where
 				}
 			}
 		}
-		.map_ok(|res| res.map_body(|_, body| AnyBody::from_message(body)))
 		.boxed_local()
 	}
 }
@@ -352,7 +337,7 @@ async fn forbidden() -> HttpResponse {
 
 #[get("/menu")]
 async fn menu(
-	state: web::Data<State>, data: web::Query<MenuRequestData>, id: Identity,
+	state: web::Data<State>, data: web::Query<MenuRequestData>, id: Option<Identity>,
 ) -> HttpResponse {
 	if let Some(site_descriptions) = data
 		.prefix
@@ -426,7 +411,7 @@ async fn main() -> Result<()> {
 	env_logger::init();
 
 	// Command line arguments
-	let args = config::Args::from_args();
+	let args = config::Args::parse();
 	if let Some(action) = args.action {
 		management::cmd_action(action)?;
 		return Ok(());
@@ -485,12 +470,6 @@ async fn main() -> Result<()> {
 	}
 
 	HttpServer::new(move || {
-		let mut identity_policy = CookieIdentityPolicy::new(&key)
-			.name("user")
-			.max_age_secs(cookie_maxtime().num_seconds())
-			.secure(state.config.secure)
-			.same_site(cookie::SameSite::Strict);
-
 		let domain = state.config.domain.clone();
 		let app = App::new()
 			.app_data(Data::new(state.clone()))
@@ -507,43 +486,61 @@ async fn main() -> Result<()> {
 				}
 			});
 
-		if let Some(ref domain) = state.config.domain {
-			identity_policy = identity_policy.domain(domain.clone());
-		}
-
-		let mut app = app.wrap(IdentityService::new(identity_policy)).service(
-			web::scope("/api")
-				.service(auth::login)
-				.service(auth::login_nojs)
-				.service(auth::logout)
-				.service(menu)
-				.service(signup::signup_state)
-				.service(signup::signup)
-				.service(signup::signup_nojs)
-				.service(signup_supervisor::signup)
-				.service(signup_supervisor::signup_nojs)
-				.service(
-					web::scope("/admin")
-						.wrap(HasRolePredicate::new(auth::Roles::Admin, true))
-						.service(admin::download_members)
-						.service(admin::download_supervisors)
-						.service(admin::remove_member)
-						.service(admin::edit_member)
-						.service(admin::edit_supervisor),
-				)
-				.service(
-					web::scope("/erwischt")
-						.wrap(HasRolePredicate::new(auth::Roles::Erwischt, true))
-						.service(erwischt::get_games)
-						.service(erwischt::get_game)
-						.service(erwischt::create_game)
-						.service(erwischt::delete_game)
-						.service(erwischt::catch)
-						.service(erwischt::insert)
-						.service(erwischt::create_game_pdf)
-						.service(erwischt::create_members_pdf),
-				),
+		let cookie_session_store = CookieSessionStore::default();
+		let session_middleware = SessionMiddleware::builder(
+			cookie_session_store,
+			actix_web::cookie::Key::derive_from(&key),
+		)
+		.cookie_name("user".into())
+		.cookie_secure(state.config.secure)
+		.cookie_same_site(actix_web::cookie::SameSite::Strict)
+		.cookie_domain(state.config.domain.clone())
+		.session_lifecycle(
+			PersistentSession::default()
+				.session_ttl(cookie_maxtime().to_std().unwrap().try_into().unwrap())
+				.session_ttl_extension_policy(TtlExtensionPolicy::OnEveryRequest),
 		);
+
+		let mut app = app
+			.wrap(
+				IdentityMiddleware::builder()
+					.visit_deadline(Some(cookie_maxtime().to_std().unwrap()))
+					.build(),
+			)
+			.wrap(session_middleware.build())
+			.service(
+				web::scope("/api")
+					.service(auth::login)
+					.service(auth::login_nojs)
+					.service(auth::logout)
+					.service(menu)
+					.service(signup::signup_state)
+					.service(signup::signup)
+					.service(signup::signup_nojs)
+					.service(signup_supervisor::signup)
+					.service(signup_supervisor::signup_nojs)
+					.service(
+						web::scope("/admin")
+							.wrap(HasRolePredicate::new(auth::Roles::Admin, true))
+							.service(admin::download_members)
+							.service(admin::download_supervisors)
+							.service(admin::remove_member)
+							.service(admin::edit_member)
+							.service(admin::edit_supervisor),
+					)
+					.service(
+						web::scope("/erwischt")
+							.wrap(HasRolePredicate::new(auth::Roles::Erwischt, true))
+							.service(erwischt::get_games)
+							.service(erwischt::get_game)
+							.service(erwischt::create_game)
+							.service(erwischt::delete_game)
+							.service(erwischt::catch)
+							.service(erwischt::insert)
+							.service(erwischt::create_game_pdf)
+							.service(erwischt::create_members_pdf),
+					),
+			);
 
 		for name in &image_dirs {
 			let name2 = name.clone();

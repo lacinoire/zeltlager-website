@@ -5,35 +5,36 @@ authors = ["Flakebi <flakebi@t-online.de>"]
 edition = "2018"
 
 [dependencies]
-actix = "0.12"
-actix-files = "=0.6.0-beta.6"
-actix-identity = "=0.4.0-beta.2"
+actix = "0.13"
+actix-files = "0.6"
+actix-identity = "0.5"
 actix-rt = "2"
 actix-service = "2"
-actix-web = "=4.0.0-beta.8"
+actix-session = { version = "0.7", features = ["cookie-session"] }
+actix-web = "4"
+clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 base64 = "0.13"
 chrono = { version = "0.4", features = ["serde"] }
-cookie = "0.14"
 csv = "1"
-diesel = { version = "1.4", features = ["chrono", "postgres", "network-address"] }
-diesel_migrations = "1.4"
+diesel = { version = "2", features = ["chrono", "postgres", "network-address"] }
+diesel_migrations = "2"
 dotenv = "0.15"
 env_logger = "0.9"
 futures = "0.3"
 heck = "0.4"
 ipnetwork = "0.18"
-lettre = "=0.10.0-rc.3"
+lettre = "0.10"
 log = "0.4"
 mime = "0.3"
-notify = "4"
-printpdf = "0.4"
+notify = "5"
+notify-debouncer-mini = "0.2"
+printpdf = "0.5"
 rand = "0.8"
-rpassword = "5"
-scrypt = "0.7"
+rpassword = "7"
+scrypt = "0.7" # 0.8 removed the old mcf format
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-structopt = { version = "0.3", default-features = false }
 t4rust-derive = "0.3"
 toml = "0.5"
 tokio = "1"

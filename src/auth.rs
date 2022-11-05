@@ -7,7 +7,6 @@ use actix_identity::Identity;
 use actix_web::http::StatusCode;
 use actix_web::*;
 use anyhow::{bail, format_err, Result};
-use chrono::{DateTime, NaiveDateTime, Utc};
 use log::{error, info, warn};
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -71,17 +70,14 @@ async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
 	}
 }
 
-fn set_logged_in(id: i32, identity: &Identity) {
-	// Logged in: Store "user id|timeout"
-	identity.remember(format!(
-		"{}|{}",
-		id,
-		(Utc::now() + crate::cookie_maxtime()).format("%Y-%m-%d %H:%M:%S")
-	));
+fn set_logged_in(id: i32, request: &HttpRequest) -> Result<()> {
+	// Logged in: Store "user id"
+	Identity::login(&request.extensions(), id.to_string())?;
+	Ok(())
 }
 
 async fn login_internal(
-	state: &State, req: &HttpRequest, identity: &Identity, body: HashMap<String, String>,
+	state: &State, req: &HttpRequest, body: HashMap<String, String>,
 ) -> (StatusCode, LoginResult) {
 	// Search user in database
 	let db_addr = state.db_addr.clone();
@@ -116,7 +112,15 @@ async fn login_internal(
 				})
 			}
 			Ok(Ok(Some(id))) => {
-				set_logged_in(id, identity);
+				if let Err(error) = set_logged_in(id, req) {
+					warn!("Failed to set login identity: {}", error);
+					return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
+						error: Some(format!(
+							"Es ist ein Fehler beim Login aufgetreten.\n{}",
+							error_message
+						)),
+					});
+				}
 				let ip = match req
 					.connection_info()
 					.realip_remote_addr()
@@ -151,19 +155,17 @@ async fn login_internal(
 
 #[post("/login")]
 pub async fn login(
-	state: web::Data<State>, req: HttpRequest, identity: Identity,
-	body: web::Form<HashMap<String, String>>,
+	state: web::Data<State>, req: HttpRequest, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = login_internal(&**state, &req, &identity, body.into_inner()).await;
+	let (status, result) = login_internal(&**state, &req, body.into_inner()).await;
 	HttpResponse::build(status).json(result)
 }
 
 #[post("/login-nojs")]
 pub async fn login_nojs(
-	state: web::Data<State>, req: HttpRequest, identity: Identity,
-	body: web::Form<HashMap<String, String>>,
+	state: web::Data<State>, req: HttpRequest, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = login_internal(&**state, &req, &identity, body.into_inner()).await;
+	let (status, result) = login_internal(&**state, &req, body.into_inner()).await;
 	if let Some(error) = result.error {
 		HttpResponse::build(status).body(error)
 	} else {
@@ -173,41 +175,19 @@ pub async fn login_nojs(
 }
 
 #[get("/logout")]
-pub fn logout(id: Identity) -> HttpResponse {
-	id.forget();
+pub async fn logout(id: Identity) -> HttpResponse {
+	id.logout();
 	HttpResponse::Found().append_header(("location", "/")).finish()
 }
 
 // Utility methods for other modules
 
 /// Get the id of the logged in user
-pub fn logged_in_user(identity: &Identity) -> Option<i32> {
-	identity
-		.identity()
-		.and_then(|s| {
-			if let [id, timeout] = *s.splitn(2, '|').collect::<Vec<_>>().as_slice() {
-				if let Ok(id) = id.parse::<i32>() {
-					if let Ok(timeout) = NaiveDateTime::parse_from_str(timeout, "%Y-%m-%d %H:%M:%S")
-					{
-						let timeout = DateTime::<Utc>::from_utc(timeout, Utc);
-						return Some((id, timeout));
-					}
-				}
-			}
-			None
-		})
-		.and_then(|(id, timeout)| {
-			// Check if the token expired
-			if timeout < Utc::now() {
-				return None;
-			}
-			// Refresh token
-			set_logged_in(id, identity);
-			Some(id)
-		})
+pub fn logged_in_user(identity: &Option<Identity>) -> Option<i32> {
+	identity.as_ref().and_then(|i| i.id().ok()).and_then(|id| id.parse::<i32>().ok())
 }
 
-pub async fn get_roles(state: &State, id: &Identity) -> Result<Option<Vec<Roles>>> {
+pub async fn get_roles(state: &State, id: &Option<Identity>) -> Result<Option<Vec<Roles>>> {
 	if let Some(user) = logged_in_user(id) {
 		Ok(Some(user_get_roles(state, user).await?))
 	} else {
