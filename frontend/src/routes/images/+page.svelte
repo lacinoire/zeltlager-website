@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { splitImageName } from "$lib/utils";
+	import GLightbox from "$lib/GLightbox.svelte";
 	import { onMount, tick } from "svelte";
 
-	let GLightbox: (options: any) => any;
+	//TODO let GLightbox: (options: any) => any;
 	let subName = "";
 	let imageList: string[] = [];
 	let error: string | undefined;
 	let isLoading = true;
 	let gallery: HTMLDivElement | undefined;
+	let lightbox: GLightbox | undefined;
 
 	const lightboxHTML = `
 		<div id="glightbox-body" class="glightbox-container" tabindex="-1" role="dialog" aria-hidden="false">
@@ -20,6 +22,11 @@
 				<button class="gnext gbtn" aria-label="Next" data-taborder="1">{nextSVG}</button>
 			</div>
 		</div>`;
+
+	const glightboxSettings = {
+		// loop: true,
+		lightboxHTML,
+	};
 
 	async function listImages() {
 		let path = window.location.pathname;
@@ -47,15 +54,9 @@
 			// List successful
 			imageList = resp;
 			isLoading = false;
+			console.log("Loaded");
 			await tick();
-			if (gallery !== undefined) {
-				const lightbox = GLightbox({
-					touchNavigation: true,
-					// loop: true,
-					// TODO zoomable?
-					lightboxHTML,
-				});
-			}
+			lightbox!.reload();
 		} catch (e) {
 			console.error("Failed to convert image list to json", path, e);
 			error = respText;
@@ -64,7 +65,7 @@
 	}
 
 	onMount(async () => {
-		GLightbox = (await import("glightbox/dist/js/glightbox")).default;
+		//GLightbox = (await import("glightbox/dist/js/glightbox")).default;
 		let path = window.location.pathname;
 		if (!path.startsWith("/Bilder")) return;
 		path = path.slice("/Bilder".length);
@@ -90,6 +91,10 @@
 
 {#if error === undefined && isLoading}
 	<progress class="progress is-small is-primary">Loading</progress>
+{/if}
+
+{#if gallery !== undefined}
+	<GLightbox bind:this={lightbox} settings={glightboxSettings} />
 {/if}
 
 <div bind:this={gallery} class="is-flex galleryContainer">

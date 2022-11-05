@@ -83,6 +83,7 @@ export default class DragSlides {
             this.instance.preventOutsideClick = true;
             this.doSlideChange == 'right' && this.instance.prevSlide();
             this.doSlideChange == 'left' && this.instance.nextSlide();
+            this.doSlideChange = false;
         }
 
         if (this.doSlideClose) {

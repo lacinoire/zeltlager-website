@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import { onMount } from "svelte";
+	import { browser } from '$app/environment';
 
 	let error: string | undefined;
 	let isFull = false;
@@ -93,7 +94,7 @@
 		signupForm.tetanus_impfung.value = "true";
 		signupForm.krankenversicherung.value = "gesetzlich";
 		signupForm.eltern_name.value = "c";
-		signupForm.eltern_mail.value = "@";
+		signupForm.eltern_mail.value = "a@b";
 		signupForm.eltern_handynummer.value = "d";
 		signupForm.strasse.value = "e";
 		signupForm.hausnummer.value = "1";
@@ -106,7 +107,15 @@
 		if (e.altKey && e.key === "Escape") fillTestData();
 	}
 
-	onMount(loadState);
+	onMount(() => {
+		loadState();
+
+		// Remove required classes for firefox on android, it doesn't show any popup there
+		const userAgent = browser ? navigator.userAgent.toLowerCase() : "";
+		if (userAgent.includes("android") && userAgent.includes("firefox") && signupForm) {
+			signupForm.querySelectorAll("input").forEach(element => element.required = false);
+		}
+	});
 </script>
 
 <svelte:head>
@@ -567,5 +576,10 @@
 <style>
 	.error-msg {
 		margin-bottom: 1em;
+	}
+
+	input:invalid {
+		border-color: red;
+		box-shadow: 0 0 0 .125em rgba(72,95,199,.25);
 	}
 </style>

@@ -1,7 +1,7 @@
-@custom-media --small-viewport (width >=576px);
-@custom-media --medium-small-viewport (width > 768px);
-@custom-media --medium-viewport (width >=992px);
-@custom-media --large-viewport (width >=1200px);
+$small-viewport: 576px;
+$medium-small-viewport: 768px;
+$medium-viewport: 992px;
+$large-viewport: 1200px;
 
 .glightbox-container {
     width: 100%;
@@ -81,7 +81,7 @@
             width: 100%;
         }
 
-        @media (--medium-small-viewport) {
+        @media (min-width: $medium-small-viewport) {
             width: auto;
             height: auto;
             flex-direction: row;
@@ -98,7 +98,7 @@
         }
 
         &.desc-top {
-            @media (--medium-small-viewport) {
+            @media (min-width: $medium-small-viewport) {
                 .gslide-description {
                     order: 0;
                 }
@@ -110,7 +110,7 @@
         }
 
         &.desc-left {
-            @media (--medium-small-viewport) {
+            @media (min-width: $medium-small-viewport) {
                 .gslide-description {
                     order: 0;
                 }
@@ -156,7 +156,7 @@
         margin: auto;
         min-width: 200px;
 
-        @media (--medium-small-viewport) {
+        @media (min-width: $medium-small-viewport) {
             max-height: 97vh;
             max-width: 100%;
         }
@@ -175,7 +175,7 @@
         &.zoomable {
             position: relative;
 
-            @media (--medium-small-viewport) {
+            @media (min-width: $medium-small-viewport) {
                 cursor: zoom-in;
 
                 .zoomed & {
@@ -240,7 +240,7 @@
     max-width: 100%;
     margin: auto;
 
-    @media (--medium-small-viewport) {
+    @media (min-width: $medium-small-viewport) {
         max-height: 95vh;
     }
 
@@ -271,7 +271,7 @@
     max-height: 75vh;
     height: 100%;
 
-    @media (--medium-small-viewport) {
+    @media (min-width: $medium-small-viewport) {
         max-height: 100vh;
     }
 }
@@ -299,7 +299,7 @@
     &.description-right {
         max-width: 100%;
 
-        @media (--medium-small-viewport) {
+        @media (min-width: $medium-small-viewport) {
             max-width: 275px;
         }
     }
@@ -405,7 +405,7 @@
 .glightbox-open {
     overflow: hidden;
 
-    @media (--medium-small-viewport) {
+    @media (min-width: $medium-small-viewport) {
         height: auto;
     }
 }
@@ -439,7 +439,7 @@
         background: #000;
     }
 
-    @media (--medium-small-viewport) {
+    @media (min-width: $medium-small-viewport) {
         background: rgba(0, 0, 0, 0.92);
     }
 
@@ -448,6 +448,7 @@
     }
 }
 
+.gbutton,
 .gprev,
 .gnext,
 .gclose {
@@ -497,7 +498,7 @@ iframe.wait-autoplay {
 /*Skin */
 .glightbox-clean {
     .gslide-media {
-        @media (--medium-small-viewport) {
+        @media (min-width: $medium-small-viewport) {
             box-shadow: 1px 2px 9px 0px rgba(0, 0, 0, 0.65);
         }
     }
@@ -510,7 +511,7 @@ iframe.wait-autoplay {
         padding: 22px 20px;
     }
 
-    @media (--medium-small-viewport) {
+    @media (min-width: $medium-small-viewport) {
         .description-left,
         .description-right {
             .gdesc-inner {
@@ -541,13 +542,14 @@ iframe.wait-autoplay {
         background: #000;
     }
 
+    .gbutton,
     .gprev,
     .gnext,
     .gclose {
         background-color: rgba(0, 0, 0, 0.75);
         border-radius: 4px;
 
-        @media (--medium-small-viewport) {
+        @media (min-width: $medium-small-viewport) {
             background-color: rgba(0, 0, 0, 0.32);
 
             &:hover {
@@ -567,7 +569,7 @@ iframe.wait-autoplay {
         width: 40px;
         height: 50px;
 
-        @media (--medium-small-viewport) {
+        @media (min-width: $medium-small-viewport) {
             top: 45%;
         }
     }
@@ -579,7 +581,7 @@ iframe.wait-autoplay {
         width: 40px;
         height: 50px;
 
-        @media (--medium-small-viewport) {
+        @media (min-width: $medium-small-viewport) {
             top: 45%;
         }
     }
@@ -596,7 +598,7 @@ iframe.wait-autoplay {
             height: auto;
         }
 
-        @media (--medium-viewport) {
+        @media (min-width: $medium-viewport) {
             opacity: 0.7;
             right: 20px;
         }

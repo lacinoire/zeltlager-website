@@ -5,15 +5,16 @@
  * Github: https://github.com/biati-digital/glightbox
  */
 
+import { browser } from '$app/environment';
 import keyboardNavigation from './core/keyboard-navigation.js';
 import touchNavigation from './core/touch-navigation.js';
 import Slide from './core/slide.js';
 import * as _ from './utils/helpers.js';
 
 const version = '3.2.0';
-const isMobile = _.isMobile();
-const isTouch = _.isTouch();
-const html = document.getElementsByTagName('html')[0];
+const isMobile = browser ? _.isMobile() : false;
+const isTouch = browser ? _.isTouch() : false;
+const html = browser ? document.getElementsByTagName('html')[0] : undefined;
 
 const defaults = {
     selector: '.glightbox',
@@ -116,6 +117,7 @@ defaults.lightboxHTML = `<div id="glightbox-body" class="glightbox-container" ta
     <div class="goverlay"></div>
     <div class="gcontainer">
     <div id="glightbox-slider" class="gslider"></div>
+    <button class="gclose gbtn" aria-label="Close" data-taborder="3"></button>
     <button class="gclose gbtn" aria-label="Close" data-taborder="3">{closeSVG}</button>
     <button class="gprev gbtn" aria-label="Previous" data-taborder="2">{prevSVG}</button>
     <button class="gnext gbtn" aria-label="Next" data-taborder="1">{nextSVG}</button>
@@ -126,7 +128,7 @@ defaults.lightboxHTML = `<div id="glightbox-body" class="glightbox-container" ta
  * GLightbox Class
  * Class and public methods
  */
-class GlightboxInit {
+export class GlightboxInit {
     constructor(options = {}) {
         this.customOptions = options;
         this.settings = _.extend(defaults, options);
@@ -152,7 +154,7 @@ class GlightboxInit {
         this.elements = this.getElements();
     }
 
-    open(element = null, startAt = null) {
+    async open(element = null, startAt = null) {
         if (this.elements.length === 0) {
             return false;
         }
@@ -181,7 +183,7 @@ class GlightboxInit {
             index = 0;
         }
 
-        this.build();
+        await this.build();
 
         _.animateElement(this.overlay, this.settings.openEffect === 'none' ? 'none' : this.settings.cssEfects.fade.in);
 
@@ -233,8 +235,8 @@ class GlightboxInit {
      * Open at specific index
      * @param {int} index
      */
-    openAt(index = 0) {
-        this.open(null, index);
+    async openAt(index = 0) {
+        await this.open(null, index);
     }
 
     /**
@@ -934,7 +936,7 @@ class GlightboxInit {
      * Build the structure
      * @return {null}
      */
-    build() {
+    async build() {
         if (this.built) {
             return false;
         }
@@ -955,13 +957,14 @@ class GlightboxInit {
         const prevSVG = _.has(this.settings.svg, 'prev') ? this.settings.svg.prev : '';
         const closeSVG = _.has(this.settings.svg, 'close') ? this.settings.svg.close : '';
 
-        let lightboxHTML = this.settings.lightboxHTML;
+        await this.settings.showLightbox(true);
+        /*let lightboxHTML = this.settings.lightboxHTML;
         lightboxHTML = lightboxHTML.replace(/{nextSVG}/g, nextSVG);
         lightboxHTML = lightboxHTML.replace(/{prevSVG}/g, prevSVG);
         lightboxHTML = lightboxHTML.replace(/{closeSVG}/g, closeSVG);
 
         lightboxHTML = _.createHTML(lightboxHTML);
-        document.body.appendChild(lightboxHTML);
+        document.body.appendChild(lightboxHTML);*/
 
         const modal = document.getElementById('glightbox-body');
         this.modal = modal;
@@ -1221,7 +1224,7 @@ class GlightboxInit {
 
         _.addClass(this.modal, 'glightbox-closing');
         _.animateElement(this.overlay, this.settings.openEffect == 'none' ? 'none' : this.settings.cssEfects.fade.out);
-        _.animateElement(this.activeSlide, this.settings.cssEfects[this.settings.closeEffect].out, () => {
+        _.animateElement(this.activeSlide, this.settings.cssEfects[this.settings.closeEffect].out, async () => {
             this.activeSlide = null;
             this.prevActiveSlideIndex = null;
             this.prevActiveSlide = null;
@@ -1239,7 +1242,8 @@ class GlightboxInit {
             const body = document.body;
             _.removeClass(html, 'glightbox-open');
             _.removeClass(body, 'glightbox-open touching gdesc-open glightbox-touch glightbox-mobile gscrollbar-fixer');
-            this.modal.parentNode.removeChild(this.modal);
+            await this.settings.showLightbox(false);
+            //this.modal.parentNode.removeChild(this.modal);
 
             this.trigger('close');
 
@@ -1261,8 +1265,8 @@ class GlightboxInit {
      * Destroy lightbox
      * and all events
      */
-    destroy() {
-        this.close();
+    async destroy() {
+        await this.close();
         this.clearAllEvents();
 
         if (this.baseEvents) {
