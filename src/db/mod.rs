@@ -15,6 +15,7 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
 use dotenv::dotenv;
+use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
 use log::info;
 use scrypt::password_hash::{
@@ -26,7 +27,7 @@ use crate::auth;
 
 macro_rules! get_str {
 	($map:ident, $key:expr) => {
-		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key))
+		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key.to_title_case()))
 	};
 }
 

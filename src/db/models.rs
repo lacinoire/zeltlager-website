@@ -8,6 +8,7 @@ use diesel::deserialize::{self, FromSql};
 use diesel::pg::Pg;
 use diesel::serialize::{self, IsNull, Output, ToSql};
 use diesel::sql_types::Text;
+use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
 use log::warn;
 use serde::Serialize;
@@ -20,15 +21,17 @@ use super::schema::users;
 
 macro_rules! get_bool {
 	($map:ident, $key:expr) => {
-		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key)).and_then(|s| {
-			if s == "true" {
-				Ok(true)
-			} else if s == "false" {
-				Ok(false)
-			} else {
-				Err(format_err!("{} ({}) ist kein Wahrheitswert", $key, s))
-			}
-		})
+		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key.to_title_case())).and_then(
+			|s| {
+				if s == "true" {
+					Ok(true)
+				} else if s == "false" {
+					Ok(false)
+				} else {
+					Err(format_err!("{} ({}) ist kein Wahrheitswert", $key.to_title_case(), s))
+				}
+			},
+		)
 	};
 }
 
@@ -36,7 +39,7 @@ macro_rules! check_empty {
 	($obj:ident, $($field:ident),*) => {
 		$(
 		if $obj.$field.is_empty() {
-			bail!("{} muss ausgefüllt werden", stringify!($field));
+			bail!("{} muss ausgefüllt werden", stringify!($field).to_title_case());
 		}
 		)*
 	}
