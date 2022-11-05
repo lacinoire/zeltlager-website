@@ -117,7 +117,6 @@ defaults.lightboxHTML = `<div id="glightbox-body" class="glightbox-container" ta
     <div class="goverlay"></div>
     <div class="gcontainer">
     <div id="glightbox-slider" class="gslider"></div>
-    <button class="gclose gbtn" aria-label="Close" data-taborder="3"></button>
     <button class="gclose gbtn" aria-label="Close" data-taborder="3">{closeSVG}</button>
     <button class="gprev gbtn" aria-label="Previous" data-taborder="2">{prevSVG}</button>
     <button class="gnext gbtn" aria-label="Next" data-taborder="1">{nextSVG}</button>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
+	import { browser } from '$app/environment';
+	import { afterNavigate } from "$app/navigation";
 
 	import "../app.scss";
 
@@ -18,8 +20,8 @@
 	$: isWide = ["admin/betreuer", "admin/teilnehmer"].includes($page.routeId ?? "");
 
 	let showNavbar = false;
-
 	let menuData: MenuData = { isLoggedIn: false, globalMessage: undefined, items: [] };
+	let location: string = browser ? window.location.pathname : "";
 
 	async function loadMenuItems() {
 		const params = new URLSearchParams();
@@ -39,6 +41,8 @@
 	}
 
 	onMount(loadMenuItems);
+
+	afterNavigate(() => location = browser ? window.location.pathname : "");
 </script>
 
 <nav class="navbar is-light" aria-label="navigation">
@@ -68,7 +72,7 @@
 						<a
 							class="navbar-item"
 							href={item.link}
-							class:is-active={$page.routeId === stripSlashes(item.link)}>
+							class:is-active={$page.routeId === stripSlashes(item.link) || stripSlashes(location) === stripSlashes(item.link)}>
 							<!-- set active for images links -->
 							{item.title}
 						</a>

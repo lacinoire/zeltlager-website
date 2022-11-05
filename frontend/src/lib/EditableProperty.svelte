@@ -34,7 +34,6 @@
 	}
 
 	export function setEnabled(enable: boolean) {
-		console.log("Set enabled", enable);
 		enabled = enable;
 	}
 

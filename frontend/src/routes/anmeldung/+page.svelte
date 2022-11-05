@@ -577,9 +577,4 @@
 	.error-msg {
 		margin-bottom: 1em;
 	}
-
-	input:invalid {
-		border-color: red;
-		box-shadow: 0 0 0 .125em rgba(72,95,199,.25);
-	}
 </style>

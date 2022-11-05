@@ -2,8 +2,8 @@
 	import { splitImageName } from "$lib/utils";
 	import GLightbox from "$lib/GLightbox.svelte";
 	import { onMount, tick } from "svelte";
+	import { goto } from "$app/navigation";
 
-	//TODO let GLightbox: (options: any) => any;
 	let subName = "";
 	let imageList: string[] = [];
 	let error: string | undefined;
@@ -46,7 +46,13 @@
 			respText = await response.text();
 		} catch (e) {
 			console.error("Failed to read image list", path, e);
-			error = "Verbindung abgebrochen";
+			error = "Verbindung zum Server abgebrochen";
+			return;
+		}
+		if (response.status == 401) {
+			// Unauthorized
+			error = respText;
+			goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
 			return;
 		}
 		try {
@@ -54,7 +60,6 @@
 			// List successful
 			imageList = resp;
 			isLoading = false;
-			console.log("Loaded");
 			await tick();
 			lightbox!.reload();
 		} catch (e) {
