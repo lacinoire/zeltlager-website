@@ -7,4 +7,4 @@ declare namespace App {
 	// interface Platform {}
 }
 
-declare module 'glightbox';
+declare module "glightbox";

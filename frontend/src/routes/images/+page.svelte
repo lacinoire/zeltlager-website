@@ -107,9 +107,7 @@
 		{#if image.toLowerCase().endsWith(".jpg") || image.toLowerCase().endsWith(".jpeg") || image
 				.toLowerCase()
 				.endsWith(".png")}
-			<a
-				href={`static/${image}`}
-				class="glightbox box">
+			<a href={`static/${image}`} class="glightbox box">
 				<!-- Set some preliminary width and height to support lazy loading -->
 				<!-- svelte-ignore a11y-missing-attribute -->
 				<img src={`static/thumbs/${image}`} width="auto" height="100%" loading="lazy" />

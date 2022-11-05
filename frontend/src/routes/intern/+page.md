@@ -1,4 +1,5 @@
 <svelte:head>
+
 <title>Betreuer – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
 
@@ -9,6 +10,7 @@
 ## Anmeldung als Betreuer:in für das Zeltlager
 
 ### Beantragung der Juleica
+
 Vor dem Lager muss jede:r Neu-Betreuer:in einen Juleica-Kurs gemacht haben.
 Informationen zu Terminen, der Anmeldung etc. findest du auf [www.msj.de/bildung/juleica_neu/](https://www.msj.de/bildung/juleica_neu/).
 
@@ -120,7 +122,7 @@ Wir helfen alle gemeinsam bei den Programmpunkten und machen uns eine schöne Ze
 
 ### Nach dem Zeltlager
 
-Erstmal Abbauen und Aufräumen. Hilfe wird benötigt und wird gerne gesehen. 
+Erstmal Abbauen und Aufräumen. Hilfe wird benötigt und wird gerne gesehen.
 Nach dem Lager ist vor dem Lager. Es geht wieder von vorne los! 😊
 
 ## Downloads

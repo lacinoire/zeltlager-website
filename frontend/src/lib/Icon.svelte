@@ -14,8 +14,14 @@
 	{#if raw}
 		{raw}
 	{:else}
-		<svg viewBox="0 0 24 24" style="width: {typeof size === 'number' ? size + 'px' : size}; height: {typeof size === 'number' ? size + 'px' : size}; {style}">
-			<path d={name}></path>
+		<svg
+			viewBox="0 0 24 24"
+			style="width: {typeof size === 'number' ? size + 'px' : size}; height: {typeof size ===
+			'number'
+				? size + 'px'
+				: size}; {style}"
+		>
+			<path d={name} />
 		</svg>
 	{/if}
 </span>

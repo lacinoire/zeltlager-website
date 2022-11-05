@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import { onMount } from "svelte";
-	import { browser } from '$app/environment';
+	import { browser } from "$app/environment";
 
 	let error: string | undefined;
 	let isFull = false;
@@ -113,7 +113,7 @@
 		// Remove required classes for firefox on android, it doesn't show any popup there
 		const userAgent = browser ? navigator.userAgent.toLowerCase() : "";
 		if (userAgent.includes("android") && userAgent.includes("firefox") && signupForm) {
-			signupForm.querySelectorAll("input").forEach(element => element.required = false);
+			signupForm.querySelectorAll("input").forEach((element) => (element.required = false));
 		}
 	});
 </script>

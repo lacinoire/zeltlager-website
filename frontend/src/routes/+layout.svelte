@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
-	import { browser } from '$app/environment';
+	import { browser } from "$app/environment";
 	import { afterNavigate } from "$app/navigation";
 
 	import "../app.scss";
@@ -42,7 +42,7 @@
 
 	onMount(loadMenuItems);
 
-	afterNavigate(() => location = browser ? window.location.pathname : "");
+	afterNavigate(() => (location = browser ? window.location.pathname : ""));
 </script>
 
 <nav class="navbar is-light" aria-label="navigation">
@@ -58,7 +58,8 @@
 				aria-label="menu"
 				aria-expanded={showNavbar}
 				class:is-active={showNavbar}
-				on:click={() => (showNavbar = !showNavbar)}>
+				on:click={() => (showNavbar = !showNavbar)}
+			>
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />
@@ -72,7 +73,9 @@
 						<a
 							class="navbar-item"
 							href={item.link}
-							class:is-active={$page.routeId === stripSlashes(item.link) || stripSlashes(location) === stripSlashes(item.link)}>
+							class:is-active={$page.routeId === stripSlashes(item.link) ||
+								stripSlashes(location) === stripSlashes(item.link)}
+						>
 							<!-- set active for images links -->
 							{item.title}
 						</a>
@@ -81,27 +84,33 @@
 				<a
 					class="navbar-item"
 					href="/anmeldung"
-					class:is-active={$page.routeId === "anmeldung"}>Anmeldung</a>
+					class:is-active={$page.routeId === "anmeldung"}>Anmeldung</a
+				>
 				<a
 					class="navbar-item"
 					href="/packliste"
-					class:is-active={$page.routeId === "packliste"}>Packliste</a>
+					class:is-active={$page.routeId === "packliste"}>Packliste</a
+				>
 				<a
 					class="navbar-item"
 					href="/ausstattung"
-					class:is-active={$page.routeId === "ausstattung"}>Ausstattung und Team</a>
+					class:is-active={$page.routeId === "ausstattung"}>Ausstattung und Team</a
+				>
 				<a
 					class="navbar-item"
 					href="/betreuer"
-					class:is-active={$page.routeId === "betreuer"}>Für Betreuer</a>
+					class:is-active={$page.routeId === "betreuer"}>Für Betreuer</a
+				>
 				<a
 					class="navbar-item"
 					href="/datenschutz"
-					class:is-active={$page.routeId === "datenschutz"}>Datenschutz</a>
+					class:is-active={$page.routeId === "datenschutz"}>Datenschutz</a
+				>
 				<a
 					class="navbar-item"
 					href="/impressum"
-					class:is-active={$page.routeId === "impressum"}>Impressum</a>
+					class:is-active={$page.routeId === "impressum"}>Impressum</a
+				>
 			</div>
 
 			<div class="navbar-end">
@@ -110,7 +119,8 @@
 						<a
 							class="button is-primary"
 							href="/login"
-							class:is-hidden={menuData.isLoggedIn}>
+							class:is-hidden={menuData.isLoggedIn}
+						>
 							<strong>Login</strong>
 						</a>
 						{#if menuData.isLoggedIn}
@@ -137,7 +147,8 @@
 			<img
 				src="/img/GernerWappen.png"
 				style="height: 2em; vertical-align: middle;"
-				alt="FT Gern Wappen" />
+				alt="FT Gern Wappen"
+			/>
 			Freie Turnerschaft München Gern e.V.
 		</a> – Zeltlager
 	</h4>

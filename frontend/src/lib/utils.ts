@@ -226,9 +226,8 @@ export function splitImageName(s: string): string {
 	let lastType = CharType.None;
 	let res = "";
 	for (const c of s) {
-		const newType = c >= '0' && c <= '9' ? CharType.Number : CharType.Letter;
-		if (newType !== lastType && lastType !== CharType.None)
-			res += " ";
+		const newType = c >= "0" && c <= "9" ? CharType.Number : CharType.Letter;
+		if (newType !== lastType && lastType !== CharType.None) res += " ";
 		res += c;
 		lastType = newType;
 	}

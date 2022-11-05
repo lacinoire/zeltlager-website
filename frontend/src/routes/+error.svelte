@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { browser } from "$app/environment";
+	import { onMount } from "svelte";
+	import { page } from "$app/stores";
 
 	onMount(() => {
 		let location: string = browser ? window.location.pathname : "";
