@@ -334,27 +334,6 @@ impl Config {
 	}
 }
 
-/// Escapes a string so it can be put into html (between tags).
-///
-/// # Escapes
-///
-/// - & to &amp;
-/// - < to &lt;
-/// - > to &gt;
-/// - " to &quot;
-/// - ' to &#x27;
-/// - / to &#x2F;
-///
-/// Reference: https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet#RULE_.231_-_HTML_Escape_Before_Inserting_Untrusted_Data_into_HTML_Element_Content
-fn escape_html_body(s: &str) -> String {
-	s.replace('&', "&amp;")
-		.replace('<', "&lt;")
-		.replace('>', "&gt;")
-		.replace('"', "&quot;")
-		.replace('\'', "&#x27;")
-		.replace('/', "&#x2F;")
-}
-
 fn error_response(state: &State) -> HttpResponse {
 	HttpResponse::InternalServerError()
 		.body(format!("Es ist ein interner Fehler aufgetreten.\n{}", state.config.error_message))
@@ -565,7 +544,6 @@ async fn main() -> Result<()> {
 						.service(erwischt::create_members_pdf),
 				),
 		);
-		// TODO Bilder
 
 		for name in &image_dirs {
 			let name2 = name.clone();

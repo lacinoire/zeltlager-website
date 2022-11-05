@@ -13,4 +13,8 @@
 	});
 </script>
 
-<h1>{$page.status}: {$page.error.message}</h1>
+{#if $page.status === 404}
+	<h1 class="title">404. Diese Seite gibt’s nicht 😇</h1>
+{:else}
+	{$page.status}: {$page.error.message}
+{/if}
