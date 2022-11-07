@@ -70,7 +70,6 @@
 	}
 
 	onMount(async () => {
-		//GLightbox = (await import("glightbox/dist/js/glightbox")).default;
 		let path = window.location.pathname;
 		if (!path.startsWith("/Bilder")) return;
 		path = path.slice("/Bilder".length);
@@ -124,8 +123,6 @@
 </div>
 
 <style lang="scss">
-	@import "glightbox/dist/css/glightbox.min.css";
-
 	.galleryContainer {
 		gap: 0.75em;
 		flex-wrap: wrap;

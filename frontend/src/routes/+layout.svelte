@@ -13,14 +13,14 @@
 
 	interface MenuData {
 		isLoggedIn: boolean;
-		globalMessage: string | undefined;
+		globalMessage: string | null;
 		items: ExtraMenuItem[];
 	}
 
 	$: isWide = ["admin/betreuer", "admin/teilnehmer"].includes($page.routeId ?? "");
 
 	let showNavbar = false;
-	let menuData: MenuData = { isLoggedIn: false, globalMessage: undefined, items: [] };
+	let menuData: MenuData = { isLoggedIn: false, globalMessage: null, items: [] };
 	let location: string = browser ? window.location.pathname : "";
 
 	async function loadMenuItems() {
@@ -136,7 +136,7 @@
 </nav>
 
 <div class="container main" class:wide={isWide}>
-	{#if menuData.globalMessage !== undefined}
+	{#if menuData.globalMessage !== null}
 		<div class="globalMessage">
 			{@html menuData.globalMessage}
 		</div>
