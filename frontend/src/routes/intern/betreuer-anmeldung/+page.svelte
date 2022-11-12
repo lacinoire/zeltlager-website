@@ -91,7 +91,7 @@
 		signupForm.vegetarier.value = "false";
 		signupForm.tetanus_impfung.value = "true";
 		signupForm.krankenversicherung.value = "gesetzlich";
-		signupForm.mail.value = "@";
+		signupForm.mail.value = "a@b";
 		signupForm.handynummer.value = "d";
 		signupForm.strasse.value = "e";
 		signupForm.hausnummer.value = "1";
@@ -139,7 +139,7 @@
 					<input
 						id="vorname"
 						name="vorname"
-						placeholder="Vorname des Kindes"
+						placeholder="Vorname"
 						required
 						class="input"
 						autocomplete="given-name"
@@ -159,7 +159,7 @@
 					<input
 						id="nachname"
 						name="nachname"
-						placeholder="Nachname des Kindes"
+						placeholder="Nachname"
 						class="input"
 						on:keydown={shortcut}
 						required

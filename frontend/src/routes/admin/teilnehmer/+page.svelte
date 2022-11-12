@@ -13,6 +13,7 @@
 	} from "$lib/utils";
 	import EditableProperty from "$lib/EditableProperty.svelte";
 	import SortIcon from "$lib/SortIcon.svelte";
+	import TableContainer from "$lib/TableContainer.svelte";
 
 	const headers = [
 		"Anwesend",
@@ -313,7 +314,7 @@
 </div>
 
 {#if sortType === "alphabetisch" || sortType === "region"}
-	<div class="table-container">
+	<TableContainer>
 		<table class="table is-striped is-hoverable">
 			<thead class="is-sticky">
 				<tr>
@@ -415,7 +416,7 @@
 				{/if}
 			</tbody>
 		</table>
-	</div>
+	</TableContainer>
 {:else}
 	<div class="multiTables">
 		{#each bools as is}

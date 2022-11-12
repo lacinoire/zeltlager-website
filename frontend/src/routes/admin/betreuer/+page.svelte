@@ -5,6 +5,7 @@
 	import { addressSortFn, getSortByKeyFn, nameSortFn, createCsv, createXlsx } from "$lib/utils";
 	import EditableProperty from "$lib/EditableProperty.svelte";
 	import SortIcon from "$lib/SortIcon.svelte";
+	import TableContainer from "$lib/TableContainer.svelte";
 
 	const headers = [
 		"Vorname",
@@ -220,7 +221,7 @@
 	</div>
 </div>
 
-<div class="table-container">
+<TableContainer>
 	<table class="table">
 		<thead class="is-sticky">
 			<tr>
@@ -311,12 +312,13 @@
 						<td>{e.medikamente}</td>
 						<td>{e.besonderheiten}</td>
 						<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
+						<!-- TODO Löschen -->
 					</tr>
 				{/each}
 			{/if}
 		</tbody>
 	</table>
-</div>
+</TableContainer>
 
 <style>
 	.header-flex {
