@@ -9,15 +9,21 @@
 
 ## Angaben gem&auml;&szlig; &sect; 5 TMG:
 
+FT München Gern e.V.  
+Hanebergstraße 1  
+80637 München
+
+Vertreten durch:
+
 Ansgar Ruggaber  
-Zeltlagerleiter  
-Rothschwaigestr. 20  
-80997 München
+c/o Hanebergstraße 1  
+80637 München
 
-## Kontakt:
+E-Mail: zeltlager@ftgern.de
 
-Telefon: +49 176 43035372  
-E-Mail: a.ruggaber@t-online.de
+## Registereintragung
+
+Der Verein ist im Vereinsregister des Amtsgerichts München unter der Nr. VR 3557 eingetragen.
 
 ## Streitschlichtung
 
