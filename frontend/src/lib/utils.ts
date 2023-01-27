@@ -1,5 +1,10 @@
 import { utils, writeFile } from "xlsx";
 
+export interface Column {
+	name?: string;
+	displayName?: string;
+}
+
 export function getRegion(plz: number, ort: string) {
 	if (inMunich(plz, ort)) return "München";
 	if (inMunichLandkreis(plz, ort)) return "Landkreis München";

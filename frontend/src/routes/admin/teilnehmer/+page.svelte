@@ -14,6 +14,8 @@
 	import EditableProperty from "$lib/EditableProperty.svelte";
 	import SortIcon from "$lib/SortIcon.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
+	import SortableTable from "$lib/SortableTable.svelte";
+    import type { Column } from "$lib/utils";
 
 	const headers = [
 		"Anwesend",
@@ -74,8 +76,46 @@
 	let displayFiltered: (Member | string)[];
 	let birthdays: Member[];
 	let filter = "";
-	let sortBy = "Name-asc";
+	let sortBy = "Vorname-asc";
 	let sortType: SortType = "alphabetisch";
+
+	// &shy;
+	const S = "\u00AD";
+
+	const allColumns: Column[] = [
+		{ name: "Anwesend", displayName: `Anwe${S}send` },
+		{ name: "Bezahlt", displayName: `Be${S}zahlt` },
+		{ name: "Vorname" },
+		{ name: "Nachname" },
+		{ name: "Geschlecht", displayName: "" },
+		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
+		{ name: "Eltern-Name", displayName: "Eltern" },
+		{ name: "Eltern-Mail", displayName: "E-Mail" },
+		{ name: "Eltern-Handynummer", displayName: "Handy" },
+		{ name: "Adresse" },
+		{ name: "Ort" },
+		{ name: "PLZ" },
+		{ name: "Schwimmer", displayName: `Schwim${S}mer` },
+		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung` },
+		{ name: "Tetanus-Impfung" },
+		{ name: "Vegetarier", displayName: `Vege${S}tarier` },
+		{ name: "Allergien" },
+		{ name: "Unverträglichkeiten" },
+		{ name: "Medikamente" },
+		{ name: "Besonderheiten" },
+		{ name: "Anmeldedatum" },
+		{},
+	];
+
+	const regionColumns: Column[] = [
+		{ name: "Vorname" },
+		{ name: "Nachname" },
+		{ name: "Geschlecht", displayName: "" },
+		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
+		{ name: "Adresse" },
+		{ name: "Ort" },
+		{ name: "PLZ" },
+	];
 
 	function updateSortType(sortType: SortType) {
 		if (sortType !== "alphabetisch" && sortType !== "region") sortBy = "Name-asc";
@@ -135,7 +175,7 @@
 				const curRegion = getRegion(parseInt(e.plz), e.ort);
 				if (curRegion !== lastRegion) {
 					const count = countPerRegion[curRegion];
-					displayFiltered.push(`${curRegion} (${count})`);
+					displayFiltered.push(`${curRegion} (${count} Teilnehmer)`);
 				}
 				displayFiltered.push(e);
 				lastRegion = curRegion;
@@ -313,109 +353,81 @@
 	</div>
 </div>
 
-{#if sortType === "alphabetisch" || sortType === "region"}
+{#if sortType === "alphabetisch"}
 	<TableContainer>
-		<table class="table is-striped is-hoverable">
-			<thead class="is-sticky">
-				<tr>
-					<th>
-						<SortIcon name="Anwesend" displayName="Anwe&shy;send" bind:sortBy />
-					</th>
-					<th>
-						<SortIcon name="Bezahlt" displayName="Be&shy;zahlt" bind:sortBy />
-					</th>
-					<th><SortIcon name="Name" bind:sortBy /></th>
-					<th>
-						<!-- Geschlecht --><SortIcon name="Geschlecht" displayName="" bind:sortBy />
-					</th>
-					<th>
-						<SortIcon name="Geburtsdatum" displayName="Geburts&shy;datum" bind:sortBy />
-					</th>
-					<th>
-						<SortIcon name="Eltern-Name" displayName="Eltern" bind:sortBy />
-					</th>
-					<th>
-						<SortIcon name="Eltern-Mail" displayName="E-Mail" bind:sortBy />
-					</th>
-					<th>
-						<SortIcon name="Eltern-Handynummer" displayName="Handy" bind:sortBy />
-					</th>
-					<th><SortIcon name="Adresse" bind:sortBy /></th>
-					<th><SortIcon name="Ort" bind:sortBy /></th>
-					<th><SortIcon name="PLZ" bind:sortBy /></th>
-					<th>
-						<SortIcon name="Schwimmer" displayName="Schwim&shy;mer" bind:sortBy />
-					</th>
-					<th>
-						<SortIcon
-							name="Krankenversicherung"
-							displayName="Kranken&shy;ver&shy;sicherung"
-							bind:sortBy
-						/>
-					</th>
-					<th><SortIcon name="Tetanus-Impfung" bind:sortBy /></th>
-					<th>
-						<SortIcon name="Vegetarier" displayName="Vege&shy;tarier" bind:sortBy />
-					</th>
-					<th><SortIcon name="Allergien" bind:sortBy /></th>
-					<th><SortIcon name="Unverträglichkeiten" bind:sortBy /></th>
-					<th><SortIcon name="Medikamente" bind:sortBy /></th>
-					<th><SortIcon name="Besonderheiten" bind:sortBy /></th>
-					<th><SortIcon name="Anmeldedatum" bind:sortBy /></th>
-					<th><!-- löschen --></th>
-				</tr>
-			</thead>
-			<tbody>
-				{#if displayFiltered !== undefined}
-					{#each displayFiltered as e}
-						<tr>
-							{#if typeof e !== "string"}
-								<td>
-									<EditableProperty
-										bind:value={e.anwesend}
-										on:edit={() => editEntry(e)}
-									/>
-								</td>
-								<td>
-									<EditableProperty
-										bind:value={e.bezahlt}
-										on:edit={() => editEntry(e)}
-									/>
-								</td>
-								<td>{e.vorname} {e.nachname}</td>
-								<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
-								<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-								<td>{e.eltern_name}</td>
-								<td>{e.eltern_mail}</td>
-								<td>{e.eltern_handynummer}</td>
-								<td>{e.strasse} {e.hausnummer}</td>
-								<td>{e.ort}</td>
-								<td>{e.plz}</td>
-								<td><input type="checkbox" checked={e.schwimmer} disabled /></td>
-								<td>{e.krankenversicherung}</td>
-								<td
-									><input
-										type="checkbox"
-										checked={e.tetanus_impfung}
-										disabled
-									/></td
-								>
-								<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
-								<td>{e.allergien}</td>
-								<td>{e.unvertraeglichkeiten}</td>
-								<td>{e.medikamente}</td>
-								<td>{e.besonderheiten}</td>
-								<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
-								<!-- svelte-ignore a11y-invalid-attribute -->
-								<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>
-							{:else}
-								<td colspan="21" class="special"><h4>{e}</h4></td>
-							{/if}
-						</tr>
-					{/each}
-				{/if}
-			</tbody>
-		</table>
+		<SortableTable columns={allColumns} bind:sortBy>
+			{#if displayFiltered !== undefined}
+				{#each displayFiltered as e}
+					<tr>
+						{#if typeof e !== "string"}
+							<td>
+								<EditableProperty
+									bind:value={e.anwesend}
+									on:edit={() => editEntry(e)}
+								/>
+							</td>
+							<td>
+								<EditableProperty
+									bind:value={e.bezahlt}
+									on:edit={() => editEntry(e)}
+								/>
+							</td>
+							<td>{e.vorname}</td>
+							<td>{e.nachname}</td>
+							<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
+							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
+							<td>{e.eltern_name}</td>
+							<td>{e.eltern_mail}</td>
+							<td>{e.eltern_handynummer}</td>
+							<td>{e.strasse} {e.hausnummer}</td>
+							<td>{e.ort}</td>
+							<td>{e.plz}</td>
+							<td><input type="checkbox" checked={e.schwimmer} disabled /></td>
+							<td>{e.krankenversicherung}</td>
+							<td
+								><input
+									type="checkbox"
+									checked={e.tetanus_impfung}
+									disabled
+								/></td
+							>
+							<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
+							<td>{e.allergien}</td>
+							<td>{e.unvertraeglichkeiten}</td>
+							<td>{e.medikamente}</td>
+							<td>{e.besonderheiten}</td>
+							<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
+							<!-- svelte-ignore a11y-invalid-attribute -->
+							<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>
+						{:else}
+							<td colspan="21" class="special"><h4>{e}</h4></td>
+						{/if}
+					</tr>
+				{/each}
+			{/if}
+		</SortableTable>
+	</TableContainer>
+{:else if sortType === "region"}
+	<TableContainer>
+		<SortableTable columns={regionColumns} bind:sortBy>
+			{#if displayFiltered !== undefined}
+				{#each displayFiltered as e}
+					<tr>
+						{#if typeof e !== "string"}
+							<td>{e.vorname}</td>
+							<td>{e.nachname}</td>
+							<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
+							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
+							<td>{e.strasse} {e.hausnummer}</td>
+							<td>{e.ort}</td>
+							<td>{e.plz}</td>
+						{:else}
+							<td colspan="21" class="special"><h4>{e}</h4></td>
+						{/if}
+					</tr>
+				{/each}
+			{/if}
+		</SortableTable>
 	</TableContainer>
 {:else}
 	<div class="multiTables">
@@ -431,7 +443,10 @@
 							{/if}
 						</th>
 						<th>
-							Name ({filtered !== undefined
+							Vorname
+						</th>
+						<th>
+							Nachname ({filtered !== undefined
 								? filtered.filter(is(sortType)).length
 								: "??"}
 							Teilnehmer)
@@ -456,7 +471,8 @@
 											/>
 										{/if}
 									</td>
-									<td>{e.vorname} {e.nachname}</td>
+									<td>{e.vorname}</td>
+									<td>{e.nachname}</td>
 								</tr>
 							{/if}
 						{/each}
@@ -472,7 +488,8 @@
 <table class="table is-striped is-hoverable">
 	<thead>
 		<tr>
-			<th>Name</th>
+			<th>Vorname</th>
+			<th>Nachname</th>
 			<th><!-- Geschlecht --></th>
 			<th>Geburtsdatum</th>
 		</tr>
@@ -481,7 +498,8 @@
 		{#if birthdays !== undefined}
 			{#each birthdays as e}
 				<tr>
-					<td>{e.vorname} {e.nachname}</td>
+					<td>{e.vorname}</td>
+					<td>{e.nachname}</td>
 					<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
 					<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
 				</tr>
