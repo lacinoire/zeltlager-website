@@ -58,7 +58,7 @@ Wer neu im Zeltlager als Betreuer:in dabei ist, muss einen Mitgliedsantrag für 
 
 Beim Antrag bitte NICHTS zu Lastschrift, Konto etc. ausfüllen, du musst nichts zahlen. Einfach nur deine Daten, Abteilung „Zeltlager“ angeben und unterschreiben.
 
-Den Mitgliedsantrag für FT Gern kannst du dir [hier](/files/mitgliedsantrag-2022.jpg) herunterladen und ausfüllen.
+Den Mitgliedsantrag für FT Gern kannst du dir [hier](/files/mitgliedsantrag-2023.pdf) herunterladen und ausfüllen.
 
 ### Freistellung
 
@@ -128,6 +128,6 @@ Nach dem Lager ist vor dem Lager. Es geht wieder von vorne los! 😊
 ## Downloads
 
 [Vereinsbestätigung über die Praxisbegleitung](/files/Vereinsbestaetigung-Praxisbegleitung.pdf)  
-[Mitgliedsantrag FT Gern](/files/mitgliedsantrag-2022.jpg)
+[Mitgliedsantrag FT Gern](/files/mitgliedsantrag-2023.pdf)
 
 </div>
