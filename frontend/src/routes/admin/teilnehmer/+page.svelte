@@ -199,6 +199,19 @@
 
 	const bools = [isFalse, isTrue];
 
+	type SortTypeFn = (t: SortType) => (m: Member) => boolean;
+
+	function boolColumns(sortType: SortType, filtered: Member[], is: SortTypeFn): Column[] {
+		const num = filtered !== undefined
+								? filtered.filter(is(sortType)).length
+								: "??";
+		return [
+			{ name: sortType === "anwesend" ? "Anwesend" : "Bezahlt" },
+			{ name: "Vorname" },
+			{ name: "Nachname", displayName: `Nachname (${num} Teilnehmer)` },
+		];
+	}
+
 	function createData(asDate = false) {
 		const entries = [...all];
 		entries.sort(nameSortFn);
@@ -432,53 +445,31 @@
 {:else}
 	<div class="multiTables">
 		{#each bools as is}
-			<table class="table">
-				<thead class="thead-light">
-					<tr>
-						<th>
-							{#if sortType === "anwesend"}
-								Anwesend
-							{:else}
-								Bezahlt
-							{/if}
-						</th>
-						<th>
-							Vorname
-						</th>
-						<th>
-							Nachname ({filtered !== undefined
-								? filtered.filter(is(sortType)).length
-								: "??"}
-							Teilnehmer)
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#if filtered !== undefined}
-						{#each filtered as e}
-							{#if is(sortType)(e)}
-								<tr>
-									<td>
-										{#if sortType === "anwesend"}
-											<EditableProperty
-												bind:value={e.anwesend}
-												on:edit={() => editEntry(e)}
-											/>
-										{:else}
-											<EditableProperty
-												bind:value={e.bezahlt}
-												on:edit={() => editEntry(e)}
-											/>
-										{/if}
-									</td>
-									<td>{e.vorname}</td>
-									<td>{e.nachname}</td>
-								</tr>
-							{/if}
-						{/each}
-					{/if}
-				</tbody>
-			</table>
+			<SortableTable columns={boolColumns(sortType, filtered, is)} bind:sortBy>
+				{#if filtered !== undefined}
+					{#each filtered as e}
+						{#if is(sortType)(e)}
+							<tr>
+								<td>
+									{#if sortType === "anwesend"}
+										<EditableProperty
+											bind:value={e.anwesend}
+											on:edit={() => editEntry(e)}
+										/>
+									{:else}
+										<EditableProperty
+											bind:value={e.bezahlt}
+											on:edit={() => editEntry(e)}
+										/>
+									{/if}
+								</td>
+								<td>{e.vorname}</td>
+								<td>{e.nachname}</td>
+							</tr>
+						{/if}
+					{/each}
+				{/if}
+			</SortableTable>
 		{/each}
 	</div>
 {/if}
