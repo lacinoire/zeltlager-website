@@ -49,9 +49,40 @@ img {
 	image-orientation: from-image;
 }
 
-.image-list img {
-	max-width: 90vw;
-	width: 36em;
+.image-list {
+	display: flex;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 2.5em;
+
+	margin-top: 2em;
+	margin-bottom: 2em;
+
+	@media screen and (max-width: 1023px) {
+		margin-left: -1em;
+		margin-right: -1em;
+
+		img:first-child {
+			padding-left: 1em;
+		}
+
+		img:last-child {
+			padding-right: 1em;
+		}
+
+		background-color: rgb(240, 240, 240);
+	}
+
+	@media screen and (max-width: calc(40em * 2)) {
+		overflow-x: auto;
+		flex-wrap: nowrap;
+	}
+
+	img {
+		max-width: 90vw;
+		width: 36em;
+		padding: 1em 0 1em 0;
+	}
 }
 
 .navbar-brand {

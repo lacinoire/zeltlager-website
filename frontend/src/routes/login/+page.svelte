@@ -117,7 +117,9 @@
 		</div>
 		<div class="field">
 			<div class="control">
-				<button class="button is-link" style="width: 100%;" type="submit">Anmelden</button>
+				<button class="button is-primary" style="width: 100%;" type="submit">
+					Anmelden
+				</button>
 			</div>
 		</div>
 	</form>

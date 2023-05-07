@@ -12,12 +12,12 @@
 ### Beantragung der Juleica
 
 Vor dem Lager muss jede:r Neu-Betreuer:in einen Juleica-Kurs gemacht haben.
-Informationen zu Terminen, der Anmeldung etc. findest du auf [www.msj.de/bildung/juleica_neu/](https://www.msj.de/bildung/juleica_neu/).
+Informationen zu Terminen, der Anmeldung etc. findest du auf [www.msj.de/bildung/juleica/](https://www.msj.de/bildung/juleica/).
 
 Wenn du einen Juleica-Kurs gemacht hast, kannst du die Karte online unter [juleica-antrag.de](https://juleica-antrag.de) beantragen.
 
 Wichtige Information zum Stellen des Antrags:  
-Träger und Ausbildung: Bayrische Sportjugend im BLSV Kreis München-Stadt
+Träger und Ausbildung: **Bayerische Sportjugend im BLSV Kreis München-Stadt**
 
 Die Vereinsbestätigung über die Praxisbegleitung kannst du dir [hier](/files/Vereinsbestaetigung-Praxisbegleitung.pdf) herunterladen und ausfüllen.
 
@@ -31,7 +31,7 @@ Alle drei Jahre muss die Juleica verlängert werden.
 
 Du kannst deine Karte online unter [juleica-antrag.de](https://juleica-antrag.de) verlängern.
 Wichtige Information zum Stellen des Antrags:  
-Träger und Ausbildung: Bayrische Sportjugend im BLSV Kreis München-Stadt
+Träger und Ausbildung: **Bayerische Sportjugend im BLSV Kreis München-Stadt**
 
 ### Erste-Hilfe-Kurs
 

@@ -151,6 +151,8 @@
 	on:submit|preventDefault={signup}
 	bind:this={signupForm}
 >
+	<h2 class="title is-4">Angaben zum Kind</h2>
+
 	<div class="field is-horizontal required">
 		<div class="field-label">
 			<label for="vorname" class="label">Vorname</label>
@@ -327,6 +329,9 @@
 			</div>
 		</div>
 	</div>
+
+	<h2 class="title is-4">Angaben zum Erziehungsberechtigten</h2>
+
 	<div class="field is-horizontal required">
 		<div class="field-label">
 			<label for="eltern_name" class="label">Name eines Erziehungsberechtigten</label>
@@ -410,7 +415,7 @@
 				</div>
 			</div>
 			<div class="field is-narrow">
-				<div class="ontrol">
+				<div class="control">
 					<input
 						id="hausnummer"
 						name="hausnummer"
@@ -457,6 +462,9 @@
 			</div>
 		</div>
 	</div>
+
+	<h2 class="title is-4">Zusätzliche Angaben</h2>
+
 	<div class="field is-horizontal">
 		<div class="field-label">
 			<label for="allergien" class="label">Allergien</label>
@@ -544,16 +552,17 @@
 		</div>
 	</div>
 	<div class="field is-horizontal required">
-		<div class="field-label">
-			<span class="label">Allgemeine Geschäftsbedingungen und Datenschutzbestimmungen</span>
-		</div>
+		<div class="field-label" />
 		<div class="field-body">
 			<div class="control">
 				<label class="checkbox">
 					<input name="agb" value="true" required type="checkbox" />
 					<span class="custom-control-indicator" />
 					<span class="custom-control-description">
-						Ich habe die <a href="/agb" target="_blank">AGB</a> und die
+						Ich habe die <a href="/agb" target="_blank">
+							Allgemeine Geschäftsbedingungen
+						</a>
+						und die
 						<a href="/datenschutz" target="_blank">Datenschutzbestimmungen</a> gelesen und
 						akzeptiere sie.
 					</span>
@@ -561,12 +570,19 @@
 			</div>
 		</div>
 	</div>
+	<div class="field is-horizontal required">
+		<div class="field-label" />
+		<div class="field-body">
+			<div class="required"><span class="label" style="display: inline;" />Pflichtfeld</div>
+		</div>
+	</div>
+
 	<div class="field is-horizontal">
 		<div class="field-label" />
 		<div class="field-body">
 			<div class="field">
 				<div class="control">
-					<button type="submit" class="button is-link">Anmelden</button>
+					<button type="submit" class="button is-primary">Anmelden</button>
 				</div>
 			</div>
 		</div>
@@ -576,5 +592,24 @@
 <style>
 	.error-msg {
 		margin-bottom: 1em;
+	}
+
+	.title.is-4 {
+		margin-top: 3em;
+		margin-bottom: 1.2em;
+	}
+
+	form > .field:not(:last-child) {
+		margin-bottom: 1.5em;
+	}
+
+	.button {
+		margin-top: 2em;
+	}
+
+	@media screen and (max-width: 768px) {
+		.button {
+			width: 100%;
+		}
 	}
 </style>

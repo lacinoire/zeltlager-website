@@ -15,7 +15,7 @@
 	import SortIcon from "$lib/SortIcon.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
 	import SortableTable from "$lib/SortableTable.svelte";
-    import type { Column } from "$lib/utils";
+	import type { Column } from "$lib/utils";
 
 	const headers = [
 		"Anwesend",
@@ -202,9 +202,7 @@
 	type SortTypeFn = (t: SortType) => (m: Member) => boolean;
 
 	function boolColumns(sortType: SortType, filtered: Member[], is: SortTypeFn): Column[] {
-		const num = filtered !== undefined
-								? filtered.filter(is(sortType)).length
-								: "??";
+		const num = filtered !== undefined ? filtered.filter(is(sortType)).length : "??";
 		return [
 			{ name: sortType === "anwesend" ? "Anwesend" : "Bezahlt" },
 			{ name: "Vorname" },
@@ -397,13 +395,7 @@
 							<td>{e.plz}</td>
 							<td><input type="checkbox" checked={e.schwimmer} disabled /></td>
 							<td>{e.krankenversicherung}</td>
-							<td
-								><input
-									type="checkbox"
-									checked={e.tetanus_impfung}
-									disabled
-								/></td
-							>
+							<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
 							<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
 							<td>{e.allergien}</td>
 							<td>{e.unvertraeglichkeiten}</td>

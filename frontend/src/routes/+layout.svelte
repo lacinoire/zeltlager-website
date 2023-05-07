@@ -45,7 +45,7 @@
 	afterNavigate(() => (location = browser ? window.location.pathname : ""));
 </script>
 
-<nav class="navbar is-light" aria-label="navigation">
+<nav class="navbar is-fixed-top is-light" aria-label="navigation">
 	<div class="container" class:wide={isWide}>
 		<div class="navbar-brand">
 			<a class="navbar-brand" href="/">
@@ -58,7 +58,7 @@
 				aria-label="menu"
 				aria-expanded={showNavbar}
 				class:is-active={showNavbar}
-				on:click={() => (showNavbar = !showNavbar)}
+				on:click|preventDefault={() => (showNavbar = !showNavbar)}
 			>
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />
@@ -82,54 +82,57 @@
 					{/if}
 				{/each}
 				<a
-					class="navbar-item"
+					class="navbar-item emph-item"
 					href="/anmeldung"
-					class:is-active={$page.routeId === "anmeldung"}>Anmeldung</a
+					class:is-active={$page.routeId === "anmeldung"}
 				>
+					Anmeldung
+				</a>
 				<a
 					class="navbar-item"
 					href="/packliste"
-					class:is-active={$page.routeId === "packliste"}>Packliste</a
+					class:is-active={$page.routeId === "packliste"}
 				>
+					Packliste
+				</a>
 				<a
 					class="navbar-item"
 					href="/ausstattung"
-					class:is-active={$page.routeId === "ausstattung"}>Ausstattung und Team</a
+					class:is-active={$page.routeId === "ausstattung"}
 				>
+					Ausstattung und Team
+				</a>
 				<a
 					class="navbar-item"
 					href="/betreuer"
-					class:is-active={$page.routeId === "betreuer"}>Für Betreuer</a
+					class:is-active={$page.routeId === "betreuer"}
 				>
+					Für Betreuer
+				</a>
 				<a
 					class="navbar-item"
 					href="/datenschutz"
-					class:is-active={$page.routeId === "datenschutz"}>Datenschutz</a
+					class:is-active={$page.routeId === "datenschutz"}
 				>
+					Datenschutz
+				</a>
 				<a
 					class="navbar-item"
 					href="/impressum"
-					class:is-active={$page.routeId === "impressum"}>Impressum</a
+					class:is-active={$page.routeId === "impressum"}
 				>
-			</div>
-
-			<div class="navbar-end">
-				<div class="navbar-item">
-					<div class="buttons">
-						<a
-							class="button is-primary"
-							href="/login"
-							class:is-hidden={menuData.isLoggedIn}
-						>
-							<strong>Login</strong>
-						</a>
-						{#if menuData.isLoggedIn}
-							<a class="button is-primary" href="/api/logout">
-								<strong>Logout</strong>
-							</a>
-						{/if}
-					</div>
-				</div>
+					Impressum
+				</a>
+				<a
+					class="navbar-item emph-item"
+					href="/login"
+					class:is-hidden={menuData.isLoggedIn}
+				>
+					Login
+				</a>
+				{#if menuData.isLoggedIn}
+					<a class="navbar-item emph-item" href="/api/logout"> Logout </a>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -142,25 +145,27 @@
 		</div>
 	{/if}
 
-	<h4 class="subtitle is-4" style="text-align: center;">
-		<a target="_blank" href="https://ftgern.de" style="color: black;">
-			<img
-				src="/img/GernerWappen.png"
-				style="height: 2em; vertical-align: middle;"
-				alt="FT Gern Wappen"
-			/>
-			Freie Turnerschaft München Gern e.V.
-		</a> – Zeltlager
-	</h4>
-
 	<slot />
 </div>
 
 <footer class="footer">
-	<div class="has-text-centered">
-		<a href="https://github.com/lacinoire/zeltlager-website" class="has-text-grey">
-			Programmiert von Caro und Sebastian
-		</a>
+	<div class="content has-text-centered">
+		<div style="margin-bottom: 2em; font-size: 1.2rem;">
+			<a href="https://ftgern.de">
+				<img
+					src="/img/GernerWappen.png"
+					style="height: 2em; vertical-align: middle;"
+					alt="FT Gern Wappen"
+				/>
+				Freie Turnerschaft München Gern e.V.
+			</a>
+		</div>
+
+		<div>
+			<a href="https://github.com/lacinoire/zeltlager-website" class="has-text-grey">
+				Programmiert von Caro und Sebastian
+			</a>
+		</div>
 	</div>
 </footer>
 
@@ -172,10 +177,22 @@
 		}
 	}
 
+	div.navbar-brand {
+		align-items: center;
+	}
+
+	.container.main {
+		padding-top: 3em;
+	}
+
 	.container.main.wide {
 		max-width: 100%;
 		margin-left: 1em;
 		margin-right: 1em;
+	}
+
+	.emph-item {
+		font-weight: bold;
 	}
 
 	.globalMessage :global(.message) {
