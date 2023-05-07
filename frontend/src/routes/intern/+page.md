@@ -1,6 +1,6 @@
 <svelte:head>
 
-<title>Betreuer – Zeltlager – FT München Gern e.V.</title>
+  <title>Betreuer – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
 
 <div class="content">
@@ -81,17 +81,17 @@ Sobald die Planung abgeschlossen ist, bekommst du wieder Bescheid und musst dein
 
 Mögliche Programmpunkte
 
-- 1, 2 oder 3
-- Schlag den Supervisor 🥊
-- Lagerolympiade 🥇
-- Ü-Abend (Überaschungsabend)
+-   1, 2 oder 3
+-   Schlag den Supervisor 🥊
+-   Lagerolympiade 🥇
+-   Ü-Abend (Überaschungsabend)
 
 Andere Programmpunkte, die wir jedes Jahr organisieren sind
 
-- Bad-Taste-Disco 🎶
-- Abschlussabend
-- Turniere
-- Orientierungs-Lauf 🏃
+-   Bad-Taste-Disco 🎶
+-   Abschlussabend
+-   Turniere
+-   Orientierungs-Lauf 🏃
 
 ### Kurz vor dem Zeltlager
 
@@ -102,15 +102,15 @@ Melde dich bitte, wenn wir Hilfe benötigen.
 
 Packen nicht vergessen! Dinge, die man als Betreuer zusätzlich dabeihaben sollte:
 
-- Ein weißes T-Shirt für den Abschlussabend 👚
-- Kleidung für den Ü-Abend und das Ü-Abend-Sketch
-- Evtl. ein Outfit für die Bad-Taste-Disco 🤡
-- Mehr Unterwäsche als die Kinder (wir sind ein paar Tage länger da!)
-- Regenklamotten (Gummistiefel)
-- Warme Klamotten (vor allem für abends)
-- Sonnencreme
-- Material für Programmpunkte
-- und natürlich alles von der [Kinder-Packliste](/packliste)
+-   Ein weißes T-Shirt für den Abschlussabend 👚
+-   Kleidung für den Ü-Abend und das Ü-Abend-Sketch
+-   Evtl. ein Outfit für die Bad-Taste-Disco 🤡
+-   Mehr Unterwäsche als die Kinder (wir sind ein paar Tage länger da!)
+-   Regenklamotten (Gummistiefel)
+-   Warme Klamotten (vor allem für abends)
+-   Sonnencreme
+-   Material für Programmpunkte
+-   und natürlich alles von der [Kinder-Packliste](/packliste)
 
 Als Betreuer fahren wir schon 2–3 Tage früher (also Freitag oder Samstag) ins Zeltlager, bauen die Küche und die Zelte auf
 und bereiten den restlichen Teil des Programms vor, wie Nachtwanderung und Ü-Abend-Sketch.

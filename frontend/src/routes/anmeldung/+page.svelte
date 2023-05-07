@@ -149,8 +149,7 @@
 	action="/api/signup-nojs"
 	class:is-hidden={isFull}
 	on:submit|preventDefault={signup}
-	bind:this={signupForm}
->
+	bind:this={signupForm}>
 	<h2 class="title is-4">Angaben zum Kind</h2>
 
 	<div class="field is-horizontal required">
@@ -167,8 +166,7 @@
 						required
 						class="input"
 						autocomplete="given-name"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -188,8 +186,7 @@
 						on:keydown={shortcut}
 						required
 						autocomplete="family-name"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -208,8 +205,7 @@
 						class="input"
 						required
 						autocomplete="bday"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -310,8 +306,7 @@
 							name="krankenversicherung"
 							value="gesetzlich"
 							required
-							type="radio"
-						/>
+							type="radio" />
 						<span class="custom-control-indicator" />
 						<span class="custom-control-description">Gesetzlich</span>
 					</label>
@@ -346,8 +341,7 @@
 						class="input"
 						required
 						autocomplete="name"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -367,8 +361,7 @@
 						required
 						autocomplete="email"
 						inputmode="email"
-						type="email"
-					/>
+						type="email" />
 				</div>
 			</div>
 		</div>
@@ -376,8 +369,7 @@
 	<div class="field is-horizontal required">
 		<div class="field-label">
 			<label for="eltern_handynummer" class="label"
-				>Handynummer des Erziehungsberechtigten (für Notfälle)</label
-			>
+				>Handynummer des Erziehungsberechtigten (für Notfälle)</label>
 		</div>
 		<div class="field-body">
 			<div class="field">
@@ -390,8 +382,7 @@
 						required
 						autocomplete="tel"
 						inputmode="tel"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -410,8 +401,7 @@
 						placeholder="Straße"
 						class="input"
 						required
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 			<div class="field is-narrow">
@@ -422,8 +412,7 @@
 						placeholder="Hausnummer"
 						class="input"
 						required
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -444,8 +433,7 @@
 						required
 						autocomplete="postal-code"
 						inputmode="numeric"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 			<div class="field">
@@ -456,8 +444,7 @@
 						placeholder="Ort"
 						class="input"
 						required
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -478,8 +465,7 @@
 						cols="40"
 						rows="1"
 						class="textarea"
-						aria-describedby="allergienHelpBlock"
-					/>
+						aria-describedby="allergienHelpBlock" />
 				</div>
 				<p id="allergienHelpBlock" class="help">z.B. Haselnussallergie</p>
 			</div>
@@ -500,8 +486,7 @@
 						cols="40"
 						rows="1"
 						class="textarea"
-						aria-describedby="unvertraeglichkeitenHelpBlock"
-					/>
+						aria-describedby="unvertraeglichkeitenHelpBlock" />
 				</div>
 				<p id="unvertraeglichkeitenHelpBlock" class="help">
 					z.B. Laktoseintoleranz, kein Schweinefleisch
@@ -522,8 +507,7 @@
 						cols="40"
 						rows="1"
 						class="textarea"
-						aria-describedby="medikamenteHelpBlock"
-					/>
+						aria-describedby="medikamenteHelpBlock" />
 				</div>
 				<p id="medikamenteHelpBlock" class="help">
 					z.B. Asthmaspray; Methylphenidat, 10 mg
@@ -544,8 +528,7 @@
 						cols="40"
 						rows="2"
 						class="textarea"
-						aria-describedby="besonderheitenHelpBlock"
-					/>
+						aria-describedby="besonderheitenHelpBlock" />
 				</div>
 				<p id="besonderheitenHelpBlock" class="help">Krankheiten, Eigenheiten, etc.</p>
 			</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { goto } from "$app/navigation";
 	import moment from "moment";
 	import type { Moment } from "moment";
 	import {
@@ -12,7 +13,6 @@
 		regionSortFn,
 	} from "$lib/utils";
 	import EditableProperty from "$lib/EditableProperty.svelte";
-	import SortIcon from "$lib/SortIcon.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
 	import SortableTable from "$lib/SortableTable.svelte";
 	import type { Column } from "$lib/utils";
@@ -246,7 +246,20 @@
 	}
 
 	async function loadData() {
-		const data = await (await fetch("/api/admin/teilnehmer")).json();
+		const resp = await fetch("/api/admin/teilnehmer");
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				alert(
+					"Fehler: Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?"
+				);
+			}
+			return;
+		}
+		const data = await resp.json();
 		// Convert dates
 		for (const e of data) {
 			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
@@ -335,8 +348,7 @@
 			type="text"
 			autofocus={true}
 			bind:value={filter}
-			placeholder="Suchen…"
-		/>
+			placeholder="Suchen…" />
 	</div>
 	<div class="radio-buttons-as-buttons buttons has-addons">
 		<label class="button" class:is-info={sortType === "alphabetisch"}>
@@ -374,14 +386,12 @@
 							<td>
 								<EditableProperty
 									bind:value={e.anwesend}
-									on:edit={() => editEntry(e)}
-								/>
+									on:edit={() => editEntry(e)} />
 							</td>
 							<td>
 								<EditableProperty
 									bind:value={e.bezahlt}
-									on:edit={() => editEntry(e)}
-								/>
+									on:edit={() => editEntry(e)} />
 							</td>
 							<td>{e.vorname}</td>
 							<td>{e.nachname}</td>
@@ -446,13 +456,11 @@
 									{#if sortType === "anwesend"}
 										<EditableProperty
 											bind:value={e.anwesend}
-											on:edit={() => editEntry(e)}
-										/>
+											on:edit={() => editEntry(e)} />
 									{:else}
 										<EditableProperty
 											bind:value={e.bezahlt}
-											on:edit={() => editEntry(e)}
-										/>
+											on:edit={() => editEntry(e)} />
 									{/if}
 								</td>
 								<td>{e.vorname}</td>

@@ -4,10 +4,11 @@
 	import { page } from "$app/stores";
 
 	onMount(() => {
-		let location: string = browser ? window.location.pathname : "";
+		const location: string = browser ? window.location.pathname : "";
 		if (location.startsWith("/Bilder")) {
 			// Try to reload page, svelte does not know the image pages,
 			// so we need to enter the page directly, not through svelte's navigation
+			// eslint-disable-next-line no-self-assign
 			window.location.pathname = window.location.pathname;
 		}
 	});
@@ -16,5 +17,5 @@
 {#if $page.status === 404}
 	<h1 class="title">404. Diese Seite gibt’s nicht 😇</h1>
 {:else}
-	{$page.status}: {$page.error.message}
+	{$page.status}: {$page.error?.message ?? "Fehler"}
 {/if}

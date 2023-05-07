@@ -3,12 +3,10 @@
 	import { onMount } from "svelte";
 
 	let error: string | undefined;
-	let isFull = false;
 	let signupForm: HTMLFormElement | undefined;
 	let errorMsg: HTMLElement | undefined;
 
 	async function loadState() {
-		isFull = false;
 		let response: Response;
 		try {
 			response = await fetch("/api/signup-state");
@@ -27,7 +25,6 @@
 		}
 		try {
 			const resp = JSON.parse(respText);
-			isFull = resp.isFull;
 		} catch (e) {
 			console.error("Failed to convert signup state request to json", e);
 			error = respText;
@@ -127,8 +124,7 @@
 	method="post"
 	action="/api/signup-supervisor-nojs"
 	on:submit|preventDefault={signup}
-	bind:this={signupForm}
->
+	bind:this={signupForm}>
 	<div class="field is-horizontal required">
 		<div class="field-label">
 			<label for="vorname" class="label">Vorname</label>
@@ -143,8 +139,7 @@
 						required
 						class="input"
 						autocomplete="given-name"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -164,8 +159,7 @@
 						on:keydown={shortcut}
 						required
 						autocomplete="family-name"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -184,8 +178,7 @@
 						class="input"
 						required
 						autocomplete="bday"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -265,8 +258,7 @@
 							name="krankenversicherung"
 							value="gesetzlich"
 							required
-							type="radio"
-						/>
+							type="radio" />
 						<span class="custom-control-indicator" />
 						<span class="custom-control-description">Gesetzlich</span>
 					</label>
@@ -297,8 +289,7 @@
 						placeholder="Juleicanummer"
 						class="input"
 						inputmode="numeric"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -318,8 +309,7 @@
 						required
 						autocomplete="email"
 						inputmode="email"
-						type="email"
-					/>
+						type="email" />
 				</div>
 			</div>
 		</div>
@@ -339,8 +329,7 @@
 						required
 						autocomplete="tel"
 						inputmode="tel"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -359,8 +348,7 @@
 						placeholder="Straße"
 						class="input"
 						required
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 			<div class="field is-narrow">
@@ -371,8 +359,7 @@
 						placeholder="Hausnummer"
 						class="input"
 						required
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -393,8 +380,7 @@
 						required
 						autocomplete="postal-code"
 						inputmode="numeric"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 			<div class="field">
@@ -405,8 +391,7 @@
 						placeholder="Ort"
 						class="input"
 						required
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -414,8 +399,7 @@
 	<div class="field is-horizontal">
 		<div class="field-label">
 			<label for="fuehrungszeugnis_auststellung" class="label"
-				>Austellungsdatum Erweitertes Führungszeugnis</label
-			>
+				>Austellungsdatum Erweitertes Führungszeugnis</label>
 		</div>
 		<div class="field-body">
 			<div class="field">
@@ -425,8 +409,7 @@
 						name="fuehrungszeugnis_auststellung"
 						placeholder="TT.MM.JJJJ"
 						class="input"
-						type="text"
-					/>
+						type="text" />
 				</div>
 			</div>
 		</div>
@@ -444,8 +427,7 @@
 						cols="40"
 						rows="1"
 						class="textarea"
-						aria-describedby="allergienHelpBlock"
-					/>
+						aria-describedby="allergienHelpBlock" />
 				</div>
 				<p id="allergienHelpBlock" class="help">z.B. Haselnussallergie</p>
 			</div>
@@ -466,8 +448,7 @@
 						cols="40"
 						rows="1"
 						class="textarea"
-						aria-describedby="unvertraeglichkeitenHelpBlock"
-					/>
+						aria-describedby="unvertraeglichkeitenHelpBlock" />
 				</div>
 				<p id="unvertraeglichkeitenHelpBlock" class="help">
 					z.B. Laktoseintoleranz, kein Schweinefleisch
@@ -488,8 +469,7 @@
 						cols="40"
 						rows="1"
 						class="textarea"
-						aria-describedby="medikamenteHelpBlock"
-					/>
+						aria-describedby="medikamenteHelpBlock" />
 				</div>
 				<p id="medikamenteHelpBlock" class="help">
 					z.B. Asthmaspray; Methylphenidat, 10 mg
@@ -510,8 +490,7 @@
 						cols="40"
 						rows="2"
 						class="textarea"
-						aria-describedby="besonderheitenHelpBlock"
-					/>
+						aria-describedby="besonderheitenHelpBlock" />
 				</div>
 				<p id="besonderheitenHelpBlock" class="help">Krankheiten, Eigenheiten, etc.</p>
 			</div>
@@ -520,8 +499,7 @@
 	<div class="field is-horizontal required">
 		<div class="field-label">
 			<span class="label"
-				>Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</span
-			>
+				>Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</span>
 		</div>
 		<div class="field-body">
 			<div class="control">
@@ -530,8 +508,7 @@
 					<span class="custom-control-indicator" />
 					<span class="custom-control-description">
 						Ich habe die <a href="/intern/selbstverpflichtung" target="_blank"
-							>Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</a
-						>
+							>Selbstverpflichtungserklärung zur Prävention von sexualisierter Gewalt</a>
 						sowie den
 						<a href="/intern/selbstverpflichtung-anhang" target="_blank">Anhang</a> gelesen
 						und verpflichte mich, mich daran zu halten.

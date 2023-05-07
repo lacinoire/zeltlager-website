@@ -19,8 +19,7 @@
 			style="width: {typeof size === 'number' ? size + 'px' : size}; height: {typeof size ===
 			'number'
 				? size + 'px'
-				: size}; {style}"
-		>
+				: size}; {style}">
 			<path d={name} />
 		</svg>
 	{/if}

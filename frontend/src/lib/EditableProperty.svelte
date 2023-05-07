@@ -81,8 +81,7 @@
 				type="text"
 				autofocus={true}
 				bind:value={editValue}
-				on:keydown={keydown}
-			/>
+				on:keydown={keydown} />
 			<button class="button" type="submit">
 				<Icon name={mdiContentSave} />
 			</button>

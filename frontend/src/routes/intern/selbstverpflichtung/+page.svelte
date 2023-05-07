@@ -10,7 +10,6 @@
 	data="/files/Selbstverpflichtungserklaerung.pdf"
 	type="application/pdf"
 	style="width:100%;height:100vh"
-	title="Selbstverpflichtungserklärung"
->
+	title="Selbstverpflichtungserklärung">
 	<a href="/files/Selbstverpflichtungserklaerung.pdf">PDF laden</a>
 </object>

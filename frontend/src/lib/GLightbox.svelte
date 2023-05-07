@@ -1,4 +1,4 @@
-<script type="ts">
+<script lang="ts">
 	import { onMount, tick } from "svelte";
 	// glightbox from https://github.com/biati-digital/glightbox under MIT
 	import { GlightboxInit } from "./glightbox/glightbox";
@@ -57,8 +57,7 @@
 			class="glightbox-container glightbox-clean"
 			tabindex="-1"
 			role="dialog"
-			aria-hidden="false"
-		>
+			aria-hidden="false">
 			<div class="gloader visible" />
 			<div class="goverlay" />
 			<div class="gcontainer">
@@ -67,43 +66,19 @@
 					class="gbutton gdownload gbtn"
 					on:click={download}
 					aria-label="Donwload"
-					data-taborder="4">{@html lightbox.settings.svg.download}</button
-				>
-				<button class="gclose gbtn" aria-label="Close" data-taborder="3"
-					>{@html lightbox.settings.svg.close}</button
-				>
-				<button class="gprev gbtn" aria-label="Previous" data-taborder="2"
-					>{@html lightbox.settings.svg.prev}</button
-				>
-				<button class="gnext gbtn" aria-label="Next" data-taborder="1"
-					>{@html lightbox.settings.svg.next}</button
-				>
+					data-taborder="4">
+					{@html lightbox.settings.svg.download}
+				</button>
+				<button class="gclose gbtn" aria-label="Close" data-taborder="3">
+					{@html lightbox.settings.svg.close}
+				</button>
+				<button class="gprev gbtn" aria-label="Previous" data-taborder="2">
+					{@html lightbox.settings.svg.prev}
+				</button>
+				<button class="gnext gbtn" aria-label="Next" data-taborder="1">
+					{@html lightbox.settings.svg.next}
+				</button>
 			</div>
 		</div>
 	{/if}
 {/if}
-
-<style type="scss" global>
-	@import "glightbox/glightbox.scss";
-
-	.gdownload {
-		width: 35px;
-		height: 35px;
-		top: 15px;
-		right: 50px;
-		position: absolute;
-
-		:global(rect) {
-			fill: #fff;
-		}
-
-		@media (min-width: $medium-viewport) {
-			opacity: 0.7;
-			right: 60px;
-		}
-
-		&:hover {
-			opacity: 1;
-		}
-	}
-</style>

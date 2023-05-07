@@ -17,7 +17,7 @@
 		items: ExtraMenuItem[];
 	}
 
-	$: isWide = ["admin/betreuer", "admin/teilnehmer"].includes($page.routeId ?? "");
+	$: isWide = ["/admin/betreuer", "/admin/teilnehmer"].includes($page.route.id ?? "");
 
 	let showNavbar = false;
 	let menuData: MenuData = { isLoggedIn: false, globalMessage: null, items: [] };
@@ -25,16 +25,17 @@
 
 	async function loadMenuItems() {
 		const params = new URLSearchParams();
-		if ($page.routeId !== null) {
-			let routeId = $page.routeId;
-			const i = routeId.indexOf("/");
+		if ($page.route.id !== null) {
+			let routeId = $page.route.id;
+			const i = routeId.lastIndexOf("/");
 			if (i !== -1) routeId = routeId.slice(0, i);
 			params.append("prefix", routeId);
 		}
 		menuData = await (await fetch("/api/menu?" + params.toString())).json();
 	}
 
-	function stripSlashes(s: string) {
+	function stripSlashes(s: string | null | undefined) {
+		if (!s) return s;
 		if (s.startsWith("/")) s = s.slice(1);
 		if (s.endsWith("/")) s = s.slice(0, -1);
 		return s;
@@ -54,28 +55,37 @@
 			<!-- svelte-ignore a11y-missing-attribute -->
 			<a
 				role="button"
+				tabindex="0"
 				class="navbar-burger"
 				aria-label="menu"
 				aria-expanded={showNavbar}
 				class:is-active={showNavbar}
-				on:click|preventDefault={() => (showNavbar = !showNavbar)}
-			>
+				on:click={() => (showNavbar = !showNavbar)}
+				on:keydown={(e) => {
+					if (e.key === "Enter") showNavbar = !showNavbar;
+				}}>
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />
 			</a>
 		</div>
 
-		<div class="navbar-menu" class:is-active={showNavbar} on:click={() => (showNavbar = false)}>
+		<div
+			class="navbar-menu"
+			class:is-active={showNavbar}
+			on:click={() => (showNavbar = false)}
+			on:keydown={(e) => {
+				if (e.key === "Enter") showNavbar = false;
+			}}>
 			<div class="navbar-start">
 				{#each menuData.items as item}
 					{#if !["/anmeldung", "/packliste", "/ausstattung", "/betreuer", "/datenschutz", "/impressum"].includes(item.link)}
 						<a
 							class="navbar-item"
 							href={item.link}
-							class:is-active={$page.routeId === stripSlashes(item.link) ||
-								stripSlashes(location) === stripSlashes(item.link)}
-						>
+							class:is-active={stripSlashes($page.route.id) ===
+								stripSlashes(item.link) ||
+								stripSlashes(location) === stripSlashes(item.link)}>
 							<!-- set active for images links -->
 							{item.title}
 						</a>
@@ -84,50 +94,43 @@
 				<a
 					class="navbar-item emph-item"
 					href="/anmeldung"
-					class:is-active={$page.routeId === "anmeldung"}
-				>
+					class:is-active={$page.route.id === "/anmeldung"}>
 					Anmeldung
 				</a>
 				<a
 					class="navbar-item"
 					href="/packliste"
-					class:is-active={$page.routeId === "packliste"}
-				>
+					class:is-active={$page.route.id === "/packliste"}>
 					Packliste
 				</a>
 				<a
 					class="navbar-item"
 					href="/ausstattung"
-					class:is-active={$page.routeId === "ausstattung"}
-				>
+					class:is-active={$page.route.id === "/ausstattung"}>
 					Ausstattung und Team
 				</a>
 				<a
 					class="navbar-item"
 					href="/betreuer"
-					class:is-active={$page.routeId === "betreuer"}
-				>
+					class:is-active={$page.route.id === "/betreuer"}>
 					Für Betreuer
 				</a>
 				<a
 					class="navbar-item"
 					href="/datenschutz"
-					class:is-active={$page.routeId === "datenschutz"}
-				>
+					class:is-active={$page.route.id === "/datenschutz"}>
 					Datenschutz
 				</a>
 				<a
 					class="navbar-item"
 					href="/impressum"
-					class:is-active={$page.routeId === "impressum"}
-				>
+					class:is-active={$page.route.id === "/impressum"}>
 					Impressum
 				</a>
 				<a
 					class="navbar-item emph-item"
 					href="/login"
-					class:is-hidden={menuData.isLoggedIn}
-				>
+					class:is-hidden={menuData.isLoggedIn}>
 					Login
 				</a>
 				{#if menuData.isLoggedIn}
@@ -155,8 +158,7 @@
 				<img
 					src="/img/GernerWappen.png"
 					style="height: 2em; vertical-align: middle;"
-					alt="FT Gern Wappen"
-				/>
+					alt="FT Gern Wappen" />
 				Freie Turnerschaft München Gern e.V.
 			</a>
 		</div>

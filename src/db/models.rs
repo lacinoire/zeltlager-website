@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use anyhow::{bail, format_err, Result};
-use chrono::{self, Date, Datelike, NaiveDate, Utc};
+use chrono::{self, DateTime, Datelike, NaiveDate, Utc};
 use diesel::backend::{self, Backend};
 use diesel::deserialize::{self, FromSql};
 use diesel::serialize::{self, Output, ToSql};
@@ -221,17 +221,19 @@ pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
 			// Like 10 for 2010
 			let cur_year = Utc::now().year();
 			if date.year() <= cur_year % 100 {
-				date = NaiveDate::from_ymd(
+				date = NaiveDate::from_ymd_opt(
 					date.year() + cur_year / 100 * 100,
 					date.month(),
 					date.day(),
-				);
+				)
+				.unwrap();
 			} else {
-				date = NaiveDate::from_ymd(
+				date = NaiveDate::from_ymd_opt(
 					date.year() + cur_year / 100 * 100 - 100,
 					date.month(),
 					date.day(),
-				);
+				)
+				.unwrap();
 			}
 		}
 		Ok(date)
@@ -254,13 +256,13 @@ pub fn try_parse_gender(s: &str) -> Result<Gender> {
 	}
 }
 
-pub fn get_birthday_date(birthday_date: &str) -> Date<Utc> {
+pub fn get_birthday_date(birthday_date: &str) -> DateTime<Utc> {
 	let date = NaiveDate::parse_from_str(&format!("0000-{}", birthday_date), "%Y-%m-%d")
 		.expect("Date has wrong format");
-	let mut date = Date::<Utc>::from_utc(date, Utc);
+	let mut date = DateTime::<Utc>::from_utc(date.and_time(Default::default()), Utc);
 
 	// Set the right year
-	let now = Utc::now().date();
+	let now = Utc::now();
 	date = date.with_year(now.year()).unwrap();
 	if date < now {
 		date = date.with_year(now.year() + 1).unwrap();
@@ -268,7 +270,7 @@ pub fn get_birthday_date(birthday_date: &str) -> Date<Utc> {
 	date
 }
 
-pub fn years_old(date: Date<Utc>, birthday_date: &Date<Utc>) -> i32 {
+pub fn years_old(date: DateTime<Utc>, birthday_date: &DateTime<Utc>) -> i32 {
 	let mut years = birthday_date.year() - date.year();
 	if birthday_date.month() < date.month()
 		|| (birthday_date.month() == date.month() && birthday_date.day() < date.day())
@@ -406,8 +408,8 @@ impl Teilnehmer {
 			);
 		}
 		// Check birth date
-		let birthday = Date::from_utc(res.geburtsdatum, Utc);
-		let now = Utc::now().date();
+		let birthday = DateTime::from_utc(res.geburtsdatum.and_time(Default::default()), Utc);
+		let now = Utc::now();
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
 			bail!(
@@ -530,8 +532,8 @@ impl Supervisor {
 			}
 		}
 		// Check birth date
-		let birthday = Date::from_utc(res.geburtsdatum, Utc);
-		let now = Utc::now().date();
+		let birthday = DateTime::from_utc(res.geburtsdatum.and_time(Default::default()), Utc);
+		let now = Utc::now();
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
 			bail!(

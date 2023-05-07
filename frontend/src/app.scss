@@ -19,6 +19,7 @@
 @import "bulma-switch/src/sass/index";
 
 @import "./checkbox-switch";
+@import "./lib/glightbox/glightbox.scss";
 
 html {
 	height: 100%;
@@ -122,5 +123,27 @@ td.special {
 
 	.field-body {
 		flex-grow: 3;
+	}
+}
+
+// GLightbox
+.gdownload {
+	width: 35px;
+	height: 35px;
+	top: 15px;
+	right: 50px;
+	position: absolute;
+
+	&:hover {
+		opacity: 1;
+	}
+
+	rect {
+		fill: #fff;
+	}
+
+	@media (min-width: $medium-viewport) {
+		opacity: 0.7;
+		right: 60px;
 	}
 }

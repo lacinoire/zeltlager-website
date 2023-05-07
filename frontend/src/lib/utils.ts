@@ -11,7 +11,7 @@ export function getRegion(plz: number, ort: string) {
 	return "Außerhalb";
 }
 
-export function inMunich(plz: number, ort: string) {
+export function inMunich(plz: number, _ort: string) {
 	return plz >= 80331 && plz <= 81929;
 }
 

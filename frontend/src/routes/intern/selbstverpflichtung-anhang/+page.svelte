@@ -6,7 +6,6 @@
 	data="/files/SelbstverpflichtungserklaerungAnhang.pdf"
 	type="application/pdf"
 	style="width:100%;height:100vh"
-	title="Selbstverpflichtungserklärung – Anhang"
->
+	title="Selbstverpflichtungserklärung – Anhang">
 	<a href="/files/SelbstverpflichtungserklaerungAnhang.pdf">PDF laden</a>
 </object>

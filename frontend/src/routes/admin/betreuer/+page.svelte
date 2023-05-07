@@ -207,8 +207,7 @@
 			type="text"
 			autofocus={true}
 			bind:value={filter}
-			placeholder="Suchen…"
-		/>
+			placeholder="Suchen…" />
 	</div>
 	<div>
 		{#if all !== undefined}
@@ -244,22 +243,19 @@
 					<SortIcon
 						name="Führungszeugnis Ausstellung"
 						displayName="Führungs&shy;zeugnis Ausstellung"
-						bind:sortBy
-					/>
+						bind:sortBy />
 				</th>
 				<th>
 					<SortIcon
 						name="Führungszeugnis Eingesehen"
 						displayName="Führungs&shy;zeugnis Eingesehen"
-						bind:sortBy
-					/>
+						bind:sortBy />
 				</th>
 				<th>
 					<SortIcon
 						name="Krankenversicherung"
 						displayName="Kranken&shy;ver&shy;sicherung"
-						bind:sortBy
-					/>
+						bind:sortBy />
 				</th>
 				<th><SortIcon name="Tetanus-Impfung" bind:sortBy /></th>
 				<th>
@@ -282,8 +278,7 @@
 						<td>
 							<EditableProperty
 								bind:value={e.juleica_nummer}
-								on:edit={(ev) => editEntry(e, ev)}
-							/>
+								on:edit={(ev) => editEntry(e, ev)} />
 						</td>
 						<td>{e.mail}</td>
 						<td>{e.handynummer}</td>
@@ -294,15 +289,13 @@
 							<EditableProperty
 								bind:value={e.fuehrungszeugnis_ausstellung}
 								isMoment={true}
-								on:edit={(ev) => editEntry(e, ev)}
-							/>
+								on:edit={(ev) => editEntry(e, ev)} />
 						</td>
 						<td>
 							<EditableProperty
 								bind:value={e.fuehrungszeugnis_eingesehen}
 								isMoment={true}
-								on:edit={(ev) => editEntry(e, ev)}
-							/>
+								on:edit={(ev) => editEntry(e, ev)} />
 						</td>
 						<td>{e.krankenversicherung}</td>
 						<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>

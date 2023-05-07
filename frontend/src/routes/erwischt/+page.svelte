@@ -323,19 +323,31 @@
 	<ul>
 		{#each games as game}
 			<li class:is-active={game.id === currentGameId}>
-				<!-- svelte-ignore a11y-invalid-attribute -->
+				<!-- svelte-ignore a11y-missing-attribute -->
 				<a
-					href="#"
+					role="button"
+					tabindex="0"
 					on:click={() => (currentGameId = game.id)}
-					title={game.created.format("DD.MM.YYYY HH:mm")}
-				>
+					on:keydown={(e) => {
+						if (e.key === "Enter") currentGameId = game.id;
+					}}
+					title={game.created.format("DD.MM.YYYY HH:mm")}>
 					{game.created.format("DD.MM.YYYY")}
 				</a>
 			</li>
 		{/each}
 		<li>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-			<a href="#" on:click={newGame} title="Neues Spiel erstellen">+</a>
+			<!-- svelte-ignore a11y-missing-attribute -->
+			<a
+				role="button"
+				tabindex="0"
+				on:click={newGame}
+				on:keydown={(e) => {
+					if (e.key === "Enter") newGame();
+				}}
+				title="Neues Spiel erstellen">
+				+
+			</a>
 		</li>
 	</ul>
 </div>
@@ -348,8 +360,7 @@
 			type="text"
 			autofocus={true}
 			bind:value={filter}
-			placeholder="Suchen…"
-		/>
+			placeholder="Suchen…" />
 	</div>
 	<div class="radio-buttons-as-buttons buttons has-addons">
 		<label class="button" class:is-info={!insertMember}>
@@ -363,7 +374,9 @@
 		class="dropdown"
 		class:is-active={showGameOptions}
 		on:click|stopPropagation={() => (showGameOptions = !showGameOptions)}
-	>
+		on:keydown|stopPropagation={(e) => {
+			if (e.key === "Enter") showGameOptions = !showGameOptions;
+		}}>
 		<div class="dropdown-trigger">
 			<button class="button" aria-haspopup="true" aria-controls="gameoptions">
 				<span>Mehr</span>
@@ -376,20 +389,27 @@
 					<a
 						href={`/api/erwischt/game/${currentGameId}/game.pdf`}
 						target="_blank"
-						class="dropdown-item"
-					>
+						class="dropdown-item">
 						Spiel herunterladen
 					</a>
 					<a
 						href={`/api/erwischt/game/${currentGameId}/members.pdf`}
 						target="_blank"
-						class="dropdown-item"
-					>
+						class="dropdown-item">
 						Teilnehmer herunterladen
 					</a>
 				{/if}
-				<!-- svelte-ignore a11y-invalid-attribute -->
-				<a href="#" on:click={deleteGame} class="dropdown-item">Spiel löschen</a>
+				<!-- svelte-ignore a11y-missing-attribute -->
+				<a
+					role="button"
+					tabindex="0"
+					on:click={deleteGame}
+					on:keydown={(e) => {
+						if (e.key === "Enter") deleteGame();
+					}}
+					class="dropdown-item">
+					Spiel löschen
+				</a>
 			</div>
 		</div>
 	</div>
@@ -420,13 +440,25 @@
 					</td>
 					<td class="alignRight">
 						{#if insertMember}
-							<!-- svelte-ignore a11y-invalid-attribute -->
-							<a href="#" on:click={() => insertNewMember(m.nextTarget.id)}>
+							<!-- svelte-ignore a11y-missing-attribute -->
+							<a
+								role="button"
+								tabindex="0"
+								on:click={() => insertNewMember(m.nextTarget.id)}
+								on:keydown={(e) => {
+									if (e.key === "Enter") insertNewMember(m.nextTarget.id);
+								}}>
 								einfügen
 							</a>
 						{:else}
-							<!-- svelte-ignore a11y-invalid-attribute -->
-							<a href="#" on:click={() => catchMember(m.id, m.nextTarget.id)}>
+							<!-- svelte-ignore a11y-missing-attribute -->
+							<a
+								role="button"
+								tabindex="0"
+								on:click={() => catchMember(m.id, m.nextTarget.id)}
+								on:keydown={(e) => {
+									if (e.key === "Enter") catchMember(m.id, m.nextTarget.id);
+								}}>
 								erwischt
 							</a>
 						{/if}
@@ -460,8 +492,16 @@
 						{m.last_change.format("DD.MM. HH:mm")}
 					</td>
 					<td>
-						<!-- svelte-ignore a11y-invalid-attribute -->
-						<a href="#" on:click={() => catchMember(null, m.id)}>wiederbeleben</a>
+						<!-- svelte-ignore a11y-missing-attribute -->
+						<a
+							role="button"
+							tabindex="0"
+							on:click={() => catchMember(null, m.id)}
+							on:keydown={(e) => {
+								if (e.key === "Enter") catchMember(null, m.id);
+							}}>
+							wiederbeleben
+						</a>
 					</td>
 				</tr>
 			{/each}
@@ -483,8 +523,16 @@
 						{findMember(a.member).name} wiederbelebt
 					{/if}
 				</div>
-				<!-- svelte-ignore a11y-invalid-attribute -->
-				<a href="#" on:click={() => catchMember(a.lastCatcher, a.member)}> rückgängig </a>
+				<!-- svelte-ignore a11y-missing-attribute -->
+				<a
+					role="button"
+					tabindex="0"
+					on:click={() => catchMember(a.lastCatcher, a.member)}
+					on:keydown={(e) => {
+						if (e.key === "Enter") catchMember(a.lastCatcher, a.member);
+					}}>
+					rückgängig
+				</a>
 			{/if}
 		{/each}
 	{/if}

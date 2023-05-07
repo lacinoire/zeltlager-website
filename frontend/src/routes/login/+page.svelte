@@ -73,8 +73,7 @@
 		method="post"
 		action="/api/login-nojs"
 		on:submit|preventDefault={login}
-		bind:this={loginForm}
-	>
+		bind:this={loginForm}>
 		<div class="field">
 			<div class="control">
 				<input
@@ -84,8 +83,7 @@
 					required
 					autocomplete="username"
 					class="input"
-					type="text"
-				/>
+					type="text" />
 			</div>
 		</div>
 		<div class="field">
@@ -98,8 +96,7 @@
 					autocomplete="current-password"
 					class="input"
 					bind:this={passwordInput}
-					type="password"
-				/>
+					type="password" />
 			</div>
 		</div>
 		<div class="field">
@@ -109,8 +106,7 @@
 						id="showPassword"
 						type="checkbox"
 						bind:checked={showPassword}
-						style="margin: 0.7em; vertical-align: middle;"
-					/>
+						style="margin: 0.7em; vertical-align: middle;" />
 					Passwort anzeigen
 				</label>
 			</div>

@@ -30,7 +30,7 @@
 	}
 
 	onMount(() => {
-		const resizeObserver = new ResizeObserver((entries) => {
+		const resizeObserver = new ResizeObserver(() => {
 			setup();
 		});
 		resizeObserver.observe(container);
@@ -49,8 +49,7 @@
 		class="fixed-scrollbar"
 		bind:this={scrollbar}
 		on:scroll={onScroll}
-		class:is-hidden={!showScrollbar}
-	>
+		class:is-hidden={!showScrollbar}>
 		<div style={"width: " + scrollbarWidth + "px;"} />
 	</div>
 </div>
