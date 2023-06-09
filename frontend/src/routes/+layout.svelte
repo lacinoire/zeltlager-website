@@ -91,6 +91,20 @@
 						</a>
 					{/if}
 				{/each}
+				{#if $page.route.id.startsWith("/intern")}
+					<a
+						class="navbar-item"
+						href="/intern"
+						class:is-active={$page.route.id === "/intern"}>
+						Betreuer-Info
+					</a>
+					<a
+						class="navbar-item"
+						href="/intern/betreuer-anmeldung"
+						class:is-active={$page.route.id === "/intern/betreuer-anmeldung"}>
+						Betreuer-Anmeldung
+					</a>
+				{/if}
 				<a
 					class="navbar-item emph-item"
 					href="/anmeldung"

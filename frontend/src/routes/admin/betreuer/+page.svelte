@@ -57,40 +57,69 @@
 	}
 
 	let all: Supervisor[];
-	let filtered: Supervisor[];
+	let filtered: (Supervisor | string)[];
 	let filter = "";
 	let sortBy = "Name-asc";
 
+	function filterList(list: Supervisor[], sortBy: string): Supervisor[] {
+		const asc = sortBy.endsWith("asc");
+		if (sortBy.startsWith("Name-")) {
+			list.sort((a, b) => {
+				const cmp = nameSortFn(a, b);
+				return asc ? cmp : -cmp;
+			});
+		} else if (sortBy.startsWith("Adresse-")) {
+			list.sort((a, b) => {
+				const cmp = addressSortFn(a, b);
+				return asc ? cmp : -cmp;
+			});
+		} else {
+			list.sort(getSortByKeyFn(sortBy));
+		}
+		return list;
+	}
+
 	function applyFilter(all: Supervisor[], filter: string, sortBy: string) {
 		if (all === undefined) return;
+		// Filter
+		let list = [];
 		if (filter === "") {
-			filtered = all;
+			list = all;
 		} else {
 			filter = filter.toLowerCase();
-			filtered = [];
 			for (const m of all) {
 				if (
 					filter.length === 0 ||
 					m.vorname.toLowerCase().includes(filter) ||
 					m.nachname.toLowerCase().includes(filter)
-				)
-					filtered.push(m);
+				) {
+					list.push(m);
+				}
 			}
 		}
 
-		const asc = sortBy.endsWith("asc");
-		if (sortBy.startsWith("Name-")) {
-			filtered.sort((a, b) => {
-				const cmp = nameSortFn(a, b);
-				return asc ? cmp : -cmp;
-			});
-		} else if (sortBy.startsWith("Adresse-")) {
-			filtered.sort((a, b) => {
-				const cmp = addressSortFn(a, b);
-				return asc ? cmp : -cmp;
-			});
-		} else {
-			filtered.sort(getSortByKeyFn(sortBy));
+		filtered = [];
+
+		function groupBy(list, callback) {
+			return list.reduce((res, x) => {
+				let k = callback(x);
+				(res[k] = res[k] || []).push(x);
+				return res;
+			}, {});
+		}
+
+		// Sort and group by descending year
+		const grouped = groupBy(list, (e) => {
+			// Everything after xxxx-08-15 counts as next year
+			const month = e.anmeldedatum.month() + 1 + (e.anmeldedatum.day() >= 15 ? 0.5 : 0);
+			return e.anmeldedatum.year() + (month >= 8.5 ? 1 : 0);
+		});
+
+		const years = Object.keys(grouped);
+		years.sort((a, b) => a == b ? 0 : a > b ? -1 : 1);
+		for (const year of years) {
+			filtered.push("Zeltlager " + year);
+			filtered = filtered.concat(filterList(grouped[year], sortBy));
 		}
 	}
 
@@ -272,40 +301,44 @@
 			{#if filtered !== undefined}
 				{#each filtered as e}
 					<tr>
-						<td>{e.vorname} {e.nachname}</td>
-						<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
-						<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-						<td>
-							<EditableProperty
-								bind:value={e.juleica_nummer}
-								on:edit={(ev) => editEntry(e, ev)} />
-						</td>
-						<td>{e.mail}</td>
-						<td>{e.handynummer}</td>
-						<td>{e.strasse} {e.hausnummer}</td>
-						<td>{e.ort}</td>
-						<td>{e.plz}</td>
-						<td>
-							<EditableProperty
-								bind:value={e.fuehrungszeugnis_ausstellung}
-								isMoment={true}
-								on:edit={(ev) => editEntry(e, ev)} />
-						</td>
-						<td>
-							<EditableProperty
-								bind:value={e.fuehrungszeugnis_eingesehen}
-								isMoment={true}
-								on:edit={(ev) => editEntry(e, ev)} />
-						</td>
-						<td>{e.krankenversicherung}</td>
-						<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
-						<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
-						<td>{e.allergien}</td>
-						<td>{e.unvertraeglichkeiten}</td>
-						<td>{e.medikamente}</td>
-						<td>{e.besonderheiten}</td>
-						<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
-						<!-- TODO Löschen -->
+						{#if typeof e !== "string"}
+							<td>{e.vorname} {e.nachname}</td>
+							<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
+							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
+							<td>
+								<EditableProperty
+									bind:value={e.juleica_nummer}
+									on:edit={(ev) => editEntry(e, ev)} />
+							</td>
+							<td>{e.mail}</td>
+							<td>{e.handynummer}</td>
+							<td>{e.strasse} {e.hausnummer}</td>
+							<td>{e.ort}</td>
+							<td>{e.plz}</td>
+							<td>
+								<EditableProperty
+									bind:value={e.fuehrungszeugnis_ausstellung}
+									isMoment={true}
+									on:edit={(ev) => editEntry(e, ev)} />
+							</td>
+							<td>
+								<EditableProperty
+									bind:value={e.fuehrungszeugnis_eingesehen}
+									isMoment={true}
+									on:edit={(ev) => editEntry(e, ev)} />
+							</td>
+							<td>{e.krankenversicherung}</td>
+							<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
+							<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
+							<td>{e.allergien}</td>
+							<td>{e.unvertraeglichkeiten}</td>
+							<td>{e.medikamente}</td>
+							<td>{e.besonderheiten}</td>
+							<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
+							<!-- TODO Löschen -->
+						{:else}
+							<td colspan="19" class="special"><h4>{e}</h4></td>
+						{/if}
 					</tr>
 				{/each}
 			{/if}
