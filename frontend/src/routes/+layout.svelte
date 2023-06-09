@@ -91,7 +91,7 @@
 						</a>
 					{/if}
 				{/each}
-				{#if $page.route.id.startsWith("/intern")}
+				{#if $page.route.id?.startsWith("/intern")}
 					<a
 						class="navbar-item"
 						href="/intern"

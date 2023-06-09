@@ -3,7 +3,7 @@ use std::fmt;
 
 use anyhow::{bail, format_err, Result};
 use chrono::{self, DateTime, Datelike, NaiveDate, Utc};
-use diesel::backend::{self, Backend};
+use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql};
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Text;
@@ -325,7 +325,7 @@ where
 	DB: Backend,
 	String: FromSql<Text, DB>,
 {
-	fn from_sql(bytes: backend::RawValue<DB>) -> deserialize::Result<Self> {
+	fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
 		match String::from_sql(bytes)?.as_str() {
 			"m" => Ok(Gender::Male),
 			"w" => Ok(Gender::Female),

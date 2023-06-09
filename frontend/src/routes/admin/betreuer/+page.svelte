@@ -102,7 +102,7 @@
 
 		function groupBy(list, callback) {
 			return list.reduce((res, x) => {
-				let k = callback(x);
+				const k = callback(x);
 				(res[k] = res[k] || []).push(x);
 				return res;
 			}, {});
@@ -116,7 +116,7 @@
 		});
 
 		const years = Object.keys(grouped);
-		years.sort((a, b) => a == b ? 0 : a > b ? -1 : 1);
+		years.sort((a, b) => (a == b ? 0 : a > b ? -1 : 1));
 		for (const year of years) {
 			const yearFiltered = filterList(grouped[year], filter, sortBy);
 			if (yearFiltered.length > 0) {
@@ -224,7 +224,7 @@
 		event.detail.setEnabled(true);
 	}
 
-	async function removeEntry(entry: Member) {
+	async function removeEntry(entry: Supervisor) {
 		if (!window.confirm(`${entry.vorname} ${entry.nachname} löschen?`)) return;
 		try {
 			const data = {
@@ -322,7 +322,7 @@
 				<th><SortIcon name="Medikamente" bind:sortBy /></th>
 				<th><SortIcon name="Besonderheiten" bind:sortBy /></th>
 				<th><SortIcon name="Anmeldedatum" bind:sortBy /></th>
-				<th></th>
+				<th />
 			</tr>
 		</thead>
 		<tbody>
