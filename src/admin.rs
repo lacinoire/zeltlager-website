@@ -12,6 +12,11 @@ pub struct RemoveMemberData {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct RemoveSupervisorData {
+	supervisor: i32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct EditMemberData {
 	member: i32,
 	bezahlt: bool,
@@ -75,6 +80,34 @@ pub(crate) async fn edit_member(
 		Ok(Err(e)) | Err(e) => {
 			error!("Failed to edit member: {}", e);
 			HttpResponse::InternalServerError().body("Failed to edit member")
+		}
+		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+	}
+}
+
+#[post("/betreuer/remove")]
+pub(crate) async fn remove_supervisor(
+	state: web::Data<State>, data: web::Json<RemoveSupervisorData>,
+) -> HttpResponse {
+	match state
+		.db_addr
+		.send(db::RunOnDbMsg(move |db| {
+			use db::schema::betreuer;
+			use db::schema::betreuer::columns::*;
+
+			let r = diesel::delete(betreuer::table.filter(id.eq(data.supervisor)))
+				.execute(&mut db.connection)?;
+			if r == 0 {
+				bail!("Supervisor not found");
+			}
+			Ok(())
+		}))
+		.await
+		.map_err(|e| e.into())
+	{
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to remove supervisor: {}", e);
+			HttpResponse::InternalServerError().body("Failed to remove supervisor")
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
 	}

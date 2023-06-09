@@ -61,7 +61,23 @@
 	let filter = "";
 	let sortBy = "Name-asc";
 
-	function filterList(list: Supervisor[], sortBy: string): Supervisor[] {
+	function filterList(list: Supervisor[], filter: string, sortBy: string): Supervisor[] {
+		if (filter === "") {
+		} else {
+			filter = filter.toLowerCase();
+			const orig = list;
+			list = [];
+			for (const m of orig) {
+				if (
+					filter.length === 0 ||
+					m.vorname.toLowerCase().includes(filter) ||
+					m.nachname.toLowerCase().includes(filter)
+				) {
+					list.push(m);
+				}
+			}
+		}
+
 		const asc = sortBy.endsWith("asc");
 		if (sortBy.startsWith("Name-")) {
 			list.sort((a, b) => {
@@ -81,22 +97,6 @@
 
 	function applyFilter(all: Supervisor[], filter: string, sortBy: string) {
 		if (all === undefined) return;
-		// Filter
-		let list = [];
-		if (filter === "") {
-			list = all;
-		} else {
-			filter = filter.toLowerCase();
-			for (const m of all) {
-				if (
-					filter.length === 0 ||
-					m.vorname.toLowerCase().includes(filter) ||
-					m.nachname.toLowerCase().includes(filter)
-				) {
-					list.push(m);
-				}
-			}
-		}
 
 		filtered = [];
 
@@ -109,7 +109,7 @@
 		}
 
 		// Sort and group by descending year
-		const grouped = groupBy(list, (e) => {
+		const grouped = groupBy(all, (e) => {
 			// Everything after xxxx-08-15 counts as next year
 			const month = e.anmeldedatum.month() + 1 + (e.anmeldedatum.day() >= 15 ? 0.5 : 0);
 			return e.anmeldedatum.year() + (month >= 8.5 ? 1 : 0);
@@ -118,8 +118,11 @@
 		const years = Object.keys(grouped);
 		years.sort((a, b) => a == b ? 0 : a > b ? -1 : 1);
 		for (const year of years) {
-			filtered.push("Zeltlager " + year);
-			filtered = filtered.concat(filterList(grouped[year], sortBy));
+			const yearFiltered = filterList(grouped[year], filter, sortBy);
+			if (yearFiltered.length > 0) {
+				filtered.push("Zeltlager " + year + " (" + grouped[year].length + " Betreuer)");
+				filtered = filtered.concat(yearFiltered);
+			}
 		}
 	}
 
@@ -221,6 +224,30 @@
 		event.detail.setEnabled(true);
 	}
 
+	async function removeEntry(entry: Member) {
+		if (!window.confirm(`${entry.vorname} ${entry.nachname} löschen?`)) return;
+		try {
+			const data = {
+				supervisor: entry.id,
+			};
+
+			const response = await fetch("/api/admin/betreuer/remove", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(data),
+			});
+			if (!response.ok)
+				alert("Fehler: Betreuer konnte nicht gelöscht werden (Server-Fehler)");
+		} catch (e) {
+			console.error("Failed to delete supervisor", e);
+			alert("Fehler: Betreuer konnte nicht gelöscht werden");
+		}
+
+		await loadData();
+	}
+
 	onMount(loadData);
 </script>
 
@@ -295,6 +322,7 @@
 				<th><SortIcon name="Medikamente" bind:sortBy /></th>
 				<th><SortIcon name="Besonderheiten" bind:sortBy /></th>
 				<th><SortIcon name="Anmeldedatum" bind:sortBy /></th>
+				<th></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -335,9 +363,10 @@
 							<td>{e.medikamente}</td>
 							<td>{e.besonderheiten}</td>
 							<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
-							<!-- TODO Löschen -->
+							<!-- svelte-ignore a11y-invalid-attribute -->
+							<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>
 						{:else}
-							<td colspan="19" class="special"><h4>{e}</h4></td>
+							<td colspan="20" class="special"><h4>{e}</h4></td>
 						{/if}
 					</tr>
 				{/each}

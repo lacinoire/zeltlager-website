@@ -526,6 +526,7 @@ async fn main() -> Result<()> {
 							.service(admin::download_supervisors)
 							.service(admin::remove_member)
 							.service(admin::edit_member)
+							.service(admin::remove_supervisor)
 							.service(admin::edit_supervisor),
 					)
 					.service(
