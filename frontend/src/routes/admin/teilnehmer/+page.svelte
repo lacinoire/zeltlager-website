@@ -450,23 +450,21 @@
 			<SortableTable columns={boolColumns(sortType, filtered, is)} bind:sortBy>
 				{#if filtered !== undefined}
 					{#each filtered as e}
-						{#if is(sortType)(e)}
-							<tr>
-								<td>
-									{#if sortType === "anwesend"}
-										<EditableProperty
-											bind:value={e.anwesend}
-											on:edit={() => editEntry(e)} />
-									{:else}
-										<EditableProperty
-											bind:value={e.bezahlt}
-											on:edit={() => editEntry(e)} />
-									{/if}
-								</td>
-								<td>{e.vorname}</td>
-								<td>{e.nachname}</td>
-							</tr>
-						{/if}
+						<tr class:is-hidden={!is(sortType)(e)}>
+							<td>
+								{#if sortType === "anwesend"}
+									<EditableProperty
+										bind:value={e.anwesend}
+										on:edit={() => editEntry(e)} />
+								{:else}
+									<EditableProperty
+										bind:value={e.bezahlt}
+										on:edit={() => editEntry(e)} />
+								{/if}
+							</td>
+							<td>{e.vorname}</td>
+							<td>{e.nachname}</td>
+						</tr>
 					{/each}
 				{/if}
 			</SortableTable>
