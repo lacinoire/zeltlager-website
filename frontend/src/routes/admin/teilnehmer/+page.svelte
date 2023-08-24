@@ -211,8 +211,7 @@
 	}
 
 	function createData(asDate = false) {
-		const entries = [...all];
-		entries.sort(nameSortFn);
+		const entries = [...filtered];
 
 		const data: any[] = [headers];
 		for (const m of entries) {

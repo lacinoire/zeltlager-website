@@ -1,0 +1,8 @@
+<#@ template cleanws="true" #>
+Sehr geehrte/r <#= self.member.eltern_name #>,
+
+die Teilnahmegebühr für <# if self.member.geschlecht == Gender::Male { #>Ihren Sohn<# } else { #>Ihre Tochter<# } #> <#= self.member.vorname #> ist eingegangen.
+Damit ist <# if self.member.geschlecht == Gender::Male { #>er<# } else { #>sie<# } #> verbindlich zum Zeltlager angemeldet.
+
+Mit freundlichen Grüßen
+Ihr Zeltlager Team

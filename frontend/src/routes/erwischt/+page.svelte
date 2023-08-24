@@ -231,9 +231,7 @@
 		for (const m of currentGame) {
 			if (
 				m.catcher === null &&
-				(filter.length === 0 ||
-					m.name.toLowerCase().includes(filter) ||
-					(showTarget && m.nextTarget.name.toLowerCase().includes(filter)))
+				(filter.length === 0 || m.name.toLowerCase().includes(filter))
 			) {
 				filteredLive.push(m);
 			}

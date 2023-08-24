@@ -9,7 +9,7 @@ use lettre::{SmtpTransport, Transport};
 use t4rust_derive::Template;
 
 use crate::config::Config;
-use crate::db::models::{Gender, Teilnehmer};
+use crate::db::models::{FullTeilnehmer, Gender, Teilnehmer};
 
 pub struct MailExecutor {
 	config: Config,
@@ -23,8 +23,8 @@ pub struct SignupMessage {
 	pub member: Teilnehmer,
 }
 
-impl Message for SignupMessage {
-	type Result = Result<()>;
+pub struct PayedMessage {
+	pub member: FullTeilnehmer,
 }
 
 #[derive(Template)]
@@ -41,24 +41,41 @@ struct Body<'a> {
 	member: &'a Teilnehmer,
 }
 
-impl MailExecutor {
-	pub fn new(config: Config) -> Self { Self { config } }
+#[derive(Template)]
+#[TemplatePath = "templates/mail-payed-subject.tt"]
+#[derive(Debug)]
+struct PayedSubject<'a> {
+	member: &'a FullTeilnehmer,
 }
 
-impl Handler<SignupMessage> for MailExecutor {
+#[derive(Template)]
+#[TemplatePath = "templates/mail-payed-body.tt"]
+#[derive(Debug)]
+struct PayedBody<'a> {
+	member: &'a FullTeilnehmer,
+}
+
+impl Message for SignupMessage {
 	type Result = Result<()>;
+}
 
-	fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context) -> Self::Result {
-		let subject = format!("{}", Subject { member: &msg.member }).trim().to_string();
-		let body = format!("{}", Body { member: &msg.member }).trim().to_string();
+impl Message for PayedMessage {
+	type Result = Result<()>;
+}
 
+impl MailExecutor {
+	pub fn new(config: Config) -> Self { Self { config } }
+
+	fn send_mail(
+		&self, eltern_name: String, eltern_mail: String, subject: String, body: String,
+	) -> Result<()> {
 		let mut email_builder = lettre::Message::builder()
-			.to((msg.member.eltern_name.clone(), msg.member.eltern_mail.clone()).try_into()?)
+			.to((eltern_name, eltern_mail.clone()).try_into()?)
 			.header(header::ContentType::TEXT_PLAIN)
 			.from(self.config.sender_mail.clone().try_into()?)
 			.subject(subject);
 
-		if self.config.test_mail.as_ref().map(|m| m != &msg.member.eltern_mail).unwrap_or(true) {
+		if self.config.test_mail.as_ref().map(|m| m != &eltern_mail).unwrap_or(true) {
 			// Send to additional receivers in bcc
 			for receiver in &self.config.additional_mail_receivers {
 				email_builder = email_builder.bcc(receiver.clone().try_into()?);
@@ -82,6 +99,38 @@ impl Handler<SignupMessage> for MailExecutor {
 		mailer.send(&email)?;
 
 		Ok(())
+	}
+}
+
+impl Handler<SignupMessage> for MailExecutor {
+	type Result = Result<()>;
+
+	fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context) -> Self::Result {
+		let subject = format!("{}", Subject { member: &msg.member }).trim().to_string();
+		let body = format!("{}", Body { member: &msg.member }).trim().to_string();
+
+		self.send_mail(
+			msg.member.eltern_name.clone(),
+			msg.member.eltern_mail.clone(),
+			subject,
+			body,
+		)
+	}
+}
+
+impl Handler<PayedMessage> for MailExecutor {
+	type Result = Result<()>;
+
+	fn handle(&mut self, msg: PayedMessage, _: &mut Self::Context) -> Self::Result {
+		let subject = format!("{}", PayedSubject { member: &msg.member }).trim().to_string();
+		let body = format!("{}", PayedBody { member: &msg.member }).trim().to_string();
+
+		self.send_mail(
+			msg.member.eltern_name.clone(),
+			msg.member.eltern_mail.clone(),
+			subject,
+			body,
+		)
 	}
 }
 

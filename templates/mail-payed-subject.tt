@@ -1,0 +1,1 @@
+Zahlungsbestätigung für das Zeltlager 2023 von <#= self.member.vorname #> <#= self.member.nachname #>
