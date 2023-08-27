@@ -10,6 +10,7 @@ use t4rust_derive::Template;
 
 use crate::config::Config;
 use crate::db::models::{FullTeilnehmer, Gender, Teilnehmer};
+use crate::YEAR;
 
 pub struct MailExecutor {
 	config: Config,

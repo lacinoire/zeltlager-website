@@ -14,4 +14,4 @@ IBAN:               DE  13 7015 0000 0902 2401 00
 BIC/SWIFT:          SSKMDEMMXXX
 Bankname:           Stadtsparkasse München
 
-Verwendungszweck    <#= self.member.vorname #> <#= self.member.nachname #> Zeltlager 2023
+Verwendungszweck    <#= self.member.vorname #> <#= self.member.nachname #> Zeltlager <#= YEAR #>

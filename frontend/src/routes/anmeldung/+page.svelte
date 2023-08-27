@@ -2,6 +2,7 @@
 	import { goto } from "$app/navigation";
 	import { onMount } from "svelte";
 	import { browser } from "$app/environment";
+	import { YEAR } from "$lib/utils";
 
 	let error: string | undefined;
 	let isLoading = false;
@@ -127,7 +128,7 @@
 	<title>Anmeldung – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
 
-<h1 class="title">Anmeldung für das Zeltlager 2023</h1>
+<h1 class="title">Anmeldung für das Zeltlager {YEAR}</h1>
 
 <div bind:this={errorMsg} class="error-msg">
 	{#if error !== undefined}
@@ -571,7 +572,7 @@
 			<div class="field">
 				<div class="control">
 					<button type="submit" class="button is-primary" class:is-loading={isLoading && error === undefined}>
-						Anmelden
+						Zum Zeltlager anmelden
 					</button>
 				</div>
 			</div>

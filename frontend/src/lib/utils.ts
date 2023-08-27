@@ -1,5 +1,7 @@
 import { utils, writeFile } from "xlsx";
 
+export const YEAR = 2023;
+
 export interface Column {
 	name?: string;
 	displayName?: string;

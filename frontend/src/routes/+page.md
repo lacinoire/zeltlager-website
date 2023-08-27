@@ -1,3 +1,7 @@
+<script>
+import { YEAR } from "$lib/utils";
+</script>
+
 <svelte:head>
 
 <title>Zeltlager – FT München Gern e.V.</title>
@@ -5,15 +9,15 @@
 
 <div class="content">
 
-# Zeltlager 2023
+# Zeltlager {YEAR}
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
 Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des **SV Erpfting** statt.
 
-**Abfahrt:** Montag den 31.07.2023 um 10:00 Uhr
+**Abfahrt:** Montag den 31.07.{YEAR} um 10:00 Uhr
 
-**Rückkehr:** Freitag den 11.08.2023 um ca. 14:00 Uhr
+**Rückkehr:** Freitag den 11.08.{YEAR} um ca. 14:00 Uhr
 
 auf dem Parkplatz **Westfriedhof** in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
 
@@ -31,7 +35,7 @@ Die Betreuung und Verpflegung übernimmt das qualifizierte [Zeltlagerteam](/auss
 
 Etwa 4 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle Informationen. Der Elternabend wird ca. 1 Stunde dauern.
 
-Wir freuen uns schon auf das Zeltlager 2023.
+Wir freuen uns schon auf das Zeltlager {YEAR}.
 
 Das Betreuerteam
 
