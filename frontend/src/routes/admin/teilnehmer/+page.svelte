@@ -78,6 +78,8 @@
 	let filter = "";
 	let sortBy = "Vorname-asc";
 	let sortType: SortType = "alphabetisch";
+	let error: string | undefined;
+	let isLoading = true;
 
 	// &shy;
 	const S = "\u00AD";
@@ -252,9 +254,7 @@
 				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
 			} else {
 				console.error("Failed to load data", resp);
-				alert(
-					"Fehler: Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?"
-				);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
 			}
 			return;
 		}
@@ -283,9 +283,14 @@
 			b.year(1970);
 			return a === b ? 0 : a < b ? -1 : 1;
 		});
+		isLoading = false;
 	}
 
-	async function editEntry(entry: Member) {
+	async function editEntry(
+		entry: Member,
+		event: CustomEvent<{ setEnabled: (enabled: boolean) => void }>
+	) {
+		event.detail.setEnabled(false);
 		const data = {
 			member: entry.id,
 			bezahlt: entry.bezahlt,
@@ -300,12 +305,13 @@
 				body: JSON.stringify(data),
 			});
 			if (!response.ok)
-				alert("Fehler: Teilnehmer konnte nicht bearbeitet werden (Server-Fehler)");
+				error = "Teilnehmer konnte nicht bearbeitet werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to edit member", e);
-			alert("Fehler: Teilnehmer konnte nicht bearbeitet werden");
+			error: "Teilnehmer konnte nicht bearbeitet werden";
 		}
 		await loadData();
+		event.detail.setEnabled(true);
 	}
 
 	async function removeEntry(entry: Member) {
@@ -323,10 +329,10 @@
 				body: JSON.stringify(data),
 			});
 			if (!response.ok)
-				alert("Fehler: Teilnehmer konnte nicht gelöscht werden (Server-Fehler)");
+				error = "Teilnehmer konnte nicht gelöscht werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to delete member", e);
-			alert("Fehler: Teilnehmer konnte nicht gelöscht werden");
+			error = "Teilnehmer konnte nicht gelöscht werden";
 		}
 
 		await loadData();
@@ -338,6 +344,18 @@
 <svelte:head>
 	<title>Teilnehmer – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
+
+{#if error !== undefined}
+	<article class="message is-danger">
+		<div class="message-body">
+			{error}
+		</div>
+	</article>
+{/if}
+
+{#if error === undefined && isLoading}
+	<progress class="progress is-small is-primary">Loading</progress>
+{/if}
 
 <div class="header-flex">
 	<div class="control">
@@ -385,12 +403,12 @@
 							<td>
 								<EditableProperty
 									bind:value={e.anwesend}
-									on:edit={() => editEntry(e)} />
+									on:edit={(ev) => editEntry(e, ev)} />
 							</td>
 							<td>
 								<EditableProperty
 									bind:value={e.bezahlt}
-									on:edit={() => editEntry(e)} />
+									on:edit={(ev) => editEntry(e, ev)} />
 							</td>
 							<td>{e.vorname}</td>
 							<td>{e.nachname}</td>
@@ -454,11 +472,11 @@
 								{#if sortType === "anwesend"}
 									<EditableProperty
 										bind:value={e.anwesend}
-										on:edit={() => editEntry(e)} />
+										on:edit={(ev) => editEntry(e, ev)} />
 								{:else}
 									<EditableProperty
 										bind:value={e.bezahlt}
-										on:edit={() => editEntry(e)} />
+										on:edit={(ev) => editEntry(e, ev)} />
 								{/if}
 							</td>
 							<td>{e.vorname}</td>

@@ -60,6 +60,8 @@
 	let filtered: (Supervisor | string)[];
 	let filter = "";
 	let sortBy = "Name-asc";
+	let error: string | undefined;
+	let isLoading = true;
 
 	function filterList(list: Supervisor[], filter: string, sortBy: string): Supervisor[] {
 		if (filter === "") {
@@ -189,6 +191,7 @@
 				e.fuehrungszeugnis_eingesehen = moment.utc(e.fuehrungszeugnis_eingesehen).local();
 		}
 		all = data;
+		isLoading = false;
 	}
 
 	async function editEntry(
@@ -215,10 +218,10 @@
 				body: JSON.stringify(data),
 			});
 			if (!response.ok)
-				alert("Fehler: Betreuer konnte nicht bearbeitet werden (Server-Fehler)");
+				error = "Betreuer konnte nicht bearbeitet werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to edit supervisor", e);
-			alert("Fehler: Betreuer konnte nicht bearbeitet werden");
+			error = "Betreuer konnte nicht bearbeitet werden";
 		}
 		await loadData();
 		event.detail.setEnabled(true);
@@ -239,10 +242,10 @@
 				body: JSON.stringify(data),
 			});
 			if (!response.ok)
-				alert("Fehler: Betreuer konnte nicht gelöscht werden (Server-Fehler)");
+				error = "Betreuer konnte nicht gelöscht werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to delete supervisor", e);
-			alert("Fehler: Betreuer konnte nicht gelöscht werden");
+			error = "Betreuer konnte nicht gelöscht werden";
 		}
 
 		await loadData();
@@ -254,6 +257,18 @@
 <svelte:head>
 	<title>Betreuer – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
+
+{#if error !== undefined}
+	<article class="message is-danger">
+		<div class="message-body">
+			{error}
+		</div>
+	</article>
+{/if}
+
+{#if error === undefined && isLoading}
+	<progress class="progress is-small is-primary">Loading</progress>
+{/if}
 
 <div class="header-flex">
 	<div class="control">

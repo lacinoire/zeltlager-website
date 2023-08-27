@@ -1,5 +1,6 @@
 <script lang="ts">
 	let error: string | undefined;
+	let isLoading = false;
 	let showPassword: boolean = false;
 	let passwordInput: HTMLInputElement | undefined;
 	let loginForm: HTMLFormElement | undefined;
@@ -12,7 +13,10 @@
 	$: setShowPassword(showPassword);
 
 	async function login() {
+		if (isLoading && error === undefined) return;
 		error = undefined;
+		isLoading = true;
+
 		let response: Response;
 		try {
 			response = await fetch("/api/login", {
@@ -113,7 +117,7 @@
 		</div>
 		<div class="field">
 			<div class="control">
-				<button class="button is-primary" style="width: 100%;" type="submit">
+				<button class="button is-primary" style="width: 100%;" type="submit" class:is-loading={isLoading && error === undefined}>
 					Anmelden
 				</button>
 			</div>

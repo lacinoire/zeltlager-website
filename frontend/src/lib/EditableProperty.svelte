@@ -66,6 +66,10 @@
 		{/if}
 	{:else if typeof value === "boolean"}
 		<input type="checkbox" bind:checked={value} on:change={edited} disabled={!enabled} />
+		{#if !enabled}
+			<button class="button is-loading">
+			</button>
+		{/if}
 	{/if}
 	{#if typeof value !== "boolean"}
 		{#if !editing}

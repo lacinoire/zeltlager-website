@@ -4,6 +4,7 @@
 	import { browser } from "$app/environment";
 
 	let error: string | undefined;
+	let isLoading = false;
 	let isFull = false;
 	let signupForm: HTMLFormElement | undefined;
 	let errorMsg: HTMLElement | undefined;
@@ -42,7 +43,10 @@
 	}
 
 	async function signup() {
+		if (isLoading && error === undefined) return;
 		error = undefined;
+		isLoading = true;
+
 		let response: Response;
 		try {
 			response = await fetch("/api/signup", {
@@ -81,6 +85,7 @@
 		}
 		// Refetch status
 		await loadState();
+		isLoading = false;
 	}
 
 	function fillTestData() {
@@ -565,7 +570,9 @@
 		<div class="field-body">
 			<div class="field">
 				<div class="control">
-					<button type="submit" class="button is-primary">Anmelden</button>
+					<button type="submit" class="button is-primary" class:is-loading={isLoading && error === undefined}>
+						Anmelden
+					</button>
 				</div>
 			</div>
 		</div>
