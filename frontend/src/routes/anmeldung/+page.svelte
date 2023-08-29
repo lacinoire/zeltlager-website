@@ -10,6 +10,80 @@
 	let signupForm: HTMLFormElement | undefined;
 	let errorMsg: HTMLElement | undefined;
 
+	interface Variant {
+		// Defaults to name.toLowerCase()
+		id?: string;
+		name: string;
+	}
+
+	interface Field {
+		name: string;
+		// Defaults to name.toLowerCase()
+		id?: string;
+		defaultValue?: string;
+		// Defaults to name
+		placeholder?: string;
+		autocomplete?: string;
+		inputmode?: string;
+		// Defaults to true
+		required?: bool;
+		// Defaults to text
+		type?: string;
+		help?: string;
+		// For type=radio, defaults to DEFAULT_VARIANTS
+		variants?: Variant[];
+	}
+
+	interface Category {
+		name: string;
+		fields: Field[];
+	}
+
+	const DEFAULT_VARIANTS: Variant[] = [
+		{ "id": "true", "name": "Ja" },
+		{ "id": "false", "name": "Nein" },
+	];
+
+	const CATEGORIES: Category[] = [
+		{ "name": "Kind", "fields": [
+			{ "name": "Vorname", "placeholder": "Vorname des Kindes", "autocomplete": "given-name" },
+			{ "name": "Nachname", "placeholder": "Nachname des Kindes", "autocomplete": "family-name" },
+			{ "name": "Geburtsdatum", "placeholder": "TT.MM.JJJJ", "autocomplete": "bday" },
+			{ "name": "Geschlecht", "type": "radio", "variants": [ { "id": "m", "name": "Männlich" }, { "id": "w", "name": "Weiblich" } ] },
+			{ "name": "Schwimmer", "type": "radio", "variants": [ { "id": "true", "name": "Schwimmer" }, { "id": "false", "name": "Nichtschwimmer" } ] },
+			{ "name": "Vegetarier", "type": "radio" },
+			{ "id": "tetanus_impfung", "name": "Tetanusimpfung", "type": "radio" },
+			{ "name": "Krankenversicherung", "type": "radio", "variants": [ { "name": "Gesetzlich" }, { "name": "Privat" }, { "name": "Anderes" } ] },
+		] },
+
+		{ "name": "Adresse", "fields": [
+			{ "name": "Land", "defaultValue": "Deutschland", "autocomplete": "country-name" },
+			{ "id": "strasse", "name": "Straße" },
+			{ "name": "Hausnummer" },
+			{ "id": "plz", "name": "Postleitzahl", "placeholder": "PLZ", "autocomplete": "postal-code", "inputmode": "numeric" },
+			{ "name": "Ort" },
+		] },
+
+		{ "name": "Erziehungsberechtigte", "fields": [
+			{ "id": "eltern_name", "name": "Name eines Erziehungsberechtigten", "placeholder": "Name eines Erziehungsberechtigten des Kindes", "autocomplete": "name" },
+			{ "id": "eltern_mail", "name": "E-Mailadresse des Erziehungsberechtigten", "placeholder": "E-Mail des Erziehungsberechtigten", "autocomplete": "email", "inputmode": "email", "type": "email" },
+			{ "id": "eltern_handynummer", "name": "Handynummer des Erziehungsberechtigten (für Notfälle)", "placeholder": "Handynummer des Erziehungsberechtigten", "autocomplete": "tel", "inputmode": "tel" },
+		] },
+
+		{ "name": "Zusätzliche Angaben", "fields": [
+			{ "name": "Allergien", "type": "textarea", "help": "z.B. Haselnussallergie", "required": false },
+			{ "id": "unvertraeglichkeiten", "name": "Lebens&shy;mittel&shy;unver&shy;träglichkeiten", "type": "textarea", "help": "z.B. Laktoseintoleranz, kein Schweinefleisch", "required": false },
+			{ "name": "Medikamente", "type": "textarea", "help": "z.B. Asthmaspray; Methylphenidat, 10 mg", "required": false },
+			{ "name": "Besonderheiten", "type": "textarea", "help": "Krankheiten, Eigenheiten, etc.", "required": false },
+			{ "id": "agb", "type": "checkbox", "name": 'Ich habe die <a href="/agb" target="_blank">\
+							Allgemeine Geschäftsbedingungen\
+						</a>\
+						und die\
+						<a href="/datenschutz" target="_blank">Datenschutzbestimmungen</a> gelesen und\
+						akzeptiere sie.' },
+		] },
+	];
+
 	async function loadState() {
 		isFull = false;
 		let response: Response;
@@ -156,409 +230,70 @@
 	class:is-hidden={isFull}
 	on:submit|preventDefault={signup}
 	bind:this={signupForm}>
-	<h2 class="title is-4">Angaben zum Kind</h2>
 
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<label for="vorname" class="label">Vorname</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<input
-						id="vorname"
-						name="vorname"
-						placeholder="Vorname des Kindes"
-						required
-						class="input"
-						autocomplete="given-name"
-						type="text" />
+	{#each CATEGORIES as category}
+		<h2 class="title is-4">{category.name}</h2>
+		{#each category.fields as field}
+			<div class="field is-horizontal" class:required={field.required ?? true}>
+				<div class="field-label">
+					{#if field.type !== "checkbox"}
+						<label for={field.id ?? field.name.toLowerCase()} class="label">{@html field.name}</label>
+					{/if}
+				</div>
+				<div class="field-body">
+					<div class="field">
+						<div class="control">
+							{#if field.type === undefined || field.type === "text" || field.type === "email"}
+								<input
+									id={field.id ?? field.name.toLowerCase()}
+									name={field.id ?? field.name.toLowerCase()}
+									placeholder={field.placeholder ?? field.name}
+									required={field.required ?? true}
+									class="input"
+									autocomplete={field.autocomplete ?? false}
+									value={field.defaultValue ?? ""}
+									inputmode={field.inputmode ?? ""}
+									on:keydown={field.name === "Nachname" ? shortcut : undefined}
+									type={field.type ?? "text"} />
+							{:else if field.type === "radio"}
+								{#each field.variants ?? DEFAULT_VARIANTS as variant}
+									<label class="radio">
+										<input name={field.id ?? field.name.toLowerCase()} value={variant.id ?? variant.name.toLowerCase()} required type="radio" />
+										<span class="custom-control-indicator" />
+										<span class="custom-control-description">{variant.name}</span>
+									</label>
+								{/each}
+							{:else if field.type === "textarea"}
+								<textarea
+									id={field.id ?? field.name.toLowerCase()}
+									name={field.id ?? field.name.toLowerCase()}
+									cols="40"
+									rows="1"
+									class="textarea"
+									aria-describedby={field.help !== undefined ? ((field.id ?? field.name.toLowerCase()) + "HelpBlock") : undefined} />
+							{:else if field.type === "checkbox"}
+								<label class="checkbox">
+									<input name={field.id ?? field.name.toLowerCase()} value="true" required type="checkbox" />
+									<span class="custom-control-indicator" />
+									<span class="custom-control-description">{@html field.name}</span>
+								</label>
+							{/if}
+						</div>
+						{#if field.help !== undefined || field.required === false}
+							<p id={(field.id ?? field.name.toLowerCase()) + "HelpBlock"} class="help">
+								{field.help ?? ""}
+								{#if field.required === false}
+									<p class="optional">Optional</p>
+								{/if}
+							</p>
+						{/if}
+					</div>
 				</div>
 			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<label for="nachname" class="label">Nachname</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<input
-						id="nachname"
-						name="nachname"
-						placeholder="Nachname des Kindes"
-						class="input"
-						on:keydown={shortcut}
-						required
-						autocomplete="family-name"
-						type="text" />
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<label for="geburtsdatum" class="label">Geburtsdatum</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<input
-						id="geburtsdatum"
-						name="geburtsdatum"
-						placeholder="TT.MM.JJJJ"
-						class="input"
-						required
-						autocomplete="bday"
-						type="text" />
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<span class="label">Geschlecht</span>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<label class="radio">
-						<input name="geschlecht" value="m" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Männlich</span>
-					</label>
-					<label class="radio">
-						<input name="geschlecht" value="w" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Weiblich</span>
-					</label>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<span class="label">Schwimmer</span>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<label class="radio">
-						<input name="schwimmer" value="true" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Schwimmer</span>
-					</label>
-					<label class="radio">
-						<input name="schwimmer" value="false" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Nichtschwimmer</span>
-					</label>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<span class="label">Vegetarier</span>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<label class="radio">
-						<input name="vegetarier" value="true" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Ja</span>
-					</label>
-					<label class="radio">
-						<input name="vegetarier" value="false" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Nein</span>
-					</label>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<span class="label">Tetanusimpfung</span>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<label class="radio">
-						<input name="tetanus_impfung" value="true" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Ja</span>
-					</label>
-					<label class="radio">
-						<input name="tetanus_impfung" value="false" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Nein</span>
-					</label>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<span class="label">Krankenversicherung</span>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<label class="radio">
-						<input
-							name="krankenversicherung"
-							value="gesetzlich"
-							required
-							type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Gesetzlich</span>
-					</label>
-					<label class="radio">
-						<input name="krankenversicherung" value="privat" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Privat</span>
-					</label>
-					<label class="radio">
-						<input name="krankenversicherung" value="anderes" required type="radio" />
-						<span class="custom-control-indicator" />
-						<span class="custom-control-description">Anderes</span>
-					</label>
-				</div>
-			</div>
-		</div>
-	</div>
+		{/each}
+	{/each}
 
-	<h2 class="title is-4">Angaben zum Erziehungsberechtigten</h2>
 
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<label for="eltern_name" class="label">Name eines Erziehungsberechtigten</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<input
-						id="eltern_name"
-						name="eltern_name"
-						placeholder="Name eines Erziehungsberechtigten des Kindes"
-						class="input"
-						required
-						autocomplete="name"
-						type="text" />
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<label for="eltern_mail" class="label">E-Mailadresse des Erziehungsberechtigten</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<input
-						id="eltern_mail"
-						name="eltern_mail"
-						placeholder="E-Mail des Erziehungsberechtigten"
-						class="input"
-						required
-						autocomplete="email"
-						inputmode="email"
-						type="email" />
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label">
-			<label for="eltern_handynummer" class="label"
-				>Handynummer des Erziehungsberechtigten (für Notfälle)</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<input
-						id="eltern_handynummer"
-						name="eltern_handynummer"
-						placeholder="Handynummer des Erziehungsberechtigten"
-						class="input"
-						required
-						autocomplete="tel"
-						inputmode="tel"
-						type="text" />
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label label">
-			<label for="strasse">Straße</label>,
-			<label for="hausnummer">Hausnummer</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<input
-						id="strasse"
-						name="strasse"
-						placeholder="Straße"
-						class="input"
-						required
-						type="text" />
-				</div>
-			</div>
-			<div class="field is-narrow">
-				<div class="control">
-					<input
-						id="hausnummer"
-						name="hausnummer"
-						placeholder="Hausnummer"
-						class="input"
-						required
-						type="text" />
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label label">
-			<label for="plz">Postleitzahl</label>,
-			<label for="ort">Ort</label>
-		</div>
-		<div class="field-body">
-			<div class="field is-narrow">
-				<div class="control">
-					<input
-						id="plz"
-						name="plz"
-						placeholder="PLZ"
-						class="input"
-						required
-						autocomplete="postal-code"
-						inputmode="numeric"
-						type="text" />
-				</div>
-			</div>
-			<div class="field">
-				<div class="control">
-					<input
-						id="ort"
-						name="ort"
-						placeholder="Ort"
-						class="input"
-						required
-						type="text" />
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<h2 class="title is-4">Zusätzliche Angaben</h2>
-
-	<div class="field is-horizontal">
-		<div class="field-label">
-			<label for="allergien" class="label">Allergien</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<textarea
-						id="allergien"
-						name="allergien"
-						cols="40"
-						rows="1"
-						class="textarea"
-						aria-describedby="allergienHelpBlock" />
-				</div>
-				<p id="allergienHelpBlock" class="help">z.B. Haselnussallergie</p>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal">
-		<div class="field-label">
-			<label for="unvertraeglichkeiten" class="label">
-				Lebens&shy;mittel&shy;unver&shy;träglichkeiten
-			</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<textarea
-						id="unvertraeglichkeiten"
-						name="unvertraeglichkeiten"
-						cols="40"
-						rows="1"
-						class="textarea"
-						aria-describedby="unvertraeglichkeitenHelpBlock" />
-				</div>
-				<p id="unvertraeglichkeitenHelpBlock" class="help">
-					z.B. Laktoseintoleranz, kein Schweinefleisch
-				</p>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal">
-		<div class="field-label">
-			<label for="medikamente" class="label">Medikamente</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<textarea
-						id="medikamente"
-						name="medikamente"
-						cols="40"
-						rows="1"
-						class="textarea"
-						aria-describedby="medikamenteHelpBlock" />
-				</div>
-				<p id="medikamenteHelpBlock" class="help">
-					z.B. Asthmaspray; Methylphenidat, 10 mg
-				</p>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal">
-		<div class="field-label">
-			<label for="besonderheiten" class="label">Besonderheiten</label>
-		</div>
-		<div class="field-body">
-			<div class="field">
-				<div class="control">
-					<textarea
-						id="besonderheiten"
-						name="besonderheiten"
-						cols="40"
-						rows="2"
-						class="textarea"
-						aria-describedby="besonderheitenHelpBlock" />
-				</div>
-				<p id="besonderheitenHelpBlock" class="help">Krankheiten, Eigenheiten, etc.</p>
-			</div>
-		</div>
-	</div>
-	<div class="field is-horizontal required">
-		<div class="field-label" />
-		<div class="field-body">
-			<div class="control">
-				<label class="checkbox">
-					<input name="agb" value="true" required type="checkbox" />
-					<span class="custom-control-indicator" />
-					<span class="custom-control-description">
-						Ich habe die <a href="/agb" target="_blank">
-							Allgemeine Geschäftsbedingungen
-						</a>
-						und die
-						<a href="/datenschutz" target="_blank">Datenschutzbestimmungen</a> gelesen und
-						akzeptiere sie.
-					</span>
-				</label>
-			</div>
-		</div>
-	</div>
 	<div class="field is-horizontal required">
 		<div class="field-label" />
 		<div class="field-body">
@@ -596,6 +331,11 @@
 
 	.button {
 		margin-top: 2em;
+	}
+
+	.optional {
+		float: right;
+		font-style: italic;
 	}
 
 	@media screen and (max-width: 768px) {
