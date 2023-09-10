@@ -23,12 +23,16 @@ use scrypt::password_hash::{
 	McfHasher, PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
 };
 use scrypt::Scrypt;
+use serde::Serialize;
 
 use crate::auth;
 
 macro_rules! get_str {
 	($map:ident, $key:expr) => {
-		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key.to_title_case()))
+		$map.remove($key).ok_or_else(|| FormError {
+			field: Some($key.into()),
+			message: format!("{} fehlt", $key.to_title_case()),
+		})
 	};
 }
 
@@ -38,6 +42,13 @@ pub mod schema;
 
 pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations =
 	diesel_migrations::embed_migrations!();
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FormError {
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub field: Option<String>,
+	pub message: String,
+}
 
 pub struct DbExecutor {
 	pub(crate) connection: PgConnection,
@@ -116,8 +127,8 @@ impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>> Message for RunOnDbMsg
 impl AuthenticateMessage {
 	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<AuthenticateMessage> {
 		Ok(AuthenticateMessage {
-			username: get_str!(map, "username")?,
-			password: get_str!(map, "password")?,
+			username: get_str!(map, "username").map_err(|e| format_err!(e.message))?,
+			password: get_str!(map, "password").map_err(|e| format_err!(e.message))?,
 		})
 	}
 }
@@ -134,6 +145,14 @@ impl Message for GetRolesMessage {
 pub struct RunMigrationsMessage;
 impl Message for RunMigrationsMessage {
 	type Result = Result<()>;
+}
+
+impl From<String> for FormError {
+	fn from(s: String) -> Self { Self { field: None, message: s } }
+}
+
+impl<'a> From<&'a str> for FormError {
+	fn from(s: &'a str) -> Self { Self { field: None, message: s.into() } }
 }
 
 impl DbExecutor {
@@ -276,6 +295,7 @@ impl Handler<DownloadMembersMessage> for DbExecutor {
 			eltern_name,
 			eltern_mail,
 			eltern_handynummer,
+			land,
 			strasse,
 			hausnummer,
 			ort,
@@ -297,6 +317,7 @@ impl Handler<DownloadMembersMessage> for DbExecutor {
 			eltern_name,
 			eltern_mail,
 			eltern_handynummer,
+			land,
 			strasse,
 			hausnummer,
 			ort,
@@ -349,6 +370,7 @@ impl Handler<DownloadBetreuerMessage> for DbExecutor {
 			juleica_nummer,
 			mail,
 			handynummer,
+			land,
 			strasse,
 			hausnummer,
 			ort,
@@ -372,6 +394,7 @@ impl Handler<DownloadBetreuerMessage> for DbExecutor {
 			juleica_nummer,
 			mail,
 			handynummer,
+			land,
 			strasse,
 			hausnummer,
 			ort,

@@ -26,6 +26,7 @@ diesel::table! {
         krankenversicherung -> Text,
         vegetarier -> Bool,
         tetanus_impfung -> Bool,
+        land -> Text,
     }
 }
 
@@ -88,6 +89,7 @@ diesel::table! {
         unvertraeglichkeiten -> Text,
         medikamente -> Text,
         krankenversicherung -> Text,
+        land -> Text,
     }
 }
 

@@ -79,7 +79,7 @@
 			}}>
 			<div class="navbar-start">
 				{#each menuData.items as item}
-					{#if !["/anmeldung", "/packliste", "/ausstattung", "/betreuer", "/datenschutz", "/impressum"].includes(item.link)}
+					{#if !["/anmeldung", "/packliste", "/ausstattung", "/betreuer"].includes(item.link)}
 						<a
 							class="navbar-item"
 							href={item.link}
@@ -130,18 +130,6 @@
 					Für Betreuer
 				</a>
 				<a
-					class="navbar-item"
-					href="/datenschutz"
-					class:is-active={$page.route.id === "/datenschutz"}>
-					Datenschutz
-				</a>
-				<a
-					class="navbar-item"
-					href="/impressum"
-					class:is-active={$page.route.id === "/impressum"}>
-					Impressum
-				</a>
-				<a
 					class="navbar-item emph-item"
 					href="/login"
 					class:is-hidden={menuData.isLoggedIn}>
@@ -167,6 +155,16 @@
 
 <footer class="footer">
 	<div class="content has-text-centered">
+		<div style="margin-bottom: 2em; font-size: 1.2rem;">
+			<a href="/datenschutz">
+				Datenschutz
+			</a>
+			•
+			<a href="/impressum">
+				Impressum
+			</a>
+		</div>
+
 		<div style="margin-bottom: 2em; font-size: 1.2rem;">
 			<a href="https://ftgern.de">
 				<img

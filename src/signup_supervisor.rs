@@ -9,7 +9,7 @@ use crate::{db, HttpResponse, State};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
-	error: Option<String>,
+	error: Option<db::FormError>,
 }
 
 async fn signup_internal(
@@ -25,8 +25,8 @@ async fn signup_internal(
 	let supervisor = match db::models::Supervisor::from_hashmap(body.clone(), &birthday_date) {
 		Ok(supervisor) => supervisor,
 		Err(error) => {
-			warn!("Error handling form content: {}", error);
-			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error.to_string()) });
+			warn!("Error handling form content: {:?}", error);
+			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error) });
 		}
 	};
 
@@ -59,7 +59,7 @@ async fn signup_internal(
 	}
 
 	(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-		error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+		error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into()),
 	})
 }
 
@@ -77,7 +77,7 @@ pub async fn signup_nojs(
 ) -> HttpResponse {
 	let (status, result) = signup_internal(&**state, body.into_inner()).await;
 	if let Some(error) = result.error {
-		HttpResponse::build(status).body(error)
+		HttpResponse::build(status).body(error.message)
 	} else {
 		debug_assert_eq!(status, StatusCode::OK);
 		HttpResponse::Found()

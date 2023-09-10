@@ -13,7 +13,7 @@ use crate::{db, mail, HttpResponse, State};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
-	error: Option<String>,
+	error: Option<db::FormError>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -36,7 +36,7 @@ async fn signup_check_count(
 		warn!("Already too many members registered (from {})", member.eltern_mail);
 		(StatusCode::BAD_REQUEST, SignupResult {
 			error: Some(
-				"Während Ihrer Anmeldung ist das Zeltlager leider schon voll geworden.".to_string(),
+				"Während Ihrer Anmeldung ist das Zeltlager leider schon voll geworden.".into(),
 			),
 		})
 	} else {
@@ -69,7 +69,9 @@ async fn signup_check_count(
 		}
 
 		(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-			error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+			error: Some(
+				format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
+			),
 		})
 	}
 }
@@ -95,11 +97,14 @@ async fn signup_mail(
 	}
 
 	(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-		error: Some(format!(
-			"Ihre Daten wurden erfolgreich gespeichert.\nEs ist leider ein Fehler beim E-Mail \
-			 senden aufgetreten.\n{}",
-			error_message
-		)),
+		error: Some(
+			format!(
+				"Ihre Daten wurden erfolgreich gespeichert.\nEs ist leider ein Fehler beim E-Mail \
+				 senden aufgetreten.\n{}",
+				error_message
+			)
+			.into(),
+		),
 	})
 }
 
@@ -133,8 +138,8 @@ async fn signup_internal(
 	let mut member = match db::models::Teilnehmer::from_hashmap(body, &birthday_date) {
 		Ok(member) => member,
 		Err(error) => {
-			warn!("Error handling form content: {}", error);
-			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error.to_string()) });
+			warn!("Error handling form content: {:?}", error);
+			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error) });
 		}
 	};
 
@@ -145,13 +150,17 @@ async fn signup_internal(
 		Err(error) => {
 			warn!("Error inserting into database: {}", error);
 			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-				error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+				error: Some(
+					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
+				),
 			});
 		}
 		Ok(Err(error)) => {
 			warn!("Error inserting into database: {}", error);
 			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-				error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message)),
+				error: Some(
+					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
+				),
 			});
 		}
 		Ok(Ok(count)) => {
@@ -185,7 +194,7 @@ pub async fn signup_nojs(
 ) -> HttpResponse {
 	let (status, result) = signup_internal(&**state, body.into_inner()).await;
 	if let Some(error) = result.error {
-		HttpResponse::build(status).body(error)
+		HttpResponse::build(status).body(error.message)
 	} else {
 		debug_assert_eq!(status, StatusCode::OK);
 		HttpResponse::Found().append_header(("location", "/anmeldung-erfolgreich")).finish()

@@ -1,18 +1,25 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { onMount } from "svelte";
+	import { onMount, tick } from "svelte";
 	import { browser, building } from "$app/environment";
-	import { YEAR } from "$lib/utils";
+	import { YEAR, inMunich } from "$lib/utils";
 	import Icon from "$lib/Icon.svelte";
 	import { mdiDelete } from "@mdi/js";
 
-	let error: string | undefined;
+	let error: ErrorMsg | undefined;
+
 	let isLoading = false;
 	let isFull = false;
 	let signupForm: HTMLFormElement | undefined;
 	let errorMsg: HTMLElement | undefined;
 	let curCategory: number = 0;
 	let signupFormSaved = false;
+	let somethingChanged = false;
+
+	interface ErrorMsg {
+		field?: string;
+		message: string;
+	}
 
 	interface Variant {
 		// Defaults to name.toLowerCase()
@@ -53,7 +60,7 @@
 	const CATEGORIES: Category[] = [
 		{ "name": "Kind", "fields": [
 			{ "name": "Vorname", "placeholder": "Vorname des Kindes", "autocomplete": "given-name" },
-			{ "name": "Nachname", "placeholder": "Nachname des Kindes", "autocomplete": "family-name" },
+			{ "name": "Nachname", "placeholder": "Nachname des Kindes", "autocomplete": "family-name", "keydown": shortcut },
 			{ "name": "Geburtsdatum", "placeholder": "TT.MM.JJJJ", "autocomplete": "bday" },
 			{ "name": "Geschlecht", "type": "radio", "variants": [ { "id": "m", "name": "Männlich" }, { "id": "w", "name": "Weiblich" } ] },
 			{ "name": "Schwimmer", "type": "radio", "variants": [ { "id": "true", "name": "Schwimmer" }, { "id": "false", "name": "Nichtschwimmer" } ] },
@@ -66,7 +73,7 @@
 			{ "name": "Land", "defaultValue": "Deutschland", "autocomplete": "country-name" },
 			{ "id": "strasse", "name": "Straße" },
 			{ "name": "Hausnummer" },
-			{ "id": "plz", "name": "Postleitzahl", "placeholder": "PLZ", "autocomplete": "postal-code", "inputmode": "numeric" },
+			{ "id": "plz", "name": "Postleitzahl", "placeholder": "PLZ", "autocomplete": "postal-code", "inputmode": "numeric", "focusout": inferPlace },
 			{ "name": "Ort" },
 		] },
 
@@ -100,7 +107,7 @@
 			response = await fetch("/api/signup-state");
 		} catch (e) {
 			console.error("Failed to make signup state web request", e);
-			error = "Verbindung fehlgeschlagen. Ist das Internet erreichbar?";
+			error = { "message": "Verbindung fehlgeschlagen. Ist das Internet erreichbar?" };
 			return;
 		}
 		let respText: string;
@@ -108,7 +115,7 @@
 			respText = await response.text();
 		} catch (e) {
 			console.error("Failed to read signup state response", e);
-			error = "Verbindung abgebrochen";
+			error = { "message": "Verbindung abgebrochen" };
 			return;
 		}
 		try {
@@ -116,13 +123,20 @@
 			isFull = resp.isFull;
 		} catch (e) {
 			console.error("Failed to convert signup state request to json", e);
-			error = respText;
+			error = { "message": respText };
 			return;
 		}
 	}
 
-	function setError(msg: string) {
+	async function setError(msg: string) {
+		error = { "message": msg };
+		await tick();
+		errorMsg?.scrollIntoView({ behavior: "smooth" });
+	}
+
+	async function setErrorMsg(msg: ErrorMsg) {
 		error = msg;
+		await tick();
 		errorMsg?.scrollIntoView({ behavior: "smooth" });
 	}
 
@@ -156,9 +170,11 @@
 		try {
 			const resp = JSON.parse(respText);
 			if (resp.error !== null) {
-				setError(resp.error);
+				setErrorMsg(resp.error);
 			} else {
 				// Signup successful
+				// TODO add option to not clear (non-child) entries
+				clearEntries();
 				goto("/anmeldung-erfolgreich");
 				return;
 			}
@@ -196,7 +212,39 @@
 		if (e.altKey && e.key === "Escape") fillTestData();
 	}
 
+	// Infer Ort from PLZ
+	function inferPlace() {
+		if (signupForm.ort.value !== "") return;
+		if (signupForm.land.value === "Deutschland" && inMunich(parseInt(signupForm.plz.value), ""))
+			signupForm.ort.value = "München";
+	}
+
+	function isCategoryFinished(cat: number) {
+		if (signupForm === undefined) return false;
+		for (const f of CATEGORIES[cat].fields) {
+			const id = f.id ?? f.name.toLowerCase();
+			if ((f.required ?? true) && (!signupForm[id].value || signupForm[id].value === ""))
+				return false;
+		}
+		return true;
+	}
+
+	function isCategoryFinishedUpTo(cat: number) {
+		for (let i = 0; i < cat; i++) {
+			if (!isCategoryFinished(i))
+				return false;
+		}
+		return true;
+	}
+
+	function setCategory(cat: number) {
+		curCategory = cat;
+		const id = CATEGORIES[cat].id ?? CATEGORIES[cat].name.toLowerCase();
+		location.hash = `#${id}`;
+	}
+
 	function saveEntries() {
+		somethingChanged = !somethingChanged;
 		const form = {};
 		for (const c of CATEGORIES) {
 			for (const f of c.fields) {
@@ -271,15 +319,15 @@
 
 <h1 class="title">Anmeldung für das Zeltlager {YEAR}</h1>
 
-<div bind:this={errorMsg} class="error-msg">
-	{#if error !== undefined}
+{#if error !== undefined && error.field === undefined}
+	<div bind:this={errorMsg} class="error-msg">
 		<article class="message is-danger">
 			<div class="message-body">
-				{error}
+				{error.message}
 			</div>
 		</article>
-	{/if}
-</div>
+	</div>
+{/if}
 
 {#if isFull}
 	<article class="message is-info">
@@ -294,11 +342,11 @@
 <div class="progress-indicator-container">
 	<div class="progress-indicator">
 		{#each CATEGORIES as category, i}
-			<div class="category" class:active={i == curCategory} class:finished={i < curCategory}>
+			<div class="category" class:active={i == curCategory} class:finished={i <= curCategory && isCategoryFinishedUpTo(i, somethingChanged)}>
 				{#if i > 0}
 					<div class="bar"></div>
 				{/if}
-				<div class="knob label-container">
+				<div class="knob label-container" class:finished={i <= curCategory && isCategoryFinished(i, somethingChanged)}>
 					<div class="progress-label">
 						<a href={`#${category.id ?? category.name.toLowerCase()}`} on:click={() => curCategory = i}>{category.name}</a>
 					</div>
@@ -319,6 +367,16 @@
 		<div class:is-hidden={(i != curCategory && !building && curCategory != CATEGORIES.length - 1) || category.fields.length == 0}>
 			<h2 class="title is-4" id="">{category.name}</h2>
 			{#each category.fields as field}
+				{#if error !== undefined && error.field === (field.id ?? field.name.toLowerCase())}
+					<div bind:this={errorMsg} class="error-msg">
+						<article class="message is-danger">
+							<div class="message-body">
+								{error.message}
+							</div>
+						</article>
+					</div>
+				{/if}
+
 				<div class="field is-horizontal" class:required={field.required ?? true}>
 					<div class="field-label">
 						{#if field.type !== "checkbox"}
@@ -338,8 +396,9 @@
 										autocomplete={field.autocomplete ?? false}
 										value={field.defaultValue ?? ""}
 										inputmode={field.inputmode ?? ""}
-										on:keydown={field.name === "Nachname" ? shortcut : undefined}
+										on:keydown={field.keydown}
 										on:blur={saveEntries}
+										on:focusout={field.focusout}
 										type={field.type ?? "text"} />
 								{:else if field.type === "radio"}
 									{#each field.variants ?? DEFAULT_VARIANTS as variant}
@@ -395,7 +454,7 @@
 			<div class="field">
 				<div class="control">
 					{#if curCategory != 0 && !building}
-						<button class="button is-info" on:click|preventDefault={() => curCategory--}>
+						<button class="button is-info" on:click|preventDefault={() => setCategory(curCategory - 1)}>
 							Zurück
 						</button>
 					{/if}
@@ -404,7 +463,7 @@
 							Zum Zeltlager anmelden
 						</button>
 					{:else}
-						<button class="button is-info" on:click|preventDefault={() => curCategory++}>
+						<button class="button is-info" on:click|preventDefault={() => setCategory(curCategory + 1)}>
 							Weiter
 						</button>
 					{/if}
@@ -420,6 +479,10 @@
 </form>
 
 <style lang="scss">
+	:target, .error-msg {
+		scroll-margin-top: 5em;
+	}
+
 	.error-msg {
 		margin-bottom: 1em;
 	}
@@ -511,22 +574,18 @@
 					border-color: #eec73d;
 				}
 
-				.bar {
-						background-color: #0eb100;
-				}
-
 				.progress-label {
 					font-weight: bold;
 				}
 			}
 
-			&.finished {
-				.knob {
-					border-color: #0eb100;
-				}
+			.knob.finished {
+				border-color: #0eb100;
+			}
 
+			&.finished {
 				.bar {
-						background-color: #0eb100;
+					background-color: #0eb100;
 				}
 			}
 		}

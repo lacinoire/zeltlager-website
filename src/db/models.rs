@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use anyhow::{bail, format_err, Result};
 use chrono::{self, DateTime, Datelike, NaiveDate, Utc};
 use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql};
@@ -17,20 +16,27 @@ use super::schema::erwischt_member;
 use super::schema::rate_limiting;
 use super::schema::teilnehmer;
 use super::schema::users;
+use super::FormError;
 
 macro_rules! get_bool {
 	($map:ident, $key:expr) => {
-		$map.remove($key).ok_or_else(|| format_err!("{} fehlt", $key.to_title_case())).and_then(
-			|s| {
+		$map.remove($key)
+			.ok_or_else(|| FormError {
+				field: Some($key.into()),
+				message: format!("{} fehlt", $key.to_title_case()),
+			})
+			.and_then(|s| {
 				if s == "true" {
 					Ok(true)
 				} else if s == "false" {
 					Ok(false)
 				} else {
-					Err(format_err!("{} ({}) ist kein Wahrheitswert", $key.to_title_case(), s))
+					Err(FormError {
+						field: Some($key.into()),
+						message: format!("{} ({}) ist kein Wahrheitswert", $key.to_title_case(), s),
+					})
 				}
-			},
-		)
+			})
 	};
 }
 
@@ -38,7 +44,10 @@ macro_rules! check_empty {
 	($obj:ident, $($field:ident),*) => {
 		$(
 		if $obj.$field.is_empty() {
-			bail!("{} muss ausgefüllt werden", stringify!($field).to_title_case());
+			return Err(FormError {
+				field: Some(stringify!($field).into()),
+				message: format!("{} muss ausgefüllt werden", stringify!($field).to_title_case()),
+			});
 		}
 		)*
 	}
@@ -57,6 +66,7 @@ pub struct Teilnehmer {
 	pub eltern_name: String,
 	pub eltern_mail: String,
 	pub eltern_handynummer: String,
+	pub land: String,
 	pub strasse: String,
 	pub hausnummer: String,
 	pub ort: String,
@@ -95,6 +105,7 @@ pub struct FullTeilnehmer {
 	pub unvertraeglichkeiten: String,
 	pub medikamente: String,
 	pub krankenversicherung: String,
+	pub land: String,
 }
 
 #[derive(Clone, Debug, Insertable, Serialize, Queryable)]
@@ -107,6 +118,7 @@ pub struct Supervisor {
 	pub juleica_nummer: Option<String>,
 	pub mail: String,
 	pub handynummer: String,
+	pub land: String,
 	pub strasse: String,
 	pub hausnummer: String,
 	pub ort: String,
@@ -150,6 +162,7 @@ pub struct FullSupervisor {
 	pub krankenversicherung: String,
 	pub vegetarier: bool,
 	pub tetanus_impfung: bool,
+	pub land: String,
 }
 
 #[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
@@ -205,7 +218,7 @@ pub struct ErwischtMember {
 	pub last_change: Option<chrono::NaiveDateTime>,
 }
 
-pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
+pub fn try_parse_date(s: &str, field: &str) -> Result<NaiveDate, FormError> {
 	const FORMATS: &[&str] = &["%Y-%m-%d", "%d.%m.%Y"];
 	let mut res = None;
 	for f in FORMATS {
@@ -238,11 +251,14 @@ pub fn try_parse_date(s: &str) -> Result<NaiveDate> {
 		}
 		Ok(date)
 	} else {
-		bail!("Bitte geben Sie das Geburtsdatum ({}) im Format TT.MM.JJJJ an.", s);
+		Err(FormError {
+			field: Some(field.into()),
+			message: format!("Bitte geben Sie das Geburtsdatum ({}) im Format TT.MM.JJJJ an.", s),
+		})
 	}
 }
 
-pub fn try_parse_gender(s: &str) -> Result<Gender> {
+pub fn try_parse_gender(s: &str) -> Result<Gender, FormError> {
 	const MALE: &[&str] =
 		&["m", "M", "männlich", "Männlich", "maennlich", "Maennlich", "male", "Male"];
 	const FEMALE: &[&str] = &["w", "W", "weiblich", "Weiblich", "female", "Female"];
@@ -252,7 +268,10 @@ pub fn try_parse_gender(s: &str) -> Result<Gender> {
 	} else if FEMALE.contains(&s) {
 		Ok(Gender::Female)
 	} else {
-		bail!("{} ist kein bekanntes Geschlecht.", s);
+		Err(FormError {
+			field: Some("geschlecht".into()),
+			message: format!("{} ist kein bekanntes Geschlecht.", s),
+		})
 	}
 }
 
@@ -280,18 +299,63 @@ pub fn years_old(date: DateTime<Utc>, birthday_date: &DateTime<Utc>) -> i32 {
 	years
 }
 
-pub fn check_only_numbers(text: &str, length: usize) -> bool {
-	text.len() == length && text.chars().all(|c| c.is_numeric())
+pub fn check_plz(text: &str, country: &str) -> Result<(), FormError> {
+	let valid = if !text.chars().all(|c| c.is_numeric()) {
+		false
+	} else if country == "Deutschland" {
+		text.len() == 5
+	} else {
+		true
+	};
+	if !valid {
+		return Err(FormError {
+			field: Some("plz".into()),
+			message: format!("Ungültige Postleitzahl ({})", text),
+		});
+	}
+	Ok(())
 }
 
-pub fn check_email(text: &str) -> bool {
+pub fn check_krankenversicherung(text: &str) -> Result<(), FormError> {
+	// Check krankenversicherung
+	if text != "gesetzlich" && text != "privat" && text != "anderes" {
+		return Err(FormError {
+			field: Some("krankenversicherung".into()),
+			message: format!(
+				"Ungültige Krankenversicherung ({}), muss entweder gesetzlich, privat oder \
+				 anderes sein",
+				text
+			),
+		});
+	}
+	Ok(())
+}
+
+pub fn check_email(text: &str, field: &str) -> Result<(), FormError> {
 	let at_pos = text.find('@');
-	at_pos.is_some() && !text.contains(' ') && at_pos == text.rfind('@') // Only one mail address
+	let valid = at_pos.is_some() && !text.contains(' ') && at_pos == text.rfind('@'); // Only one mail address
+	if !valid {
+		return Err(FormError {
+			field: Some(field.into()),
+			message: format!("Ungültige E-Mail Addresse ({})", text),
+		});
+	}
+	Ok(())
 }
 
-pub fn check_house_number(text: &str) -> bool {
+pub fn check_house_number(text: &str) -> Result<(), FormError> {
 	// Check for at least one digit
-	text.find(|c: char| c.is_digit(10)).is_some()
+	if !text.find(|c: char| c.is_digit(10)).is_some() {
+		return Err(FormError {
+			field: Some("hausnummer".into()),
+			message: format!(
+				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer enthalten",
+				text
+			),
+		});
+	} else {
+		Ok(())
+	}
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression, Serialize)]
@@ -335,9 +399,11 @@ where
 }
 
 impl Teilnehmer {
-	pub fn from_hashmap(mut map: HashMap<String, String>, birthday_date: &str) -> Result<Self> {
+	pub fn from_hashmap(
+		mut map: HashMap<String, String>, birthday_date: &str,
+	) -> Result<Self, FormError> {
 		let date = get_str!(map, "geburtsdatum")?;
-		let geburtsdatum = try_parse_date(&date)?;
+		let geburtsdatum = try_parse_date(&date, "geburtsdatum")?;
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
 
 		let res = Self {
@@ -353,6 +419,7 @@ impl Teilnehmer {
 			eltern_name: get_str!(map, "eltern_name")?,
 			eltern_mail: get_str!(map, "eltern_mail")?,
 			eltern_handynummer: get_str!(map, "eltern_handynummer")?,
+			land: get_str!(map, "land")?,
 			strasse: get_str!(map, "strasse")?,
 			hausnummer: get_str!(map, "hausnummer")?,
 			ort: get_str!(map, "ort")?,
@@ -367,8 +434,12 @@ impl Teilnehmer {
 		};
 
 		if !res.agb {
-			bail!("Die AGB müssen akzeptiert werden");
+			return Err(FormError {
+				field: Some("agb".into()),
+				message: "Die AGB müssen akzeptiert werden".into(),
+			});
 		}
+
 		check_empty!(
 			res,
 			vorname,
@@ -376,64 +447,55 @@ impl Teilnehmer {
 			eltern_name,
 			eltern_mail,
 			eltern_handynummer,
+			land,
 			strasse,
 			hausnummer,
 			ort,
 			plz
 		);
-		// Check PLZ
-		if !check_only_numbers(&res.plz, 5) {
-			bail!("Ungültige Postleitzahl ({})", res.plz);
-		}
-		// Check krankenversicherung
-		if res.krankenversicherung != "gesetzlich"
-			&& res.krankenversicherung != "privat"
-			&& res.krankenversicherung != "anderes"
-		{
-			bail!(
-				"Ungültige Krankenversicherung ({}), muss entweder gesetzlich, privat oder \
-				 anderes sein",
-				res.krankenversicherung
-			);
-		}
-		// Check mail address
-		if !check_email(&res.eltern_mail) {
-			bail!("Ungültige E-Mail Addresse ({})", res.eltern_mail);
-		}
-		// Check house number
-		if !check_house_number(&res.hausnummer) {
-			bail!(
-				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer enthalten",
-				res.hausnummer
-			);
-		}
+
+		check_plz(&res.plz, &res.land)?;
+		check_krankenversicherung(&res.krankenversicherung)?;
+		check_email(&res.eltern_mail, "eltern_mail")?;
+		check_house_number(&res.hausnummer)?;
+
 		// Check birth date
 		let birthday = DateTime::from_utc(res.geburtsdatum.and_time(Default::default()), Utc);
 		let now = Utc::now();
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
-			bail!(
-				"Sind Sie sicher, dass {} das Geburtsdatum Ihres Kindes ist?\nBitte geben Sie das \
-				 Geburtsdatum im Format TT.MM.JJJJ an.",
-				res.geburtsdatum.format("%d.%m.%Y")
-			);
+			return Err(FormError {
+				field: Some("geburtsdatum".into()),
+				message: format!(
+					"Sind Sie sicher, dass {} das Geburtsdatum Ihres Kindes ist?\nBitte geben Sie \
+					 das Geburtsdatum im Format TT.MM.JJJJ an.",
+					res.geburtsdatum.format("%d.%m.%Y")
+				),
+			});
 		}
 
 		if years < 7 {
-			bail!(
-				"Ihr Kind ist zu jung (Geburtsdatum {}).\nDas Zeltlager ist für Kinder und \
-				 Jugendliche zwischen 7 und 15 Jahren.",
-				res.geburtsdatum.format("%d.%m.%Y")
-			);
+			return Err(FormError {
+				field: Some("geburtsdatum".into()),
+				message: format!(
+					"Ihr Kind ist zu jung (Geburtsdatum {}).\nDas Zeltlager ist für Kinder und \
+					 Jugendliche zwischen 7 und 15 Jahren.",
+					res.geburtsdatum.format("%d.%m.%Y")
+				),
+			});
 		}
 		if years > 15 {
-			bail!(
-				"Ihr Kind ist zu alt um als Teilnehmer beim Zeltlager mitzufahren (Geburtsdatum \
-				 {}).\nWir suchen immer nach motivierten Betreuern (ab 16 Jahren), die auf das \
-				 Zeltlager mitfahren.\nInfos dazu finden Sie auf der Betreuerseite.\nDas \
-				 Zeltlager ist für Kinder und Jugendliche zwischen 7 und 15 Jahren.",
-				res.geburtsdatum.format("%d.%m.%Y")
-			);
+			return Err(FormError {
+				field: Some("geburtsdatum".into()),
+				message: format!(
+					"Ihr Kind ist zu alt um als Teilnehmer beim Zeltlager mitzufahren \
+					 (Geburtsdatum {}).\nWir suchen immer nach motivierten Betreuern (ab 16 \
+					 Jahren), die auf das Zeltlager mitfahren.\nInfos dazu finden Sie auf der \
+					 Betreuerseite.\nDas Zeltlager ist für Kinder und Jugendliche zwischen 7 und \
+					 15 Jahren.",
+					res.geburtsdatum.format("%d.%m.%Y")
+				),
+			});
 		}
 
 		map.remove("submit");
@@ -450,6 +512,7 @@ impl Teilnehmer {
 		self.eltern_name = self.eltern_name.trim().into();
 		self.eltern_mail = self.eltern_mail.trim().into();
 		self.eltern_handynummer = self.eltern_handynummer.trim().into();
+		self.land = self.land.trim().into();
 		self.strasse = self.strasse.trim().into();
 		self.hausnummer = self.hausnummer.trim().into();
 		self.ort = self.ort.trim().into();
@@ -463,14 +526,19 @@ impl Teilnehmer {
 }
 
 impl Supervisor {
-	pub fn from_hashmap(mut map: HashMap<String, String>, birthday_date: &str) -> Result<Self> {
+	pub fn from_hashmap(
+		mut map: HashMap<String, String>, birthday_date: &str,
+	) -> Result<Self, FormError> {
 		let date = get_str!(map, "geburtsdatum")?;
-		let geburtsdatum = try_parse_date(&date)?;
+		let geburtsdatum = try_parse_date(&date, "geburtsdatum")?;
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
 
 		let f_date = get_str!(map, "fuehrungszeugnis_auststellung")?;
-		let fuehrungszeugnis_auststellung =
-			if !f_date.is_empty() { Some(try_parse_date(&f_date)?) } else { None };
+		let fuehrungszeugnis_auststellung = if !f_date.is_empty() {
+			Some(try_parse_date(&f_date, "fuehrungszeugnis_auststellung")?)
+		} else {
+			None
+		};
 
 		let juleica_nummer_str = get_str!(map, "juleica_nummer")?;
 		let juleica_nummer =
@@ -485,6 +553,7 @@ impl Supervisor {
 			juleica_nummer,
 			mail: get_str!(map, "mail")?,
 			handynummer: get_str!(map, "handynummer")?,
+			land: get_str!(map, "land")?,
 			strasse: get_str!(map, "strasse")?,
 			hausnummer: get_str!(map, "hausnummer")?,
 			ort: get_str!(map, "ort")?,
@@ -504,31 +573,46 @@ impl Supervisor {
 		};
 
 		if !res.agb {
-			bail!("Die AGB müssen akzeptiert werden");
+			return Err(FormError {
+				field: Some("agb".into()),
+				message: "Die AGB müssen akzeptiert werden".into(),
+			});
 		}
 		if !res.selbsterklaerung {
-			bail!("Die Selbsterklärung muss abgegeben werden");
+			return Err(FormError {
+				field: Some("selbsterklaerung".into()),
+				message: "Die Selbsterklärung muss abgegeben werden".into(),
+			});
 		}
-		check_empty!(res, vorname, nachname, mail, handynummer, strasse, hausnummer, ort, plz);
-		// Check PLZ
-		if !check_only_numbers(&res.plz, 5) {
-			bail!("Ungültige Postleitzahl ({})", res.plz);
-		}
-		// Check mail address
-		if !check_email(&res.mail) {
-			bail!("Ungültige E-Mail Addresse ({})", res.mail);
-		}
-		// Check house number
-		if !check_house_number(&res.hausnummer) {
-			bail!(
-				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer enthalten",
-				res.hausnummer
-			);
-		}
+
+		check_empty!(
+			res,
+			vorname,
+			nachname,
+			mail,
+			handynummer,
+			land,
+			strasse,
+			hausnummer,
+			ort,
+			plz
+		);
+
+		check_plz(&res.plz, &res.land)?;
+		check_krankenversicherung(&res.krankenversicherung)?;
+		check_email(&res.mail, "mail")?;
+		check_house_number(&res.hausnummer)?;
+
 		// Check Juleica Number
 		if let Some(ref jn) = res.juleica_nummer {
 			if !jn.chars().all(|c| c.is_numeric()) {
-				bail!("Ungültige Juleicanummer ({}), darf nur Ziffern enthalten", jn)
+				return Err(FormError {
+					field: Some("juleica_nummer".into()),
+					message: format!(
+						"Ungültige Juleicanummer ({}), darf nur Ziffern enthalten",
+						jn
+					),
+				});
 			}
 		}
 		// Check birth date
@@ -536,19 +620,25 @@ impl Supervisor {
 		let now = Utc::now();
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
-			bail!(
-				"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben Sie das Geburtsdatum \
-				 im Format TT.MM.JJJJ an.",
-				res.geburtsdatum.format("%d.%m.%Y")
-			);
+			return Err(FormError {
+				field: Some("geburtsdatum".into()),
+				message: format!(
+					"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben Sie das \
+					 Geburtsdatum im Format TT.MM.JJJJ an.",
+					res.geburtsdatum.format("%d.%m.%Y")
+				),
+			});
 		}
 
 		if years < 15 {
-			bail!(
-				"Mit deinem Geburtsdatum {} bist du leider zu jung, um als Betreuer mit aufs \
-				 Zeltlager zu fahren 🙂, bitte melde dich als Teilnehmer an.",
-				res.geburtsdatum.format("%d.%m.%Y")
-			);
+			return Err(FormError {
+				field: Some("geburtsdatum".into()),
+				message: format!(
+					"Mit deinem Geburtsdatum {} bist du leider zu jung, um als Betreuer mit aufs \
+					 Zeltlager zu fahren 🙂, bitte melde dich als Teilnehmer an.",
+					res.geburtsdatum.format("%d.%m.%Y")
+				),
+			});
 		}
 
 		map.remove("submit");
