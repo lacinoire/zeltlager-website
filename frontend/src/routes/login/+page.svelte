@@ -117,7 +117,11 @@
 		</div>
 		<div class="field">
 			<div class="control">
-				<button class="button is-primary" style="width: 100%;" type="submit" class:is-loading={isLoading && error === undefined}>
+				<button
+					class="button is-primary"
+					style="width: 100%;"
+					type="submit"
+					class:is-loading={isLoading && error === undefined}>
 					Anmelden
 				</button>
 			</div>

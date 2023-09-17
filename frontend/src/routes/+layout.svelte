@@ -156,13 +156,9 @@
 <footer class="footer">
 	<div class="content has-text-centered">
 		<div style="margin-bottom: 2em; font-size: 1.2rem;">
-			<a href="/datenschutz">
-				Datenschutz
-			</a>
+			<a href="/datenschutz">Datenschutz</a>
 			•
-			<a href="/impressum">
-				Impressum
-			</a>
+			<a href="/impressum">Impressum</a>
 		</div>
 
 		<div style="margin-bottom: 2em; font-size: 1.2rem;">

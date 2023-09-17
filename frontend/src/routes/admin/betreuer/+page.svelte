@@ -217,8 +217,7 @@
 				},
 				body: JSON.stringify(data),
 			});
-			if (!response.ok)
-				error = "Betreuer konnte nicht bearbeitet werden (Server-Fehler)";
+			if (!response.ok) error = "Betreuer konnte nicht bearbeitet werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to edit supervisor", e);
 			error = "Betreuer konnte nicht bearbeitet werden";
@@ -241,8 +240,7 @@
 				},
 				body: JSON.stringify(data),
 			});
-			if (!response.ok)
-				error = "Betreuer konnte nicht gelöscht werden (Server-Fehler)";
+			if (!response.ok) error = "Betreuer konnte nicht gelöscht werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to delete supervisor", e);
 			error = "Betreuer konnte nicht gelöscht werden";

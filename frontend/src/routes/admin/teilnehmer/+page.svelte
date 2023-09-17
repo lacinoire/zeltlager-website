@@ -304,11 +304,10 @@
 				},
 				body: JSON.stringify(data),
 			});
-			if (!response.ok)
-				error = "Teilnehmer konnte nicht bearbeitet werden (Server-Fehler)";
+			if (!response.ok) error = "Teilnehmer konnte nicht bearbeitet werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to edit member", e);
-			error: "Teilnehmer konnte nicht bearbeitet werden";
+			error = "Teilnehmer konnte nicht bearbeitet werden";
 		}
 		await loadData();
 		event.detail.setEnabled(true);
@@ -328,8 +327,7 @@
 				},
 				body: JSON.stringify(data),
 			});
-			if (!response.ok)
-				error = "Teilnehmer konnte nicht gelöscht werden (Server-Fehler)";
+			if (!response.ok) error = "Teilnehmer konnte nicht gelöscht werden (Server-Fehler)";
 		} catch (e) {
 			console.error("Failed to delete member", e);
 			error = "Teilnehmer konnte nicht gelöscht werden";

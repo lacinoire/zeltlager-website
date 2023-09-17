@@ -68,6 +68,13 @@ export function inMunichLandkreis(plz: number, ort: string) {
 	return false;
 }
 
+// Infer Ort from PLZ
+export function inferPlace(form: HTMLFormElement) {
+	if (form.ort.value !== "") return;
+	if (form.land.value === "Deutschland" && inMunich(parseInt(form.plz.value), ""))
+		form.ort.value = "München";
+}
+
 export function createCsv(data: any[], member: boolean) {
 	let res = "";
 	for (const line of data) {
