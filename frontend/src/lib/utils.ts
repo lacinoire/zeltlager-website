@@ -7,6 +7,11 @@ export interface Column {
 	displayName?: string;
 }
 
+export interface FormError {
+	field?: string;
+	message: string;
+}
+
 export function getRegion(plz: number, ort: string) {
 	if (inMunich(plz, ort)) return "München";
 	if (inMunichLandkreis(plz, ort)) return "Landkreis München";

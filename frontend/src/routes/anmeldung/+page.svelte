@@ -3,11 +3,11 @@
 	import { onMount, tick } from "svelte";
 	import { browser, building } from "$app/environment";
 	import { YEAR, inMunich } from "$lib/utils";
+	import type { FormError } from "$lib/utils";
 	import Icon from "$lib/Icon.svelte";
 	import { mdiDelete } from "@mdi/js";
 
-	let error: ErrorMsg | undefined;
-
+	let error: FormError | undefined;
 	let isLoading = false;
 	let isFull = false;
 	let signupForm: HTMLFormElement | undefined;
@@ -15,11 +15,6 @@
 	let curCategory: number = 0;
 	let signupFormSaved = false;
 	let somethingChanged = false;
-
-	interface ErrorMsg {
-		field?: string;
-		message: string;
-	}
 
 	interface Variant {
 		// Defaults to name.toLowerCase()

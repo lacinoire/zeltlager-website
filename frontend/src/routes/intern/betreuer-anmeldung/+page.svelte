@@ -1,39 +1,24 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { onMount } from "svelte";
+	import { onMount, tick } from "svelte";
+	import { inMunich } from "$lib/utils";
+	import type { FormError } from "$lib/utils";
 
-	let error: string | undefined;
+	let error: FormError | undefined;
 	let signupForm: HTMLFormElement | undefined;
 	let errorMsg: HTMLElement | undefined;
 
-	async function loadState() {
-		let response: Response;
-		try {
-			response = await fetch("/api/signup-state");
-		} catch (e) {
-			console.error("Failed to make signup state web request", e);
-			error = "Verbindung fehlgeschlagen. Ist das Internet erreichbar?";
-			return;
-		}
-		let respText: string;
-		try {
-			respText = await response.text();
-		} catch (e) {
-			console.error("Failed to read signup state response", e);
-			error = "Verbindung abgebrochen";
-			return;
-		}
-		try {
-			const resp = JSON.parse(respText);
-		} catch (e) {
-			console.error("Failed to convert signup state request to json", e);
-			error = respText;
-			return;
-		}
+	// TODO Use categories and errors from teilnehmer
+
+	async function setError(msg: string) {
+		error = { "message": msg };
+		await tick();
+		errorMsg?.scrollIntoView({ behavior: "smooth" });
 	}
 
-	function setError(msg: string) {
+	async function setErrorMsg(msg: ErrorMsg) {
 		error = msg;
+		await tick();
 		errorMsg?.scrollIntoView({ behavior: "smooth" });
 	}
 
@@ -64,7 +49,7 @@
 		try {
 			const resp = JSON.parse(respText);
 			if (resp.error !== null) {
-				setError(resp.error);
+				setErrorMsg(resp.error);
 			} else {
 				// Signup successful
 				goto("/intern/betreuer-anmeldung-erfolgreich");
@@ -75,8 +60,6 @@
 			setError(respText);
 			return;
 		}
-		// Refetch status
-		await loadState();
 	}
 
 	function fillTestData() {
@@ -100,8 +83,6 @@
 		// Press Alt+Escape in Nachname to fill in test data
 		if (e.altKey && e.key === "Escape") fillTestData();
 	}
-
-	onMount(loadState);
 </script>
 
 <svelte:head>
@@ -110,15 +91,15 @@
 
 <h1 class="title">Betreueranmeldung für das Zeltlager</h1>
 
-<div bind:this={errorMsg} class="error-msg">
-	{#if error !== undefined}
+{#if error !== undefined && (error.field === undefined || true)}
+	<div bind:this={errorMsg} class="error-msg">
 		<article class="message is-danger">
 			<div class="message-body">
-				{error}
+				{error.message}
 			</div>
 		</article>
-	{/if}
-</div>
+	</div>
+{/if}
 
 <form
 	method="post"
@@ -548,6 +529,10 @@
 </form>
 
 <style>
+	:target, .error-msg {
+		scroll-margin-top: 5em;
+	}
+
 	.error-msg {
 		margin-bottom: 1em;
 	}
