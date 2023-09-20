@@ -63,7 +63,7 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 						let lower_name = name.to_lowercase();
 						if lower_name.ends_with(".jpg") || lower_name.ends_with(".png") {
 							// Check if there is a thumbnail for it
-							if let Err(e) = create_thumb(&path, name) {
+							if let Err(e) = create_thumb(path, name) {
 								warn!("Failed to create thumbnail for {}: {:?}", name, e);
 							}
 						}
@@ -140,7 +140,7 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 
 	// Check if we can scale it down
 	let proc = Command::new("convert")
-		.args(&[
+		.args([
 			orig_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
 			"-resize",
 			"300x300",

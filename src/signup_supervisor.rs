@@ -67,7 +67,7 @@ async fn signup_internal(
 pub async fn signup(
 	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = signup_internal(&**state, body.into_inner()).await;
+	let (status, result) = signup_internal(&state, body.into_inner()).await;
 	HttpResponse::build(status).json(result)
 }
 
@@ -75,7 +75,7 @@ pub async fn signup(
 pub async fn signup_nojs(
 	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = signup_internal(&**state, body.into_inner()).await;
+	let (status, result) = signup_internal(&state, body.into_inner()).await;
 	if let Some(error) = result.error {
 		HttpResponse::build(status).body(error.message)
 	} else {

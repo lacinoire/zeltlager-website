@@ -201,7 +201,7 @@ pub async fn download_members(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::DownloadFullMembersMessage).await.map_err(|e| e.into()) {
 		Ok(Err(error)) | Err(error) => {
 			warn!("Error fetching from database: {}", error);
-			crate::error_response(&**state)
+			crate::error_response(&state)
 		}
 		Ok(Ok(members)) => HttpResponse::Ok().json(members),
 	}
@@ -213,7 +213,7 @@ pub async fn download_supervisors(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::DownloadFullSupervisorsMessage).await.map_err(|e| e.into()) {
 		Ok(Err(error)) | Err(error) => {
 			warn!("Error fetching from database: {}", error);
-			crate::error_response(&**state)
+			crate::error_response(&state)
 		}
 		Ok(Ok(supervisors)) => HttpResponse::Ok().json(supervisors),
 	}

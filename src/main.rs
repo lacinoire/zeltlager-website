@@ -126,7 +126,7 @@ where
 		let mut path = original_path;
 		if original_path.starts_with("/Bilder") {
 			for name in &self.image_dirs {
-				if original_path.trim_end_matches("/") == &format!("/Bilder{}", name) {
+				if original_path.trim_end_matches('/') == format!("/Bilder{}", name) {
 					path = "/images/";
 				}
 			}
@@ -346,11 +346,11 @@ async fn menu(
 		.and_then(|p| state.sites.get(p))
 		.or_else(|| state.sites.get(DEFAULT_PREFIX))
 	{
-		let roles = match auth::get_roles(&**state, &id).await {
+		let roles = match auth::get_roles(&state, &id).await {
 			Ok(r) => r,
 			Err(e) => {
 				error!("Failed to get roles: {}", e);
-				return crate::error_response(&**state);
+				return crate::error_response(&state);
 			}
 		};
 		let mut menu_items = Vec::new();
@@ -375,7 +375,7 @@ async fn menu(
 		for site in &site_descriptions.sites {
 			match &site.role {
 				Some(role) => {
-					if !roles.as_ref().map(|v| v.as_slice()).unwrap_or(&[]).contains(&role) {
+					if !roles.as_deref().unwrap_or(&[]).contains(role) {
 						continue;
 					}
 				}
@@ -399,7 +399,7 @@ async fn menu(
 		})
 	} else {
 		error!("Did not find site prefix {:?}", data.prefix);
-		return crate::error_response(&**state);
+		crate::error_response(&state)
 	}
 }
 

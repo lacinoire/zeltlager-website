@@ -113,11 +113,10 @@ pub async fn signup_state(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::CountMemberMessage).await.map_err(|e| e.into()) {
 		Err(error) | Ok(Err(error)) => {
 			error!("Failed to get current member count: {:?}", error);
-			crate::error_response(&**state)
+			crate::error_response(&state)
 		}
 		Ok(Ok(count)) => {
-			return HttpResponse::Ok()
-				.json(SignupState { is_full: count >= state.config.max_members });
+			HttpResponse::Ok().json(SignupState { is_full: count >= state.config.max_members })
 		}
 	}
 }
@@ -149,19 +148,19 @@ async fn signup_internal(
 	match db_addr.send(db::CountMemberMessage).await {
 		Err(error) => {
 			warn!("Error inserting into database: {}", error);
-			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
 				error: Some(
 					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
 				),
-			});
+			})
 		}
 		Ok(Err(error)) => {
 			warn!("Error inserting into database: {}", error);
-			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
 				error: Some(
 					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
 				),
-			});
+			})
 		}
 		Ok(Ok(count)) => {
 			signup_check_count(
@@ -184,7 +183,7 @@ async fn signup_internal(
 pub async fn signup(
 	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = signup_internal(&**state, body.into_inner()).await;
+	let (status, result) = signup_internal(&state, body.into_inner()).await;
 	HttpResponse::build(status).json(result)
 }
 
@@ -192,7 +191,7 @@ pub async fn signup(
 pub async fn signup_nojs(
 	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = signup_internal(&**state, body.into_inner()).await;
+	let (status, result) = signup_internal(&state, body.into_inner()).await;
 	if let Some(error) = result.error {
 		HttpResponse::build(status).body(error.message)
 	} else {

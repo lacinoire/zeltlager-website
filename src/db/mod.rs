@@ -192,13 +192,10 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		use diesel::dsl::now;
 
 		let parse_result = msg.ip.parse::<SocketAddr>();
-		let ip: IpNetwork;
-		match parse_result {
-			Ok(result) => ip = result.ip().into(),
-			Err(_) => {
-				ip = msg.ip.parse::<IpAddr>()?.into();
-			}
-		}
+		let ip: IpNetwork = match parse_result {
+			Ok(result) => result.ip().into(),
+			Err(_) => msg.ip.parse::<IpAddr>()?.into(),
+		};
 		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&mut self.connection);
 		// check for no entry found
 		match entry_res {
@@ -492,7 +489,7 @@ impl Handler<GetRolesMessage> for DbExecutor {
 		match roles.filter(user_id.eq(msg.user)).get_results::<models::Role>(&mut self.connection) {
 			Ok(mut res) => {
 				// Convert to enum
-				res.drain(..).map(|r| r.role.parse()).collect::<Result<_>>().map_err(|e| e.into())
+				res.drain(..).map(|r| r.role.parse()).collect::<Result<_>>()
 			}
 			Err(err) => Err(err.into()),
 		}

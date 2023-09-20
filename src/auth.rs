@@ -157,7 +157,7 @@ async fn login_internal(
 pub async fn login(
 	state: web::Data<State>, req: HttpRequest, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = login_internal(&**state, &req, body.into_inner()).await;
+	let (status, result) = login_internal(&state, &req, body.into_inner()).await;
 	HttpResponse::build(status).json(result)
 }
 
@@ -165,7 +165,7 @@ pub async fn login(
 pub async fn login_nojs(
 	state: web::Data<State>, req: HttpRequest, body: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
-	let (status, result) = login_internal(&**state, &req, body.into_inner()).await;
+	let (status, result) = login_internal(&state, &req, body.into_inner()).await;
 	if let Some(error) = result.error {
 		HttpResponse::build(status).body(error)
 	} else {
@@ -197,9 +197,5 @@ pub async fn get_roles(state: &State, id: &Option<Identity>) -> Result<Option<Ve
 
 pub async fn user_get_roles(state: &State, user: i32) -> Result<Vec<Roles>> {
 	let msg = db::GetRolesMessage { user };
-	Ok(state
-		.db_addr
-		.send(msg)
-		.await
-		.map_err(|e| format_err!("Failed to get user roles: {}", e))??)
+	state.db_addr.send(msg).await.map_err(|e| format_err!("Failed to get user roles: {}", e))?
 }

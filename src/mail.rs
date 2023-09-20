@@ -110,12 +110,7 @@ impl Handler<SignupMessage> for MailExecutor {
 		let subject = format!("{}", Subject { member: &msg.member }).trim().to_string();
 		let body = format!("{}", Body { member: &msg.member }).trim().to_string();
 
-		self.send_mail(
-			msg.member.eltern_name.clone(),
-			msg.member.eltern_mail.clone(),
-			subject,
-			body,
-		)
+		self.send_mail(msg.member.eltern_name.clone(), msg.member.eltern_mail, subject, body)
 	}
 }
 
@@ -126,12 +121,7 @@ impl Handler<PayedMessage> for MailExecutor {
 		let subject = format!("{}", PayedSubject { member: &msg.member }).trim().to_string();
 		let body = format!("{}", PayedBody { member: &msg.member }).trim().to_string();
 
-		self.send_mail(
-			msg.member.eltern_name.clone(),
-			msg.member.eltern_mail.clone(),
-			subject,
-			body,
-		)
+		self.send_mail(msg.member.eltern_name.clone(), msg.member.eltern_mail, subject, body)
 	}
 }
 

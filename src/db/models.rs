@@ -345,14 +345,14 @@ pub fn check_email(text: &str, field: &str) -> Result<(), FormError> {
 
 pub fn check_house_number(text: &str) -> Result<(), FormError> {
 	// Check for at least one digit
-	if !text.find(|c: char| c.is_digit(10)).is_some() {
-		return Err(FormError {
+	if text.find(|c: char| c.is_ascii_digit()).is_none() {
+		Err(FormError {
 			field: Some("hausnummer".into()),
 			message: format!(
 				"Ungültige Hausnummer ({}), muss mindestens eine Ziffer enthalten",
 				text
 			),
-		});
+		})
 	} else {
 		Ok(())
 	}
