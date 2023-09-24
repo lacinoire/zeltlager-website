@@ -323,27 +323,29 @@
 		<div class="field-body">
 			<div class="field">
 				<div class="control">
-					{#if curCategory != 0 && browser}
-						<button
-							class="button is-info"
-							on:click|preventDefault={() => setCategory(curCategory - 1)}>
-							Zurück
-						</button>
-					{/if}
-					{#if curCategory == categories.length - 1 || !browser}
-						<button
-							type="submit"
-							class="button is-primary"
-							class:is-loading={isLoading && error === undefined}>
-							{submitText}
-						</button>
-					{:else}
-						<button
-							class="button is-info"
-							on:click|preventDefault={() => setCategory(curCategory + 1)}>
-							Weiter
-						</button>
-					{/if}
+					<span class="form-buttons">
+						{#if curCategory != 0 && browser}
+							<button
+								class="button"
+								on:click|preventDefault={() => setCategory(curCategory - 1)}>
+								Zurück
+							</button>
+						{/if}
+						{#if curCategory == categories.length - 1 || !browser}
+							<button
+								type="submit"
+								class="button is-primary"
+								class:is-loading={isLoading && error === undefined}>
+								{submitText}
+							</button>
+						{:else}
+							<button
+								class="button is-info"
+								on:click|preventDefault={() => setCategory(curCategory + 1)}>
+								Weiter
+							</button>
+						{/if}
+					</span>
 					{#if formSaved}
 						<button
 							class="button reset-button"
@@ -474,6 +476,11 @@
 	}
 
 	@media screen and (max-width: 1230px) {
+		.form-buttons {
+			display: flex;
+			flex-direction: column-reverse;
+		}
+
 		.button {
 			width: 100%;
 		}
