@@ -451,16 +451,30 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			.first::<models::UserQueryResult>(&mut self.connection)
 		{
 			Ok(user) => {
-				// If parsing in the new format does not work, try the old hash format
 				if PasswordHash::new(&user.password)
 					.and_then(|hash| scrypt::Scrypt.verify_password(msg.password.as_bytes(), &hash))
-					.is_ok() || scrypt::Scrypt
-					.verify_mcf_hash(msg.password.as_bytes(), &user.password)
 					.is_ok()
 				{
 					Ok(Some(user.id))
 				} else {
-					Ok(None)
+					// If parsing in the new format does not work, try the old hash format
+					if scrypt::Scrypt
+						.verify_mcf_hash(msg.password.as_bytes(), &user.password)
+						.is_ok()
+					{
+						// Update password to new format
+						let salt = SaltString::generate(&mut rand::thread_rng());
+						let pw = Scrypt
+							.hash_password_simple(msg.password.as_bytes(), salt.as_ref())?
+							.to_string();
+						diesel::update(users.filter(username.eq(&msg.username)))
+							.set(password.eq(pw))
+							.execute(&mut self.connection)?;
+
+						Ok(Some(user.id))
+					} else {
+						Ok(None)
+					}
 				}
 			}
 			Err(Error::NotFound) => {

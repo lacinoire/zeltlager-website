@@ -278,7 +278,7 @@ pub fn try_parse_gender(s: &str) -> Result<Gender, FormError> {
 pub fn get_birthday_date(birthday_date: &str) -> DateTime<Utc> {
 	let date = NaiveDate::parse_from_str(&format!("0000-{}", birthday_date), "%Y-%m-%d")
 		.expect("Date has wrong format");
-	let mut date = DateTime::<Utc>::from_utc(date.and_time(Default::default()), Utc);
+	let mut date = date.and_time(Default::default()).and_utc();
 
 	// Set the right year
 	let now = Utc::now();
@@ -460,7 +460,7 @@ impl Teilnehmer {
 		check_house_number(&res.hausnummer)?;
 
 		// Check birth date
-		let birthday = DateTime::from_utc(res.geburtsdatum.and_time(Default::default()), Utc);
+		let birthday = res.geburtsdatum.and_time(Default::default()).and_utc();
 		let now = Utc::now();
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
@@ -616,7 +616,7 @@ impl Supervisor {
 			}
 		}
 		// Check birth date
-		let birthday = DateTime::from_utc(res.geburtsdatum.and_time(Default::default()), Utc);
+		let birthday = res.geburtsdatum.and_time(Default::default()).and_utc();
 		let now = Utc::now();
 		let years = years_old(birthday, &get_birthday_date(birthday_date));
 		if now <= birthday || years >= 100 {
