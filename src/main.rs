@@ -47,7 +47,7 @@ use config::{Config, MailAddress};
 const DEFAULT_PREFIX: &str = "public";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
 const KEY_FILE: &str = "secret.key";
-const YEAR: u32 = 2023;
+const YEAR: u32 = 2024;
 
 fn cookie_maxtime() -> Duration { Duration::days(2) }
 fn ratelimit_duration() -> Duration { Duration::days(1) }
