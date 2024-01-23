@@ -13,7 +13,7 @@ import { YEAR } from "$lib/utils";
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des **TSV Dinkelscherben** statt.
+Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des **SV Salamander Türkheim** statt.
 
 **Abfahrt:** Montag den 29.07.{YEAR} um 10:00 Uhr
 
@@ -23,7 +23,7 @@ auf dem Parkplatz **Westfriedhof** in der Baldurstraße, gegenüber Einmündung 
 
 Die Hin- und Rückreise erfolgt mit modernen Reisebussen.
 
-Die **Teilnehmergebühr** beträgt 250 € und beinhaltet alle Kosten. Außer einem kleinen Taschengeld für persönliche Mitbringsel entstehen keine weiteren Kosten. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
+Die Teilnehmergebühr beträgt **250 €** und beinhaltet alle Kosten. Außer einem kleinen Taschengeld für persönliche Mitbringsel entstehen keine weiteren Kosten. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
 
 <div class="image-list">
 	<!-- Set some preliminary width and height to support lazy loading -->
