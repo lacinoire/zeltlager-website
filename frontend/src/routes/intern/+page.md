@@ -42,6 +42,9 @@ Mögliche Erste-Hilfe-Kurse über die Münchner Sportjugend findest du unter [ww
 ### Erweitertes Führungszeugnis
 
 Wenn du das erste Mal als Betreuer:in ins Zeltlager mitfährst, benötigst du außerdem ein erweitertes Führungszeugnis.
+Das erweiterte Führungszeugnis musst du beantragen, wohnst du in München, geht das [auf der Seite des KVR](https://stadt.muenchen.de/service/info/hauptabteilung-ii-buergerangelegenheiten/10104268/).
+
+Zum Beantragen musst du den [Nachweis über ehrenamtliche Tätigkeit](/files/Nachweis-ueber-ehrenamtliche-Taetigkeit.pdf) ausfüllen.
 
 ### Anmeldung bei meinZeltlager
 
@@ -128,6 +131,7 @@ Nach dem Lager ist vor dem Lager. Es geht wieder von vorne los! 😊
 ## Downloads
 
 [Vereinsbestätigung über die Praxisbegleitung](/files/Vereinsbestaetigung-Praxisbegleitung.pdf)  
-[Mitgliedsantrag FT Gern](/files/mitgliedsantrag-2023.pdf)
+[Mitgliedsantrag FT Gern](/files/mitgliedsantrag-2023.pdf)  
+[Nachweis über ehrenamtliche Tätigkeit](/files/Nachweis-ueber-ehrenamtliche-Taetigkeit.pdf)
 
 </div>
