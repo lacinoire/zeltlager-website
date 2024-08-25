@@ -263,9 +263,7 @@
 												required
 												type="radio"
 												on:change={saveEntries} />
-											<span class="custom-control-indicator" />
-											<span class="custom-control-description"
-												>{variant.name}</span>
+											{variant.name}
 										</label>
 									{/each}
 								{:else if field.type === "textarea"}
@@ -287,9 +285,7 @@
 											required
 											type="checkbox"
 											on:change={saveEntries} />
-										<span class="custom-control-indicator" />
-										<span class="custom-control-description"
-											>{@html field.name}</span>
+											{@html field.name}
 									</label>
 								{/if}
 							</div>
@@ -297,7 +293,7 @@
 								<p
 									id={(field.id ?? field.name.toLowerCase()) + "HelpBlock"}
 									class="help">
-									{field.help ?? ""}
+									{@html field.help ?? ""}
 									{#if field.required === false}
 										<p class="optional">Optional</p>
 									{/if}
@@ -391,6 +387,10 @@
 	}
 	.reset-button {
 		float: right;
+	}
+
+	.radio +.radio {
+		margin-left: 0.5em;
 	}
 
 	.progress-indicator-container {

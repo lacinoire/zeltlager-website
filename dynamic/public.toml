@@ -3,6 +3,11 @@
 prefix = ""
 
 [[sites]]
+name = "admin/"
+title = "Verwaltung"
+role = "Admin"
+
+[[sites]]
 name = "admin/teilnehmer"
 title = "Teilnehmer"
 role = "Admin"
