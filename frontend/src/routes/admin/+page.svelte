@@ -1,20 +1,67 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { tick } from "svelte";
 	import { goto } from "$app/navigation";
 	import { mdiDeleteOutline } from "@mdi/js";
 	import Icon from "$lib/Icon.svelte";
+	import { sleep } from "$lib/utils";
 
 	let error: string | undefined;
-	let deleteModal: HTMLDivElement | undefined;
-	let deleteModalOpen = false;
+	let mailModalOpen = false;
+	let mailModalLoading = false;
+	let mailModalInput: HTMLInputElement | undefined;
+	let mailModalButton: HTMLButtonElement | undefined;
 
-	function showMails() {
-		
+	let deleteModalOpen = false;
+	let deleteModalInput: HTMLInputElement | undefined;
+
+	async function openMailModal() {
+		mailModalButton.innerHTML = "Kopieren";
+		mailModalLoading = true;
+		mailModalOpen = true;
+
+		// TODO Fetch mails, separate by ;
+
+		mailModalLoading = false;
+	}
+
+	async function copyMails() {
+		try {
+			await navigator.clipboard.writeText(mailModalInput.value);
+			mailModalButton.innerHTML = "✔";
+		} catch (err) {
+			console.log("Failed to copy", err);
+			mailModalButton.innerHTML = "✘ Kopieren fehlgeschlagen";
+		}
+	}
+
+	async function openDeleteModal() {
+		deleteModalOpen = true;
+		if (deleteModalInput) {
+			await tick();
+			deleteModalInput.focus();
+		}
+	}
+
+	function closeDeleteModal(ev: Event) {
+		deleteModalOpen = false;
+		if (deleteModalInput !== undefined)
+			deleteModalInput.value = "";
+	}
+
+	function deleteLager() {
+		if (deleteModalInput.value !== "Zeltlager") {
+			alert("Bitte im Textfeld ‚Zeltlager‘ eingeben, um die Daten zu löschen.");
+			return;
+		}
+
+		// TODO Remove lager and show success
+		closeDeleteModal();
 	}
 
   function documentKeyDown(event) {
     if (event.key === "Escape") {
-      deleteModalOpen = false;
+      mailModalOpen = false;
+      closeDeleteModal();
     }
   }
 </script>
@@ -38,7 +85,7 @@
 <p class="buttons">
 	<button
 		class="button is-info"
-		on:click|preventDefault={showMails}>
+		on:click|preventDefault={openMailModal}>
     <span class="icon">
 			✉️
 		</span>
@@ -51,7 +98,7 @@
 <p class="buttons">
 	<button
 		class="button is-danger"
-		on:click|preventDefault={() => deleteModalOpen = true}>
+		on:click|preventDefault={openDeleteModal}>
     <span class="icon">
 			<Icon name={mdiDeleteOutline} />
 		</span>
@@ -92,28 +139,51 @@
 	</a>
 </div>
 
-<div class="modal" bind:this={deleteModal} class:is-active={deleteModalOpen}>
-  <div class="modal-background" on:click={() => deleteModalOpen = false}></div>
-  <div class="modal-card">
+<div class="modal" class:is-active={mailModalOpen}>
+  <div class="modal-background" on:click={() => mailModalOpen = false}></div>
+  <div class="modal-content">
+  	<div class="box">
+  		<div class="field has-addons">
+			  <div class="control" style="flex-grow: 1;">
+			    <input class="input" class:is-skeleton={mailModalLoading} type="text" bind:this={mailModalInput} />
+			  </div>
+			  <div class="control">
+			    <button class="button is-info" class:is-skeleton={mailModalLoading} on:click={copyMails} bind:this={mailModalButton}>
+			    	Kopieren
+			    </button>
+			  </div>
+			</div>
+	  </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close" on:click={() => mailModalOpen = false}></button>
+</div>
+
+<div class="modal" class:is-active={deleteModalOpen}>
+  <div class="modal-background" on:click={closeDeleteModal}></div>
+  <form class="modal-card" on:submit|preventDefault={deleteLager}>
     <header class="modal-card-head">
       <p class="modal-card-title">Lager löschen</p>
-      <button class="delete" aria-label="close" on:click={() => deleteModalOpen = false}></button>
+      <button type="button" class="delete" aria-label="close" on:click={closeDeleteModal}></button>
     </header>
-    <section class="modal-card-body content">
-      <strong>Achtung:</strong> Hiermit werden gelöscht:
-      <ul>
-      	<li>Alle TODO Teilnehmer</li>
-      	<li>TODO Betreuer, die dieses Jahr nicht angemeldet waren</li>
-      	<li>Alle TODO Erwischt Spiele</li>
-      </ul>
+    <section class="modal-card-body">
+    	<div class="content">
+	      <strong>Achtung:</strong> Hiermit werden gelöscht:
+	      <ul>
+	      	<li>Alle TODO Teilnehmer</li>
+	      	<li>TODO Betreuer, die dieses Jahr nicht angemeldet waren</li>
+	      	<li>Alle TODO Erwischt Spiele</li>
+	      </ul>
+	    </div>
+	    Hier <code>Zeltlager</code> eingeben zum löschen:
+    	<input type="text" bind:this={deleteModalInput} />
     </section>
     <footer class="modal-card-foot">
       <div class="buttons">
-        <button class="button is-danger">Daten löschen</button>
-        <button class="button" on:click={() => deleteModalOpen = false}>Abbrechen</button>
+        <button class="button is-danger" type="submit">Daten löschen</button>
+        <button class="button" on:click={() => console.log("Closing??")}>Abbrechen</button>
       </div>
     </footer>
-  </div>
+  </form>
 </div>
 
 <style lang="scss">

@@ -12,6 +12,10 @@ export interface FormError {
 	message: string;
 }
 
+export async function sleep(timeout: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, timeout));
+}
+
 export function getRegion(plz: number, ort: string) {
 	if (inMunich(plz, ort)) return "München";
 	if (inMunichLandkreis(plz, ort)) return "Landkreis München";
