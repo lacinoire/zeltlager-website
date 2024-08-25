@@ -1,24 +1,28 @@
-@import "bulma/sass/base/_all";
-@import "bulma/sass/utilities/_all";
-@import "bulma/sass/components/dropdown";
-@import "bulma/sass/components/message";
-@import "bulma/sass/components/navbar";
-@import "bulma/sass/components/tabs";
-@import "bulma/sass/elements/box";
-@import "bulma/sass/elements/button";
-@import "bulma/sass/elements/container";
-@import "bulma/sass/elements/content";
-@import "bulma/sass/elements/progress";
-@import "bulma/sass/elements/table";
-@import "bulma/sass/elements/title";
-@import "bulma/sass/form/_all";
-@import "bulma/sass/helpers/color";
-@import "bulma/sass/helpers/typography";
-@import "bulma/sass/helpers/visibility";
-@import "bulma/sass/layout/footer";
-@import "bulma-switch/src/sass/index";
+// TODO Use bulma sceletons for admin tables loading
+// TODO Use @use here
+@use "bulma/sass/base";
+@use "bulma/sass/themes";
+@use "bulma/sass/utilities";
+@use "bulma/sass/components/dropdown";
+@use "bulma/sass/components/message";
+@use "bulma/sass/components/modal";
+@use "bulma/sass/components/navbar";
+@use "bulma/sass/components/tabs";
+@use "bulma/sass/elements/box";
+@use "bulma/sass/elements/button";
+@use "bulma/sass/elements/content";
+@use "bulma/sass/elements/delete";
+@use "bulma/sass/elements/progress";
+@use "bulma/sass/elements/table";
+@use "bulma/sass/elements/title";
+@use "bulma/sass/form";
+@use "bulma/sass/helpers/color";
+@use "bulma/sass/helpers/typography";
+@use "bulma/sass/helpers/visibility";
+@use "bulma/sass/layout/container";
+@use "bulma/sass/layout/footer";
+@use "bulma/sass/utilities/initial-variables" as iv;
 
-@import "./checkbox-switch";
 @import "./lib/glightbox/glightbox.scss";
 
 html {
@@ -42,11 +46,16 @@ body {
 }
 
 .input::placeholder {
-	color: bulmaRgba($input-color, 0.8);
+	color: hsla(
+		var(--bulma-input-h),
+		var(--bulma-input-s),
+		var(--bulma-input-color-l),
+		0.8);
 }
 
 img {
-	padding: 0.3125rem; /* 5px */
+	/* 5px */
+	padding: 0.3125rem;
 	image-orientation: from-image;
 }
 
@@ -62,6 +71,7 @@ img {
 	@media screen and (max-width: 1023px) {
 		margin-left: -1em;
 		margin-right: -1em;
+		background-color: rgb(240, 240, 240);
 
 		img:first-child {
 			padding-left: 1em;
@@ -70,8 +80,6 @@ img {
 		img:last-child {
 			padding-right: 1em;
 		}
-
-		background-color: rgb(240, 240, 240);
 	}
 
 	@media screen and (max-width: calc(40em * 2)) {
@@ -116,7 +124,8 @@ td.special {
 	}
 }
 
-@media screen and (min-width: 769px), print {
+@media screen and (min-width: 769px),
+print {
 	.label {
 		font-weight: inherit;
 	}
@@ -142,7 +151,7 @@ td.special {
 		fill: #fff;
 	}
 
-	@media (min-width: $medium-viewport) {
+	@media (min-width: iv.$tablet) {
 		opacity: 0.7;
 		right: 60px;
 	}

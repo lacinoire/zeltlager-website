@@ -46,28 +46,26 @@
 	afterNavigate(() => (location = browser ? window.location.pathname : ""));
 </script>
 
-<nav class="navbar is-fixed-top is-light" aria-label="navigation">
+<nav class="navbar is-fixed-top is-light" aria-label="main navigation">
 	<div class="container" class:wide={isWide}>
 		<div class="navbar-brand">
 			<a class="navbar-brand" href="/">
 				<img src="/img/MeinZeltlager.svg" style="padding: 0; height: 60px;" alt="Logo" />
 			</a>
 			<!-- svelte-ignore a11y-missing-attribute -->
-			<a
-				role="button"
+	    <a role="button" class="navbar-burger" aria-label="menu"
 				tabindex="0"
-				class="navbar-burger"
-				aria-label="menu"
 				aria-expanded={showNavbar}
 				class:is-active={showNavbar}
 				on:click={() => (showNavbar = !showNavbar)}
 				on:keydown={(e) => {
 					if (e.key === "Enter") showNavbar = !showNavbar;
 				}}>
-				<span aria-hidden="true" />
-				<span aria-hidden="true" />
-				<span aria-hidden="true" />
-			</a>
+	      <span aria-hidden="true"></span>
+	      <span aria-hidden="true"></span>
+	      <span aria-hidden="true"></span>
+	      <span aria-hidden="true"></span>
+	    </a>
 		</div>
 
 		<div
@@ -81,7 +79,7 @@
 				{#each menuData.items as item}
 					{#if !["/anmeldung", "/packliste", "/ausstattung", "/betreuer"].includes(item.link)}
 						<a
-							class="navbar-item"
+							class="navbar-item is-tab"
 							href={item.link}
 							class:is-active={stripSlashes($page.route.id) ===
 								stripSlashes(item.link) ||
@@ -93,50 +91,50 @@
 				{/each}
 				{#if $page.route.id?.startsWith("/intern")}
 					<a
-						class="navbar-item"
+						class="navbar-item is-tab"
 						href="/intern"
 						class:is-active={$page.route.id === "/intern"}>
 						Betreuer-Info
 					</a>
 					<a
-						class="navbar-item"
+						class="navbar-item is-tab"
 						href="/intern/betreuer-anmeldung"
 						class:is-active={$page.route.id === "/intern/betreuer-anmeldung"}>
 						Betreuer-Anmeldung
 					</a>
 				{/if}
 				<a
-					class="navbar-item emph-item"
+					class="navbar-item is-tab emph-item"
 					href="/anmeldung"
 					class:is-active={$page.route.id === "/anmeldung"}>
 					Anmeldung
 				</a>
 				<a
-					class="navbar-item"
+					class="navbar-item is-tab"
 					href="/packliste"
 					class:is-active={$page.route.id === "/packliste"}>
 					Packliste
 				</a>
 				<a
-					class="navbar-item"
+					class="navbar-item is-tab"
 					href="/ausstattung"
 					class:is-active={$page.route.id === "/ausstattung"}>
 					Ausstattung und Team
 				</a>
 				<a
-					class="navbar-item"
+					class="navbar-item is-tab"
 					href="/betreuer"
 					class:is-active={$page.route.id === "/betreuer"}>
 					Für Betreuer
 				</a>
 				<a
-					class="navbar-item emph-item"
+					class="navbar-item is-tab emph-item"
 					href="/login"
 					class:is-hidden={menuData.isLoggedIn}>
 					Login
 				</a>
 				{#if menuData.isLoggedIn}
-					<a class="navbar-item emph-item" href="/api/logout"> Logout </a>
+					<a class="navbar-item is-tab emph-item" href="/api/logout">Logout</a>
 				{/if}
 			</div>
 		</div>
