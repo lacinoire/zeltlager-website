@@ -33,8 +33,6 @@ Die Teilnehmergebühr beträgt **250 €** und beinhaltet alle Kosten. Außer 
 
 Die Betreuung und Verpflegung übernimmt das qualifizierte [Zeltlagerteam](/ausstattung#team), das die Zelte bereits im Vorfeld aufbaut. Übernachtet wird in Mannschaftszelten, daneben stehen Aufenthaltszelte, eine mobile Gastroküche, eine Sanitäranlage mit Warmwasserduschen, ein großes Sportgelände und viele, viele Spiele zur Verfügung
 
-Etwa 4 Wochen vor dem Zeltlager laden wir die Eltern der angemeldeten Teilnehmer zu einem Elternabend ein. Dort bekommen Sie noch einmal alle Informationen. Der Elternabend wird ca. 1 Stunde dauern.
-
 Wir freuen uns schon auf das Zeltlager {YEAR}.
 
 Das Betreuerteam

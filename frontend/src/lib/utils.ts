@@ -1,6 +1,9 @@
 import { utils, writeFile } from "xlsx";
+import moment from "moment";
 
-export const YEAR = 2024;
+import lagerStartString from "../../lager-start.txt?raw";
+export const LAGER_START = moment(lagerStartString);
+export const YEAR = LAGER_START.year();
 
 export interface Column {
 	name?: string;

@@ -9,3 +9,7 @@ title = "Für Betreuer"
 [[sites]]
 name = "betreuer-anmeldung"
 title = "Betreueranmeldung"
+
+[[sites]]
+name = "zuschuesse"
+title = "Zuschüsse"

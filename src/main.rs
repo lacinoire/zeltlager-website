@@ -8,7 +8,7 @@ use std::fs;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use actix_files::Files;
 use actix_identity::{Identity, IdentityExt, IdentityMiddleware};
@@ -28,6 +28,8 @@ use lettre::message::Mailbox;
 use log::{error, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use time::macros::format_description;
+use time::Date;
 
 mod admin;
 mod auth;
@@ -47,6 +49,11 @@ use config::{Config, MailAddress};
 const DEFAULT_PREFIX: &str = "public";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
 const KEY_FILE: &str = "secret.key";
+const LAGER_START_STR: &str = include_str!("../frontend/lager-start.txt");
+const LAGER_START: LazyLock<Date> = LazyLock::new(|| {
+	Date::parse(LAGER_START_STR.trim(), format_description!("[year]-[month]-[day]")).unwrap()
+});
+// TODO Remove
 const YEAR: u32 = 2024;
 
 fn cookie_maxtime() -> Duration { Duration::days(2) }
@@ -523,8 +530,11 @@ async fn main() -> Result<()> {
 					.service(
 						web::scope("/admin")
 							.wrap(HasRolePredicate::new(auth::Roles::Admin, true))
+							.service(admin::download_mails)
 							.service(admin::download_members)
 							.service(admin::download_supervisors)
+							.service(admin::lager_info)
+							.service(admin::remove_lager)
 							.service(admin::remove_member)
 							.service(admin::edit_member)
 							.service(admin::remove_supervisor)

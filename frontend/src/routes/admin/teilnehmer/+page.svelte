@@ -355,6 +355,35 @@
 	<progress class="progress is-small is-primary">Loading</progress>
 {/if}
 
+<div class="tabs">
+  <ul>
+    <li class:is-active={sortType === "alphabetisch"}>
+			<!-- svelte-ignore a11y-invalid-attribute -->
+      <a on:click={() => sortType = "alphabetisch"} href="#">
+        <span>Alphabetisch</span>
+      </a>
+    </li>
+    <li class:is-active={sortType === "region"}>
+			<!-- svelte-ignore a11y-invalid-attribute -->
+      <a on:click={() => sortType = "region"} href="#">
+        <span>München/Landkreis</span>
+      </a>
+    </li>
+    <li class:is-active={sortType === "bezahlt"}>
+			<!-- svelte-ignore a11y-invalid-attribute -->
+      <a on:click={() => sortType = "bezahlt"} href="#">
+        <span>Bezahlt</span>
+      </a>
+    </li>
+    <li class:is-active={sortType === "anwesend"}>
+			<!-- svelte-ignore a11y-invalid-attribute -->
+      <a on:click={() => sortType = "anwesend"} href="#">
+        <span>Anwesend</span>
+      </a>
+    </li>
+  </ul>
+</div>
+
 <div class="header-flex">
 	<div class="control">
 		<!-- svelte-ignore a11y-autofocus -->
@@ -364,21 +393,6 @@
 			autofocus={true}
 			bind:value={filter}
 			placeholder="Suchen…" />
-	</div>
-	<div class="radio-buttons-as-buttons buttons has-addons">
-		<label class="button" class:is-info={sortType === "alphabetisch"}>
-			<input type="radio" autocomplete="off" bind:group={sortType} value="alphabetisch" />
-			Alphabetisch
-		</label>
-		<label class="button" class:is-info={sortType === "region"}>
-			<input type="radio" autocomplete="off" bind:group={sortType} value="region" /> München/Landkreis
-		</label>
-		<label class="button" class:is-info={sortType === "bezahlt"}>
-			<input type="radio" autocomplete="off" bind:group={sortType} value="bezahlt" /> Bezahlt
-		</label>
-		<label class="button" class:is-info={sortType === "anwesend"}>
-			<input type="radio" autocomplete="off" bind:group={sortType} value="anwesend" /> Anwesend
-		</label>
 	</div>
 	<div>
 		{#if all !== undefined}

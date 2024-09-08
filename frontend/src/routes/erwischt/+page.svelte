@@ -37,7 +37,6 @@
 	let filteredLive: Member[] | undefined;
 	let filteredCatched: Member[] | undefined;
 
-	let showGameOptions = false;
 	let showTarget = false;
 	let insertMember = false;
 	let filter = "";
@@ -315,7 +314,6 @@
 <svelte:head>
 	<title>Erwischt – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
-<svelte:window on:click={() => (showGameOptions = false)} />
 
 <div class="tabs" style="margin-bottom: 1em;">
 	<ul>
@@ -360,56 +358,26 @@
 			bind:value={filter}
 			placeholder="Suchen…" />
 	</div>
-	<div class="radio-buttons-as-buttons buttons has-addons">
-		<label class="button" class:is-info={!insertMember}>
-			<input type="radio" autocomplete="off" bind:group={insertMember} value={false} /> erwischen
-		</label>
-		<label class="button" class:is-info={insertMember}>
-			<input type="radio" autocomplete="off" bind:group={insertMember} value={true} /> einfügen
-		</label>
+	<div class="tabs is-toggle togglebuttons">
+	  <ul>
+	    <li class:is-active={!insertMember}>
+				<!-- svelte-ignore a11y-invalid-attribute -->
+	      <a on:click={() => insertMember = !insertMember} href="#">
+	        <span>erwischen</span>
+	      </a>
+	    </li>
+	    <li class:is-active={insertMember}>
+				<!-- svelte-ignore a11y-invalid-attribute -->
+	      <a on:click={() => insertMember = !insertMember} href="#">
+	        <span>einfügen</span>
+	      </a>
+	    </li>
+	  </ul>
 	</div>
-	<div
-		class="dropdown"
-		class:is-active={showGameOptions}
-		on:click|stopPropagation={() => (showGameOptions = !showGameOptions)}
-		on:keydown|stopPropagation={(e) => {
-			if (e.key === "Enter") showGameOptions = !showGameOptions;
-		}}>
-		<div class="dropdown-trigger">
-			<button class="button" aria-haspopup="true" aria-controls="gameoptions">
-				<span>Mehr</span>
-				<Icon name={mdiChevronDown} />
-			</button>
-		</div>
-		<div class="dropdown-menu" id="gameoptions" role="menu">
-			<div class="dropdown-content">
-				{#if currentGameId !== undefined}
-					<a
-						href={`/api/erwischt/game/${currentGameId}/game.pdf`}
-						target="_blank"
-						class="dropdown-item">
-						Spiel herunterladen
-					</a>
-					<a
-						href={`/api/erwischt/game/${currentGameId}/members.pdf`}
-						target="_blank"
-						class="dropdown-item">
-						Teilnehmer herunterladen
-					</a>
-				{/if}
-				<!-- svelte-ignore a11y-missing-attribute -->
-				<a
-					role="button"
-					tabindex="0"
-					on:click={deleteGame}
-					on:keydown={(e) => {
-						if (e.key === "Enter") deleteGame();
-					}}
-					class="dropdown-item">
-					Spiel löschen
-				</a>
-			</div>
-		</div>
+	<div>
+		<button class="button is-danger" on:click={deleteGame}>
+			Spiel löschen
+		</button>
 	</div>
 </div>
 
@@ -561,5 +529,9 @@
 		.button {
 			margin-bottom: 0;
 		}
+	}
+
+	.togglebuttons {
+		margin-bottom: 0;
 	}
 </style>

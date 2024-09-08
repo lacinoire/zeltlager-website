@@ -877,6 +877,7 @@ dependencies = [
  "itoa",
  "libc",
  "pq-sys",
+ "time",
 ]
 
 [[package]]
@@ -2931,6 +2932,7 @@ dependencies = [
  "serde",
  "serde_json",
  "t4rust-derive",
+ "time",
  "tokio",
  "toml",
  "url",

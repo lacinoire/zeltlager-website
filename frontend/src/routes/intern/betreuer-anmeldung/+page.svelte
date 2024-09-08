@@ -55,6 +55,12 @@
 					required: false,
 				},
 				{
+					id: "juleica_gueltig_bis",
+					name: "Juleica gültig bis",
+					placeholder: "dd.mm.yyyy",
+					required: false,
+				},
+				{
 					id: "fuehrungszeugnis_auststellung",
 					name: "Austellungsdatum Erweitertes Führungszeugnis",
 					placeholder: "TT.MM.JJJJ",

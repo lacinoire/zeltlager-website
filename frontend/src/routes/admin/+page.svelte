@@ -6,6 +6,8 @@
 	import { sleep } from "$lib/utils";
 
 	let error: string | undefined;
+	let success: string | undefined;
+
 	let mailModalOpen = false;
 	let mailModalLoading = false;
 	let mailModalInput: HTMLInputElement | undefined;
@@ -13,13 +15,33 @@
 
 	let deleteModalOpen = false;
 	let deleteModalInput: HTMLInputElement | undefined;
+	let deleteModalLoading = false;
+	let deleteModalTeilnehmer: HTMLElement | undefined;
+	let deleteModalBetreuer: HTMLElement | undefined;
+	let deleteModalErwischtGames: HTMLElement | undefined;
+	let deleteIsLoading = false;
 
 	async function openMailModal() {
 		mailModalButton.innerHTML = "Kopieren";
 		mailModalLoading = true;
 		mailModalOpen = true;
 
-		// TODO Fetch mails, separate by ;
+		// Fetch mails, separate by ;
+		// TODO Put into utils
+		const resp = await fetch("/api/admin/mails");
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+			}
+			return;
+		}
+		const data = await resp.json();
+
+		mailModalInput.value = data.join(";");
 
 		mailModalLoading = false;
 	}
@@ -34,28 +56,69 @@
 		}
 	}
 
+	async function fetchDeleteInfo() {
+		deleteModalLoading = true;
+		const resp = await fetch("/api/admin/lager");
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+			}
+			return;
+		}
+		const data = await resp.json();
+		deleteModalTeilnehmer.textContent = data.teilnehmer_count;
+		deleteModalBetreuer.textContent = data.old_betreuer_count;
+		deleteModalErwischtGames.textContent = data.erwischt_game_count;
+
+		deleteModalLoading = false;
+	}
+
 	async function openDeleteModal() {
 		deleteModalOpen = true;
+		deleteIsLoading = false;
+		success = undefined;
 		if (deleteModalInput) {
 			await tick();
 			deleteModalInput.focus();
 		}
+		await fetchDeleteInfo();
 	}
 
-	function closeDeleteModal(ev: Event) {
+	function closeDeleteModal() {
 		deleteModalOpen = false;
 		if (deleteModalInput !== undefined)
 			deleteModalInput.value = "";
 	}
 
-	function deleteLager() {
+	async function deleteLager() {
 		if (deleteModalInput.value !== "Zeltlager") {
 			alert("Bitte im Textfeld ‚Zeltlager‘ eingeben, um die Daten zu löschen.");
 			return;
 		}
 
-		// TODO Remove lager and show success
+		deleteIsLoading = true;
 		closeDeleteModal();
+
+		// Remove lager
+		const resp = await fetch("/api/admin/lager", {
+			method: "DELETE",
+		});
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Lager löschen fehlgeschlagen (" + (await resp.text()) + ")";
+			}
+			return;
+		}
+
+		success = "Lager erfolgreich gelöscht";
 	}
 
   function documentKeyDown(event) {
@@ -78,6 +141,14 @@
 	<article class="message is-danger">
 		<div class="message-body">
 			{error}
+		</div>
+	</article>
+{/if}
+
+{#if success !== undefined}
+	<article class="message is-success">
+		<div class="message-body">
+			{success}
 		</div>
 	</article>
 {/if}
@@ -169,9 +240,9 @@
     	<div class="content">
 	      <strong>Achtung:</strong> Hiermit werden gelöscht:
 	      <ul>
-	      	<li>Alle TODO Teilnehmer</li>
-	      	<li>TODO Betreuer, die dieses Jahr nicht angemeldet waren</li>
-	      	<li>Alle TODO Erwischt Spiele</li>
+	      	<li>Alle <strong class:is-skeleton={deleteModalLoading} bind:this={deleteModalTeilnehmer}>100</strong> Teilnehmer</li>
+	      	<li><strong class:is-skeleton={deleteModalLoading} bind:this={deleteModalBetreuer}>100</strong> Betreuer, die dieses Jahr nicht angemeldet waren</li>
+	      	<li>Alle <strong class:is-skeleton={deleteModalLoading} bind:this={deleteModalErwischtGames}>100</strong> Erwischt Spiele</li>
 	      </ul>
 	    </div>
 	    Hier <code>Zeltlager</code> eingeben zum löschen:
@@ -179,8 +250,8 @@
     </section>
     <footer class="modal-card-foot">
       <div class="buttons">
-        <button class="button is-danger" type="submit">Daten löschen</button>
-        <button class="button" on:click={() => console.log("Closing??")}>Abbrechen</button>
+        <button class="button is-danger" type="submit" class:is-loading={deleteIsLoading}>Daten löschen</button>
+        <button class="button" on:click|preventDefault={closeDeleteModal}>Abbrechen</button>
       </div>
     </footer>
   </form>

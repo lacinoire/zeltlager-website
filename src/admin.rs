@@ -6,6 +6,7 @@ use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::{db, mail, State};
+use time::OffsetDateTime;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct RemoveMemberData {
@@ -35,6 +36,13 @@ pub struct EditSupervisorData {
 #[derive(Clone, Debug, Serialize)]
 pub struct EditMemberResult {
 	error: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LagerInfo {
+	teilnehmer_count: i64,
+	old_betreuer_count: i64,
+	erwischt_game_count: i64,
 }
 
 #[post("/teilnehmer/remove")]
@@ -137,6 +145,7 @@ pub(crate) async fn edit_member(
 	}
 }
 
+// TODO Use delete("/betreuer/{id}") here and for teilnehmer
 #[post("/betreuer/remove")]
 pub(crate) async fn remove_supervisor(
 	state: web::Data<State>, data: web::Json<RemoveSupervisorData>,
@@ -216,5 +225,106 @@ pub async fn download_supervisors(state: web::Data<State>) -> HttpResponse {
 			crate::error_response(&state)
 		}
 		Ok(Ok(supervisors)) => HttpResponse::Ok().json(supervisors),
+	}
+}
+
+/// Return all unique mail addresses as json.
+#[get("/mails")]
+pub async fn download_mails(state: web::Data<State>) -> HttpResponse {
+	match state
+		.db_addr
+		.send(db::RunOnDbMsg(move |db| {
+			use crate::db::schema::teilnehmer;
+			use diesel::prelude::*;
+
+			let mut mails = teilnehmer::table
+				.select(teilnehmer::eltern_mail)
+				.load::<String>(&mut db.connection)?;
+			mails.sort();
+			mails.dedup();
+
+			Ok(mails)
+		}))
+		.await
+		.map_err(|e| e.into())
+	{
+		Ok(Err(error)) | Err(error) => {
+			warn!("Error fetching from database: {}", error);
+			crate::error_response(&state)
+		}
+		Ok(Ok(mails)) => HttpResponse::Ok().json(mails),
+	}
+}
+
+/// The date at which betreuer need to be signed up to count towards the current or last year.
+fn betreuer_signup_date_last_year() -> OffsetDateTime {
+	let mut date = crate::LAGER_START.midnight().assume_utc();
+	let now = OffsetDateTime::now_utc();
+	if date > now {
+		// Start from next time, subtract a year to allow allow signups from last time.
+		date -= time::Duration::days(365);
+	}
+
+	// Add two weeks to get the end of the lager, subtract one year to get the date of last year.
+	date - time::Duration::days(365) + time::Duration::weeks(2)
+}
+
+/// Get overview info of the current lager.
+#[get("/lager")]
+pub async fn lager_info(state: web::Data<State>) -> HttpResponse {
+	match state
+		.db_addr
+		.send(db::RunOnDbMsg(move |db| {
+			use crate::db::schema::{betreuer, erwischt_game, teilnehmer};
+			use diesel::prelude::*;
+
+			let teilnehmer_count = teilnehmer::table.count().get_result(&mut db.connection)?;
+			let old_betreuer_count = betreuer::table
+				.filter(betreuer::anmeldedatum.lt(betreuer_signup_date_last_year()))
+				.count()
+				.get_result(&mut db.connection)?;
+			let erwischt_game_count =
+				erwischt_game::table.count().get_result(&mut db.connection)?;
+
+			Ok(LagerInfo { teilnehmer_count, old_betreuer_count, erwischt_game_count })
+		}))
+		.await
+		.map_err(|e| e.into())
+	{
+		Ok(Err(error)) | Err(error) => {
+			warn!("Error getting lager info: {}", error);
+			crate::error_response(&state)
+		}
+		Ok(Ok(info)) => HttpResponse::Ok().json(info),
+	}
+}
+
+/// Remove all data for the current lager.
+#[delete("/lager")]
+pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
+	match state
+		.db_addr
+		.send(db::RunOnDbMsg(move |db| {
+			use crate::db::schema::{betreuer, erwischt_game, erwischt_member, teilnehmer};
+			use diesel::prelude::*;
+
+			diesel::delete(teilnehmer::table).execute(&mut db.connection)?;
+			diesel::delete(erwischt_member::table).execute(&mut db.connection)?;
+			diesel::delete(erwischt_game::table).execute(&mut db.connection)?;
+			diesel::delete(
+				betreuer::table.filter(betreuer::anmeldedatum.lt(betreuer_signup_date_last_year())),
+			)
+			.execute(&mut db.connection)?;
+
+			Ok(())
+		}))
+		.await
+		.map_err(|e| e.into())
+	{
+		Ok(Err(error)) | Err(error) => {
+			warn!("Error deleting lager: {}", error);
+			crate::error_response(&state)
+		}
+		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
 	}
 }

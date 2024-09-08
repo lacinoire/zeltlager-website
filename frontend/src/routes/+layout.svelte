@@ -102,6 +102,12 @@
 						class:is-active={$page.route.id === "/intern/betreuer-anmeldung"}>
 						Betreuer-Anmeldung
 					</a>
+					<a
+						class="navbar-item is-tab"
+						href="/intern/zuschuesse"
+						class:is-active={$page.route.id === "/intern/zuschuesse"}>
+						Zuschüsse
+					</a>
 				{/if}
 				<a
 					class="navbar-item is-tab emph-item"

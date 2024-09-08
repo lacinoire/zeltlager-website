@@ -260,6 +260,7 @@ pub(crate) async fn insert(state: web::Data<State>, data: web::Json<InsertData>)
 	}
 }
 
+// TODO Remove pdf creation
 #[get("/game/{id}/game.pdf")]
 pub async fn create_game_pdf(state: web::Data<State>, game_id: web::Path<i32>) -> HttpResponse {
 	create_pdf(&state, *game_id, true).await
