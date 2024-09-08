@@ -9,7 +9,7 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 
 use anyhow::{bail, format_err, Result};
-use log::{error, warn};
+use log::{debug, error, warn};
 use notify::RecursiveMode;
 use notify_debouncer_mini::new_debouncer;
 
@@ -73,12 +73,13 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 		}
 	}
 
-	// TODO Remove outdated thumbnails
+	// Remove outdated thumbnails
 	if let Ok(thumbs) = fs::read_dir(&path.join("thumbs")) {
 		for file in thumbs {
 			let file = file?;
 			let name = file.file_name();
 			if !files.iter().any(|f| f.file_name() == name) {
+				debug!("Remove outdated thumbnail {:?}", name);
 				if let Err(e) = fs::remove_file(file.path()) {
 					warn!("Failed to remove outdated thumbnail {:?}: {:?}", name, e);
 				}
@@ -101,45 +102,37 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 	// Check if thumbnail exists already and it is newer than the source image
 	let orig_meta = orig_file.metadata()?;
 	if let Ok(thumb_meta) = thumb_file.metadata() {
-		let mut is_newer = false;
-		if let Ok(orig_t) = orig_meta.modified() {
-			if let Ok(thumb_t) = thumb_meta.modified() {
-				if thumb_t.duration_since(orig_t).is_ok() {
-					// Thumbnail exists and is newer
-					is_newer = true
-				}
-			}
-		}
+		let orig_modified = orig_meta.modified()?;
+		let thumb_modified = thumb_meta.modified()?;
 
-		// This function is not available on linux
-		if let Ok(orig_t) = orig_meta.created() {
-			// When copying or renaming files, the modification time is
-			// preserved so we have to look at the creation time too.
-			if let Ok(thumb_t) = thumb_meta.created() {
-				if thumb_t.duration_since(orig_t).is_err() {
-					is_newer = false;
-				}
-			}
+		let mut thumb_is_new = thumb_modified.duration_since(orig_modified).is_ok();
+		if !thumb_is_new {
+			debug!(
+				"Thumbnail is outdated (modified time): {thumb_modified:?} earlier than \
+				 {orig_modified:?}"
+			);
 		}
 
 		#[cfg(unix)]
 		{
 			let orig_t = orig_meta.ctime();
 			let thumb_t = thumb_meta.ctime();
-			if orig_t > thumb_t {
-				is_newer = false;
+			thumb_is_new &= orig_t <= thumb_t;
+			if !thumb_is_new {
+				debug!("Thumbnail is outdated (ctime): {thumb_t:?} earlier than {orig_t:?}");
 			}
 		}
 
 		// Thumbnail exists and is newer in modification and
 		// creation time.
-		if is_newer {
+		if thumb_is_new {
 			return Ok(());
 		}
 	}
 
 	// Check if we can scale it down
-	let proc = Command::new("convert")
+	debug!("Create thumbnail for {:?}", file);
+	let proc = Command::new("magick")
 		.args([
 			orig_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
 			"-resize",
@@ -149,7 +142,7 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 		.status()?;
 
 	if !proc.success() {
-		bail!("convert exited with exit code {}", proc);
+		bail!("magick exited with exit code {}", proc);
 	}
 
 	Ok(())
