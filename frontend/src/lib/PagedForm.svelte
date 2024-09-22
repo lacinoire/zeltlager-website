@@ -5,7 +5,7 @@
 	import { browser } from "$app/environment";
 	import type { FormError } from "$lib/utils";
 	import Icon from "$lib/Icon.svelte";
-	import { mdiDelete } from "@mdi/js";
+	import { mdiDelete, mdiHelpCircle } from "@mdi/js";
 
 	let error: FormError | undefined;
 	let isLoading = false;
@@ -37,6 +37,7 @@
 		// Defaults to text
 		type?: string;
 		help?: string;
+		help_tooltip?: string;
 		// For type=radio, defaults to DEFAULT_VARIANTS
 		variants?: Variant[];
 	}
@@ -233,8 +234,17 @@
 				<div class="field is-horizontal" class:required={field.required ?? true}>
 					<div class="field-label">
 						{#if field.type !== "checkbox"}
-							<label for={field.id ?? field.name.toLowerCase()} class="label"
-								>{@html field.name}</label>
+							<label for={field.id ?? field.name.toLowerCase()} class="label">
+								{@html field.name}{#if field.help_tooltip !== undefined}
+									<span class="helpTooltip">
+										<div class="helpTooltipContent">
+											{@html field.help_tooltip ?? ""}
+										</div>
+										<span class="helpTooltipIcon">
+											<Icon name={mdiHelpCircle} />
+										</span>
+									</span>
+								{/if}</label>
 						{/if}
 					</div>
 					<div class="field-body">
@@ -397,6 +407,29 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+
+	.helpTooltip {
+		position: relative;
+
+		.helpTooltipContent {
+			display: none;
+			position: absolute;
+			background-color: #000c;
+			color: #fff;
+			padding: 0.4em;
+			border-radius: 0.4em;
+			font-size: 0.9em;
+			bottom: 1.2em;
+			min-width: max-content;
+			z-index: 1;
+		}
+
+		&:hover {
+			.helpTooltipContent {
+				display: block;
+			}
+		}
 	}
 
 	$knob-size: 1em;

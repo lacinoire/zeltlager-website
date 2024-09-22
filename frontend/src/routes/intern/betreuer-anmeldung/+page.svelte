@@ -41,7 +41,16 @@
 		{
 			name: "Zeltlager-relevantes",
 			fields: [
-				{ name: "Vegetarier", type: "radio" },
+				{
+					id: "ernaehrung",
+					name: "Ernährung",
+					type: "radio",
+					variants: [
+						{ name: "Alles" },
+						{ name: "Vegetarisch" },
+						{ name: "Vegan" },
+					],
+				},
 				{ id: "tetanus_impfung", name: "Tetanusimpfung", type: "radio" },
 				{
 					name: "Krankenversicherung",
@@ -92,28 +101,36 @@
 			id: "zusatz",
 			fields: [
 				{
-					name: "Allergien",
+					id: "unvertraeglichkeiten",
+					name: "Lebens&shy;mittel&shy;unver&shy;träglichkeiten/-allergien",
 					type: "textarea",
-					help: "z.B. Haselnussallergie",
+					help: "z.B. Haselnussallergie, Laktoseintoleranz, kein Schweinefleisch",
 					required: false,
 				},
 				{
-					id: "unvertraeglichkeiten",
-					name: "Lebens&shy;mittel&shy;unver&shy;träglichkeiten",
+					id: "allergien",
+					name: "Sonstige Allergien",
 					type: "textarea",
-					help: "z.B. Laktoseintoleranz, kein Schweinefleisch",
+					help: "z.B. Tierhaare, Pollen",
 					required: false,
 				},
 				{
 					name: "Medikamente",
 					type: "textarea",
-					help: "z.B. Asthmaspray; Methylphenidat, 10 mg",
+					help: "z.B. Lotemax 5mg, morgens und abends<br>Asthmaspray; Methylphenidat, 10 mg, bei Bedarf",
 					required: false,
 				},
 				{
-					name: "Besonderheiten",
+					id: "krankheiten",
+					name: "Eigenheiten/Krankheiten",
 					type: "textarea",
-					help: "Krankheiten, Eigenheiten, etc.",
+					help: "z.B. ADHS, etc.",
+					required: false,
+				},
+				{
+					id: "kommentar",
+					name: "Sonstige Kommentare",
+					type: "textarea",
 					required: false,
 				},
 				{
@@ -190,7 +207,7 @@
 		f.nachname.value = "b";
 		f.geburtsdatum.value = "1.1.2000";
 		f.geschlecht.value = "w";
-		f.vegetarier.value = "false";
+		f.ernaehrung.value = "alles";
 		f.tetanus_impfung.value = "true";
 		f.krankenversicherung.value = "gesetzlich";
 		f.mail.value = "a@b";

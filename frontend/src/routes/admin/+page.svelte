@@ -208,6 +208,15 @@
 			Zuschüsse
 		</div>
 	</a>
+
+	<a href="./" class="box"> <!-- TODO -->
+		<div class="document">
+	    <span class="icon emojiIcon">
+				🪙
+			</span>
+			Lagerkasse
+		</div>
+	</a>
 </div>
 
 <div class="modal" class:is-active={mailModalOpen}>

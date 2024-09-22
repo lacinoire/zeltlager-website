@@ -61,7 +61,7 @@ pub struct Teilnehmer {
 	pub geburtsdatum: chrono::NaiveDate,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
-	pub vegetarier: bool,
+	pub ernaehrung: String,
 	pub tetanus_impfung: bool,
 	pub eltern_name: String,
 	pub eltern_mail: String,
@@ -72,10 +72,12 @@ pub struct Teilnehmer {
 	pub ort: String,
 	pub plz: String,
 	pub krankenversicherung: String,
-	pub allergien: String,
 	pub unvertraeglichkeiten: String,
+	pub allergien: String,
 	pub medikamente: String,
-	pub besonderheiten: String,
+	pub krankheiten: String,
+	pub kommentar: String,
+	pub eigenanreise: bool,
 	pub agb: bool,
 }
 
@@ -87,7 +89,7 @@ pub struct FullTeilnehmer {
 	pub geburtsdatum: chrono::NaiveDate,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
-	pub vegetarier: bool,
+	pub ernaehrung: String,
 	pub tetanus_impfung: bool,
 	pub eltern_name: String,
 	pub eltern_mail: String,
@@ -123,7 +125,7 @@ pub struct Supervisor {
 	pub hausnummer: String,
 	pub ort: String,
 	pub plz: String,
-	pub vegetarier: bool,
+	pub ernaehrung: String,
 	pub tetanus_impfung: bool,
 	pub krankenversicherung: String,
 	pub allergien: String,
@@ -160,7 +162,7 @@ pub struct FullSupervisor {
 	pub unvertraeglichkeiten: String,
 	pub medikamente: String,
 	pub krankenversicherung: String,
-	pub vegetarier: bool,
+	pub ernaehrung: String,
 	pub tetanus_impfung: bool,
 	pub land: String,
 }
@@ -331,6 +333,19 @@ pub fn check_krankenversicherung(text: &str) -> Result<(), FormError> {
 	Ok(())
 }
 
+pub fn check_ernaehrung(text: &str) -> Result<(), FormError> {
+	if text != "alles" && text != "vegetarisch" && text != "vegan" {
+		return Err(FormError {
+			field: Some("ernaehrung".into()),
+			message: format!(
+				"Ungültige Ernährung ({}), muss entweder alles, vegetarisch oder vegan sein",
+				text
+			),
+		});
+	}
+	Ok(())
+}
+
 pub fn check_email(text: &str, field: &str) -> Result<(), FormError> {
 	let at_pos = text.find('@');
 	let valid = at_pos.is_some() && !text.contains(' ') && at_pos == text.rfind('@'); // Only one mail address
@@ -413,7 +428,7 @@ impl Teilnehmer {
 			geschlecht,
 
 			schwimmer: get_bool!(map, "schwimmer")?,
-			vegetarier: get_bool!(map, "vegetarier")?,
+			ernaehrung: get_str!(map, "ernaehrung")?,
 			tetanus_impfung: get_bool!(map, "tetanus_impfung")?,
 
 			eltern_name: get_str!(map, "eltern_name")?,
@@ -558,7 +573,7 @@ impl Supervisor {
 			hausnummer: get_str!(map, "hausnummer")?,
 			ort: get_str!(map, "ort")?,
 			plz: get_str!(map, "plz")?,
-			vegetarier: get_bool!(map, "vegetarier")?,
+			ernaehrung: get_str!(map, "ernaehrung")?,
 			tetanus_impfung: get_bool!(map, "tetanus_impfung")?,
 			krankenversicherung: get_str!(map, "krankenversicherung")?,
 			allergien: get_str!(map, "allergien")?,

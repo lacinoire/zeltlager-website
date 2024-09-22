@@ -36,7 +36,16 @@
 						{ id: "false", name: "Nichtschwimmer" },
 					],
 				},
-				{ name: "Vegetarier", type: "radio" },
+				{
+					id: "ernaehrung",
+					name: "Ernährung",
+					type: "radio",
+					variants: [
+						{ name: "Alles" },
+						{ name: "Vegetarisch" },
+						{ name: "Vegan" },
+					],
+				},
 				{ id: "tetanus_impfung", name: "Tetanusimpfung", type: "radio" },
 				{
 					name: "Krankenversicherung",
@@ -123,10 +132,16 @@
 					required: false,
 				},
 				{
-					id: "besonderheiten",
+					id: "kommentar",
 					name: "Sonstige Kommentare",
 					type: "textarea",
 					required: false,
+				},
+				{
+					id: "eigenanreise",
+					name: "Ich habe die Möglichkeit mein Kind direkt ins Lager zu bringen",
+					help_tooltip: "Mein Kind fährt nicht mit dem Bus vom Westfriedhof", // TODO formulation
+					type: "radio",
 				},
 				{
 					id: "agb",
@@ -223,7 +238,7 @@
 		f.geburtsdatum.value = "1.1.2010";
 		f.geschlecht.value = "w";
 		f.schwimmer.value = "true";
-		f.vegetarier.value = "false";
+		f.ernaehrung.value = "alles";
 		f.tetanus_impfung.value = "true";
 		f.krankenversicherung.value = "gesetzlich";
 		f.eltern_name.value = "c";
@@ -234,6 +249,7 @@
 		f.hausnummer.value = "1";
 		f.plz.value = "80000";
 		f.ort.value = "f";
+		f.eigenanreise.value = "false";
 	}
 
 	function shortcut(e: KeyboardEvent) {
