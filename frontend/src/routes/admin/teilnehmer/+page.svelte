@@ -17,31 +17,6 @@
 	import SortableTable from "$lib/SortableTable.svelte";
 	import type { Column } from "$lib/utils";
 
-	const headers = [
-		"Anwesend",
-		"Bezahlt",
-		"Vorname",
-		"Nachname",
-		"Geschlecht",
-		"Geburtsdatum",
-		"Eltern",
-		"E-Mail",
-		"Handynummer",
-		"Straße",
-		"Hausnummer",
-		"Ort",
-		"PLZ",
-		"Schwimmer",
-		"Krankenversicherung",
-		"Tetanus-Impfung",
-		"Vegetarier",
-		"Allergien",
-		"Unverträglichkeiten",
-		"Medikamente",
-		"Besonderheiten",
-		"Anmeldedatum",
-	];
-
 	interface Member {
 		id: number;
 		anwesend: boolean;
@@ -58,13 +33,14 @@
 		ort: string;
 		plz: string;
 		schwimmer: boolean;
-		krankenversicherung: string;
+		krankenversicherung: "geseztlich" | "privat" | "anderes";
 		tetanus_impfung: boolean;
-		vegetarier: boolean;
-		allergien: string;
+		ernaehrung: "alles" | "vegetarisch" | "vegan";
 		unvertraeglichkeiten: string;
+		allergien: string;
+		krankheiten: string;
 		medikamente: string;
-		besonderheiten: string;
+		kommentar: string;
 		anmeldedatum: Moment;
 	}
 
@@ -100,11 +76,12 @@
 		{ name: "Schwimmer", displayName: `Schwim${S}mer` },
 		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung` },
 		{ name: "Tetanus-Impfung" },
-		{ name: "Vegetarier", displayName: `Vege${S}tarier` },
-		{ name: "Allergien" },
+		{ name: "Ernährung" },
 		{ name: "Unverträglichkeiten" },
+		{ name: "Allergien" },
+		{ name: "Krankheiten" },
 		{ name: "Medikamente" },
-		{ name: "Besonderheiten" },
+		{ name: "Kommentar" },
 		{ name: "Anmeldedatum" },
 		{},
 	];
@@ -215,6 +192,12 @@
 	function createData(asDate = false) {
 		const entries = [...filtered];
 
+		const headers: string[] = [];
+		for (const c of allColumns) {
+			if ("name" in c)
+				headers.push(c.name);
+		}
+
 		const data: any[] = [headers];
 		for (const m of entries) {
 			data.push([
@@ -227,18 +210,18 @@
 				m.eltern_name,
 				m.eltern_mail,
 				m.eltern_handynummer,
-				m.strasse,
-				m.hausnummer,
+				m.strasse + " " + m.hausnummer,
 				m.ort,
 				m.plz,
 				m.schwimmer,
 				m.krankenversicherung,
 				m.tetanus_impfung,
-				m.vegetarier,
-				m.allergien,
+				m.ernaehrung,
 				m.unvertraeglichkeiten,
+				m.allergien,
+				m.krankheiten,
 				m.medikamente,
-				m.besonderheiten,
+				m.kommentar,
 				asDate ? m.anmeldedatum.toDate() : m.anmeldedatum.format("DD.MM.YY HH:mm"),
 			]);
 		}
@@ -435,16 +418,17 @@
 							<td><input type="checkbox" checked={e.schwimmer} disabled /></td>
 							<td>{e.krankenversicherung}</td>
 							<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
-							<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
-							<td>{e.allergien}</td>
+							<td>{e.ernaehrung}</td>
 							<td>{e.unvertraeglichkeiten}</td>
+							<td>{e.allergien}</td>
+							<td>{e.krankheiten}</td>
 							<td>{e.medikamente}</td>
-							<td>{e.besonderheiten}</td>
+							<td>{e.kommentar}</td>
 							<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
 							<!-- svelte-ignore a11y-invalid-attribute -->
 							<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>
 						{:else}
-							<td colspan="21" class="special"><h4>{e}</h4></td>
+							<td colspan="23" class="special"><h4>{e}</h4></td>
 						{/if}
 					</tr>
 				{/each}

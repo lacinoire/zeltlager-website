@@ -200,7 +200,7 @@
 	}
 
 	.container.main.wide {
-		max-width: 100%;
+		max-width: calc(100% - 2em);
 		margin-left: 1em;
 		margin-right: 1em;
 	}
@@ -211,5 +211,21 @@
 
 	.globalMessage :global(.message) {
 		margin: 2em;
+	}
+
+	@media print {
+		nav,
+		.navbar-brand,
+		footer {
+			display: none;
+		}
+
+		.container.main {
+			padding-top: 0;
+		}
+
+		:global(html body.has-navbar-fixed-top) {
+			padding-top: 0;
+		}
 	}
 </style>

@@ -29,7 +29,7 @@ diesel::table! {
         krankheiten -> Nullable<Text>,
         ernaehrung -> Nullable<Text>,
         juleica_gueltig_bis -> Nullable<Date>,
-        signup_token -> Nullable<Date>,
+        signup_token -> Nullable<Text>,
         signup_token_time -> Nullable<Timestamptz>,
     }
 }

@@ -115,16 +115,16 @@
 					required: false,
 				},
 				{
-					name: "Medikamente",
-					type: "textarea",
-					help: "z.B. Lotemax 5mg, morgens und abends<br>Asthmaspray; Methylphenidat, 10 mg, bei Bedarf",
-					required: false,
-				},
-				{
 					id: "krankheiten",
 					name: "Eigenheiten/Krankheiten",
 					type: "textarea",
 					help: "z.B. ADHS, etc.",
+					required: false,
+				},
+				{
+					name: "Medikamente",
+					type: "textarea",
+					help: "z.B. Lotemax 5mg, morgens und abends<br>Asthmaspray; Methylphenidat, 10 mg, bei Bedarf",
 					required: false,
 				},
 				{

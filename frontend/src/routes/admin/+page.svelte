@@ -209,7 +209,7 @@
 		</div>
 	</a>
 
-	<a href="./" class="box"> <!-- TODO -->
+	<a href="./lagerkasse" class="box">
 		<div class="document">
 	    <span class="icon emojiIcon">
 				🪙

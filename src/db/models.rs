@@ -41,18 +41,28 @@ macro_rules! get_bool {
 }
 
 macro_rules! check_empty {
-	($obj:ident, $($field:ident),*) => {
-		$(
+	($obj:ident, $(,)?) => {};
+	($obj:ident, $field:ident? $($rest:tt)*) => {
+		if $obj.$field.as_ref().unwrap().is_empty() {
+			return Err(FormError {
+				field: Some(stringify!($field).into()),
+				message: format!("{} muss ausgefüllt werden", stringify!($field).to_title_case()),
+			});
+		}
+		check_empty!($obj $($rest)*)
+	};
+	($obj:ident, $field:ident $($rest:tt)*) => {
 		if $obj.$field.is_empty() {
 			return Err(FormError {
 				field: Some(stringify!($field).into()),
 				message: format!("{} muss ausgefüllt werden", stringify!($field).to_title_case()),
 			});
 		}
-		)*
-	}
+		check_empty!($obj $($rest)*)
+	};
 }
 
+// Without id, bezahlt, anwesend and anmeldedatum
 #[derive(Clone, Debug, Insertable, Serialize, Queryable)]
 #[diesel(table_name = teilnehmer)]
 pub struct Teilnehmer {
@@ -61,24 +71,24 @@ pub struct Teilnehmer {
 	pub geburtsdatum: chrono::NaiveDate,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
-	pub ernaehrung: String,
 	pub tetanus_impfung: bool,
 	pub eltern_name: String,
 	pub eltern_mail: String,
 	pub eltern_handynummer: String,
-	pub land: String,
 	pub strasse: String,
 	pub hausnummer: String,
 	pub ort: String,
 	pub plz: String,
-	pub krankenversicherung: String,
-	pub unvertraeglichkeiten: String,
-	pub allergien: String,
-	pub medikamente: String,
-	pub krankheiten: String,
 	pub kommentar: String,
-	pub eigenanreise: bool,
 	pub agb: bool,
+	pub allergien: String,
+	pub unvertraeglichkeiten: String,
+	pub medikamente: String,
+	pub krankenversicherung: String,
+	pub land: String,
+	pub krankheiten: String,
+	pub ernaehrung: String,
+	pub eigenanreise: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Queryable)]
@@ -89,7 +99,6 @@ pub struct FullTeilnehmer {
 	pub geburtsdatum: chrono::NaiveDate,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
-	pub ernaehrung: String,
 	pub tetanus_impfung: bool,
 	pub eltern_name: String,
 	pub eltern_mail: String,
@@ -98,7 +107,7 @@ pub struct FullTeilnehmer {
 	pub hausnummer: String,
 	pub ort: String,
 	pub plz: String,
-	pub besonderheiten: String,
+	pub kommentar: String,
 	pub agb: bool,
 	pub anmeldedatum: chrono::NaiveDateTime,
 	pub bezahlt: bool,
@@ -108,8 +117,12 @@ pub struct FullTeilnehmer {
 	pub medikamente: String,
 	pub krankenversicherung: String,
 	pub land: String,
+	pub krankheiten: String,
+	pub ernaehrung: String,
+	pub eigenanreise: bool,
 }
 
+// Without id, anmeldedatum and signup_token/time
 #[derive(Clone, Debug, Insertable, Serialize, Queryable)]
 #[diesel(table_name = betreuer)]
 pub struct Supervisor {
@@ -120,22 +133,24 @@ pub struct Supervisor {
 	pub juleica_nummer: Option<String>,
 	pub mail: String,
 	pub handynummer: String,
-	pub land: String,
-	pub strasse: String,
-	pub hausnummer: String,
-	pub ort: String,
-	pub plz: String,
-	pub ernaehrung: String,
-	pub tetanus_impfung: bool,
-	pub krankenversicherung: String,
-	pub allergien: String,
-	pub unvertraeglichkeiten: String,
-	pub medikamente: String,
-	pub besonderheiten: String,
+	pub strasse: Option<String>,
+	pub hausnummer: Option<String>,
+	pub ort: Option<String>,
+	pub plz: Option<String>,
+	pub kommentar: Option<String>,
 	pub agb: bool,
 	pub selbsterklaerung: bool,
 	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
 	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+	pub allergien: Option<String>,
+	pub unvertraeglichkeiten: Option<String>,
+	pub medikamente: Option<String>,
+	pub krankenversicherung: Option<String>,
+	pub tetanus_impfung: Option<bool>,
+	pub land: Option<String>,
+	pub krankheiten: Option<String>,
+	pub ernaehrung: Option<String>,
+	pub juleica_gueltig_bis: Option<chrono::NaiveDate>,
 }
 
 #[derive(Clone, Debug, Serialize, Queryable)]
@@ -148,23 +163,27 @@ pub struct FullSupervisor {
 	pub juleica_nummer: Option<String>,
 	pub mail: String,
 	pub handynummer: String,
-	pub strasse: String,
-	pub hausnummer: String,
-	pub ort: String,
-	pub plz: String,
-	pub besonderheiten: String,
+	pub strasse: Option<String>,
+	pub hausnummer: Option<String>,
+	pub ort: Option<String>,
+	pub plz: Option<String>,
+	pub kommentar: Option<String>,
 	pub agb: bool,
 	pub selbsterklaerung: bool,
 	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
 	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 	pub anmeldedatum: chrono::NaiveDateTime,
-	pub allergien: String,
-	pub unvertraeglichkeiten: String,
-	pub medikamente: String,
-	pub krankenversicherung: String,
-	pub ernaehrung: String,
-	pub tetanus_impfung: bool,
-	pub land: String,
+	pub allergien: Option<String>,
+	pub unvertraeglichkeiten: Option<String>,
+	pub medikamente: Option<String>,
+	pub krankenversicherung: Option<String>,
+	pub tetanus_impfung: Option<bool>,
+	pub land: Option<String>,
+	pub krankheiten: Option<String>,
+	pub ernaehrung: Option<String>,
+	pub juleica_gueltig_bis: Option<chrono::NaiveDate>,
+	pub signup_token: Option<String>,
+	pub signup_token_time: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
@@ -302,17 +321,17 @@ pub fn years_old(date: DateTime<Utc>, birthday_date: &DateTime<Utc>) -> i32 {
 }
 
 pub fn check_plz(text: &str, country: &str) -> Result<(), FormError> {
-	let valid = if !text.chars().all(|c| c.is_numeric()) {
-		false
+	let error = if !text.chars().all(|c| c.is_numeric()) {
+		Some("darf nur Zahlen enthalten")
 	} else if country == "Deutschland" {
-		text.len() == 5
+		(text.len() != 5).then_some("muss 5 Stellen haben")
 	} else {
-		true
+		None
 	};
-	if !valid {
+	if let Some(error) = error {
 		return Err(FormError {
 			field: Some("plz".into()),
-			message: format!("Ungültige Postleitzahl ({})", text),
+			message: format!("Ungültige Postleitzahl ({}), {}", text, error),
 		});
 	}
 	Ok(())
@@ -348,11 +367,19 @@ pub fn check_ernaehrung(text: &str) -> Result<(), FormError> {
 
 pub fn check_email(text: &str, field: &str) -> Result<(), FormError> {
 	let at_pos = text.find('@');
-	let valid = at_pos.is_some() && !text.contains(' ') && at_pos == text.rfind('@'); // Only one mail address
-	if !valid {
+	let error = if at_pos.is_none() {
+		Some("muss ein @ enthalten")
+	} else if at_pos != text.rfind('@') {
+		Some("bitten nur eine einzelne E-Mail-Adresse angeben")
+	} else if text.contains(' ') {
+		Some("darf keine Leerzeichen enthalten")
+	} else {
+		None
+	};
+	if let Some(error) = error {
 		return Err(FormError {
 			field: Some(field.into()),
-			message: format!("Ungültige E-Mail Addresse ({})", text),
+			message: format!("Ungültige E-Mail-Adresse ({}), {}", text, error),
 		});
 	}
 	Ok(())
@@ -371,6 +398,16 @@ pub fn check_house_number(text: &str) -> Result<(), FormError> {
 	} else {
 		Ok(())
 	}
+}
+
+pub fn cleanup_freetext(text: String) -> String {
+	let lower = text.trim().to_lowercase();
+	if ["-", "nein", "kein", "keine", "keins", "nichts", "nb" /* nicht bekannt */]
+		.contains(&lower.as_str())
+	{
+		return String::new();
+	}
+	text
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression, Serialize)]
@@ -439,12 +476,15 @@ impl Teilnehmer {
 			hausnummer: get_str!(map, "hausnummer")?,
 			ort: get_str!(map, "ort")?,
 			plz: get_str!(map, "plz")?,
-			krankenversicherung: get_str!(map, "krankenversicherung")?,
-			allergien: get_str!(map, "allergien")?,
-			unvertraeglichkeiten: get_str!(map, "unvertraeglichkeiten")?,
-			medikamente: get_str!(map, "medikamente")?,
-			besonderheiten: get_str!(map, "besonderheiten")?,
 
+			krankenversicherung: get_str!(map, "krankenversicherung")?,
+			krankheiten: get_freetext_str!(map, "krankheiten")?,
+			allergien: get_freetext_str!(map, "allergien")?,
+			unvertraeglichkeiten: get_freetext_str!(map, "unvertraeglichkeiten")?,
+			medikamente: get_freetext_str!(map, "medikamente")?,
+			kommentar: get_freetext_str!(map, "kommentar")?,
+
+			eigenanreise: get_bool!(map, "eigenanreise")?,
 			agb: get_bool!(map, "agb")?,
 		};
 
@@ -466,13 +506,14 @@ impl Teilnehmer {
 			strasse,
 			hausnummer,
 			ort,
-			plz
+			plz,
 		);
 
 		check_plz(&res.plz, &res.land)?;
 		check_krankenversicherung(&res.krankenversicherung)?;
 		check_email(&res.eltern_mail, "eltern_mail")?;
 		check_house_number(&res.hausnummer)?;
+		check_ernaehrung(&res.ernaehrung)?;
 
 		// Check birth date
 		let birthday = res.geburtsdatum.and_time(Default::default()).and_utc();
@@ -527,16 +568,18 @@ impl Teilnehmer {
 		self.eltern_name = self.eltern_name.trim().into();
 		self.eltern_mail = self.eltern_mail.trim().into();
 		self.eltern_handynummer = self.eltern_handynummer.trim().into();
-		self.land = self.land.trim().into();
 		self.strasse = self.strasse.trim().into();
 		self.hausnummer = self.hausnummer.trim().into();
 		self.ort = self.ort.trim().into();
 		self.plz = self.plz.trim().into();
-		self.krankenversicherung = self.krankenversicherung.trim().into();
+		self.kommentar = self.kommentar.trim().into();
 		self.allergien = self.allergien.trim().into();
 		self.unvertraeglichkeiten = self.unvertraeglichkeiten.trim().into();
 		self.medikamente = self.medikamente.trim().into();
-		self.besonderheiten = self.besonderheiten.trim().into();
+		self.krankenversicherung = self.krankenversicherung.trim().into();
+		self.land = self.land.trim().into();
+		self.krankheiten = self.krankheiten.trim().into();
+		self.ernaehrung = self.ernaehrung.trim().into();
 	}
 }
 
@@ -565,25 +608,32 @@ impl Supervisor {
 			geburtsdatum,
 			geschlecht,
 
+			ernaehrung: Some(get_str!(map, "ernaehrung")?),
+			tetanus_impfung: Some(get_bool!(map, "tetanus_impfung")?),
+
 			juleica_nummer,
+			juleica_gueltig_bis: Some(try_parse_date(
+				&get_str!(map, "juleica_gueltig_bis")?,
+				"juleica_gueltig_bis",
+			)?),
 			mail: get_str!(map, "mail")?,
 			handynummer: get_str!(map, "handynummer")?,
-			land: get_str!(map, "land")?,
-			strasse: get_str!(map, "strasse")?,
-			hausnummer: get_str!(map, "hausnummer")?,
-			ort: get_str!(map, "ort")?,
-			plz: get_str!(map, "plz")?,
-			ernaehrung: get_str!(map, "ernaehrung")?,
-			tetanus_impfung: get_bool!(map, "tetanus_impfung")?,
-			krankenversicherung: get_str!(map, "krankenversicherung")?,
-			allergien: get_str!(map, "allergien")?,
-			unvertraeglichkeiten: get_str!(map, "unvertraeglichkeiten")?,
-			medikamente: get_str!(map, "medikamente")?,
-			besonderheiten: get_str!(map, "besonderheiten")?,
-			selbsterklaerung: get_bool!(map, "selbsterklaerung")?,
+			land: Some(get_str!(map, "land")?),
+			strasse: Some(get_str!(map, "strasse")?),
+			hausnummer: Some(get_str!(map, "hausnummer")?),
+			ort: Some(get_str!(map, "ort")?),
+			plz: Some(get_str!(map, "plz")?),
+
+			krankenversicherung: Some(get_str!(map, "krankenversicherung")?),
+			krankheiten: Some(get_freetext_str!(map, "krankheiten")?),
+			allergien: Some(get_freetext_str!(map, "allergien")?),
+			unvertraeglichkeiten: Some(get_freetext_str!(map, "unvertraeglichkeiten")?),
+			medikamente: Some(get_freetext_str!(map, "medikamente")?),
+			kommentar: Some(get_freetext_str!(map, "kommentar")?),
 			fuehrungszeugnis_auststellung,
 			fuehrungszeugnis_eingesehen: None,
 
+			selbsterklaerung: get_bool!(map, "selbsterklaerung")?,
 			agb: get_bool!(map, "agb")?,
 		};
 
@@ -606,17 +656,18 @@ impl Supervisor {
 			nachname,
 			mail,
 			handynummer,
-			land,
-			strasse,
-			hausnummer,
-			ort,
-			plz
+			land?,
+			strasse?,
+			hausnummer?,
+			ort?,
+			plz?,
 		);
 
-		check_plz(&res.plz, &res.land)?;
-		check_krankenversicherung(&res.krankenversicherung)?;
+		check_plz(res.plz.as_ref().unwrap(), res.land.as_ref().unwrap())?;
+		check_krankenversicherung(res.krankenversicherung.as_ref().unwrap())?;
 		check_email(&res.mail, "mail")?;
-		check_house_number(&res.hausnummer)?;
+		check_house_number(res.hausnummer.as_ref().unwrap())?;
+		check_ernaehrung(res.ernaehrung.as_ref().unwrap())?;
 
 		// Check Juleica Number
 		if let Some(ref jn) = res.juleica_nummer {

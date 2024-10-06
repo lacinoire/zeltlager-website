@@ -45,5 +45,7 @@ ALTER TABLE betreuer
 	ALTER COLUMN land DROP NOT NULL;
 -- Re-signup token
 ALTER TABLE betreuer
-	ADD COLUMN signup_token DATE,
+	ADD COLUMN signup_token TEXT,
 	ADD COLUMN signup_token_time TIMESTAMPTZ;
+
+-- TODO Rename austellung → ausstellung

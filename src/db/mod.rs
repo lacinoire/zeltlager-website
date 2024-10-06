@@ -38,6 +38,15 @@ macro_rules! get_str {
 	};
 }
 
+macro_rules! get_freetext_str {
+	($map:ident, $key:expr) => {
+		$map.remove($key).map(cleanup_freetext).ok_or_else(|| FormError {
+			field: Some($key.into()),
+			message: format!("{} fehlt", $key.to_title_case()),
+		})
+	};
+}
+
 pub mod models;
 // Generate with `diesel print-schema > src/db/schema.rs`
 pub mod schema;
@@ -283,58 +292,34 @@ impl Handler<DownloadMembersMessage> for DbExecutor {
 	fn handle(&mut self, _: DownloadMembersMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::teilnehmer;
 		use self::schema::teilnehmer::*;
-		pub const ALL_COLUMNS_BUT_ID: (
+		let all_columns_but_id = (
 			vorname,
 			nachname,
 			geburtsdatum,
 			geschlecht,
 			schwimmer,
-			ernaehrung,
 			tetanus_impfung,
 			eltern_name,
 			eltern_mail,
 			eltern_handynummer,
-			land,
 			strasse,
 			hausnummer,
 			ort,
 			plz,
-			krankenversicherung,
-			unvertraeglichkeiten,
-			allergien,
-			medikamente,
-			krankheiten,
 			kommentar,
-			eigenanreise,
 			agb,
-		) = (
-			vorname,
-			nachname,
-			geburtsdatum,
-			geschlecht,
-			schwimmer,
+			allergien,
+			unvertraeglichkeiten,
+			medikamente,
+			krankenversicherung,
+			land,
+			krankheiten,
 			ernaehrung,
-			tetanus_impfung,
-			eltern_name,
-			eltern_mail,
-			eltern_handynummer,
-			land,
-			strasse,
-			hausnummer,
-			ort,
-			plz,
-			krankenversicherung,
-			unvertraeglichkeiten,
-			allergien,
-			medikamente,
-			krankheiten,
-			kommentar,
 			eigenanreise,
-			agb,
 		);
 
 		Ok(teilnehmer::table
-			.select(ALL_COLUMNS_BUT_ID)
+			.select(all_columns_but_id)
 			.load::<models::Teilnehmer>(&mut self.connection)?)
 	}
 }
@@ -365,7 +350,7 @@ impl Handler<DownloadBetreuerMessage> for DbExecutor {
 	fn handle(&mut self, _: DownloadBetreuerMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::betreuer;
 		use self::schema::betreuer::*;
-		pub const ALL_COLUMNS_BUT_ID: (
+		let all_columns_but_id = (
 			vorname,
 			nachname,
 			geburtsdatum,
@@ -373,50 +358,28 @@ impl Handler<DownloadBetreuerMessage> for DbExecutor {
 			juleica_nummer,
 			mail,
 			handynummer,
-			land,
 			strasse,
 			hausnummer,
 			ort,
 			plz,
-			vegetarier,
-			tetanus_impfung,
-			krankenversicherung,
-			allergien,
-			unvertraeglichkeiten,
-			medikamente,
-			besonderheiten,
+			kommentar,
 			agb,
 			selbsterklaerung,
 			fuehrungszeugnis_auststellung,
 			fuehrungszeugnis_eingesehen,
-		) = (
-			vorname,
-			nachname,
-			geburtsdatum,
-			geschlecht,
-			juleica_nummer,
-			mail,
-			handynummer,
+			allergien,
+			unvertraeglichkeiten,
+			medikamente,
+			krankenversicherung,
+			tetanus_impfung,
 			land,
-			strasse,
-			hausnummer,
-			ort,
-			plz,
-			vegetarier,
-			tetanus_impfung,
-			krankenversicherung,
-			allergien,
-			unvertraeglichkeiten,
-			medikamente,
-			besonderheiten,
-			agb,
-			selbsterklaerung,
-			fuehrungszeugnis_auststellung,
-			fuehrungszeugnis_eingesehen,
+			krankheiten,
+			ernaehrung,
+			juleica_gueltig_bis,
 		);
 
 		Ok(betreuer::table
-			.select(ALL_COLUMNS_BUT_ID)
+			.select(all_columns_but_id)
 			.load::<models::Supervisor>(&mut self.connection)?)
 	}
 }
