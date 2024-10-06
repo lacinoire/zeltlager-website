@@ -187,7 +187,7 @@ pub(crate) async fn edit_supervisor(
 			diesel::update(betreuer::table.filter(id.eq(data.supervisor)))
 				.set((
 					juleica_nummer.eq(&data.juleica_nummer),
-					fuehrungszeugnis_auststellung.eq(&data.fuehrungszeugnis_ausstellung),
+					fuehrungszeugnis_ausstellung.eq(&data.fuehrungszeugnis_ausstellung),
 					fuehrungszeugnis_eingesehen.eq(&data.fuehrungszeugnis_eingesehen),
 				))
 				.execute(&mut db.connection)?;

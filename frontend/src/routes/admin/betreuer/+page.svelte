@@ -201,13 +201,10 @@
 		for (const e of data) {
 			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
 			e.anmeldedatum = moment.utc(e.anmeldedatum).local();
-			// Also fix typo
-			if (e.fuehrungszeugnis_auststellung)
+			if (e.fuehrungszeugnis_ausstellung)
 				e.fuehrungszeugnis_ausstellung = moment
-					.utc(e.fuehrungszeugnis_auststellung)
+					.utc(e.fuehrungszeugnis_ausstellung)
 					.local();
-			else e.fuehrungszeugnis_ausstellung = e.fuehrungszeugnis_auststellung;
-			delete e.fuehrungszeugnis_auststellung;
 			if (e.fuehrungszeugnis_eingesehen)
 				e.fuehrungszeugnis_eingesehen = moment.utc(e.fuehrungszeugnis_eingesehen).local();
 			if (e.juleica_gueltig_bis)

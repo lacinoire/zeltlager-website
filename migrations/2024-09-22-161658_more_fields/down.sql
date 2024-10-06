@@ -38,3 +38,6 @@ UPDATE betreuer
     SET vegetarier = (ernaehrung = 'vegetarisch');
 ALTER TABLE betreuer
 	DROP COLUMN ernaehrung;
+
+ALTER TABLE betreuer
+	RENAME COLUMN fuehrungszeugnis_ausstellung TO fuehrungszeugnis_auststellung;

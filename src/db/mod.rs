@@ -365,7 +365,7 @@ impl Handler<DownloadBetreuerMessage> for DbExecutor {
 			kommentar,
 			agb,
 			selbsterklaerung,
-			fuehrungszeugnis_auststellung,
+			fuehrungszeugnis_ausstellung,
 			fuehrungszeugnis_eingesehen,
 			allergien,
 			unvertraeglichkeiten,

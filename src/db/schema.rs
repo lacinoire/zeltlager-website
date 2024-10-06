@@ -17,7 +17,7 @@ diesel::table! {
         kommentar -> Nullable<Text>,
         agb -> Bool,
         selbsterklaerung -> Bool,
-        fuehrungszeugnis_auststellung -> Nullable<Date>,
+        fuehrungszeugnis_ausstellung -> Nullable<Date>,
         fuehrungszeugnis_eingesehen -> Nullable<Date>,
         anmeldedatum -> Timestamptz,
         allergien -> Nullable<Text>,

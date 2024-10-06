@@ -140,7 +140,7 @@ pub struct Supervisor {
 	pub kommentar: Option<String>,
 	pub agb: bool,
 	pub selbsterklaerung: bool,
-	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
+	pub fuehrungszeugnis_ausstellung: Option<chrono::NaiveDate>,
 	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 	pub allergien: Option<String>,
 	pub unvertraeglichkeiten: Option<String>,
@@ -170,7 +170,7 @@ pub struct FullSupervisor {
 	pub kommentar: Option<String>,
 	pub agb: bool,
 	pub selbsterklaerung: bool,
-	pub fuehrungszeugnis_auststellung: Option<chrono::NaiveDate>,
+	pub fuehrungszeugnis_ausstellung: Option<chrono::NaiveDate>,
 	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
 	pub anmeldedatum: chrono::NaiveDateTime,
 	pub allergien: Option<String>,
@@ -591,9 +591,9 @@ impl Supervisor {
 		let geburtsdatum = try_parse_date(&date, "geburtsdatum")?;
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
 
-		let f_date = get_str!(map, "fuehrungszeugnis_auststellung")?;
-		let fuehrungszeugnis_auststellung = if !f_date.is_empty() {
-			Some(try_parse_date(&f_date, "fuehrungszeugnis_auststellung")?)
+		let f_date = get_str!(map, "fuehrungszeugnis_ausstellung")?;
+		let fuehrungszeugnis_ausstellung = if !f_date.is_empty() {
+			Some(try_parse_date(&f_date, "fuehrungszeugnis_ausstellung")?)
 		} else {
 			None
 		};
@@ -630,7 +630,7 @@ impl Supervisor {
 			unvertraeglichkeiten: Some(get_freetext_str!(map, "unvertraeglichkeiten")?),
 			medikamente: Some(get_freetext_str!(map, "medikamente")?),
 			kommentar: Some(get_freetext_str!(map, "kommentar")?),
-			fuehrungszeugnis_auststellung,
+			fuehrungszeugnis_ausstellung,
 			fuehrungszeugnis_eingesehen: None,
 
 			selbsterklaerung: get_bool!(map, "selbsterklaerung")?,

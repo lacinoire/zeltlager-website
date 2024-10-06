@@ -48,4 +48,6 @@ ALTER TABLE betreuer
 	ADD COLUMN signup_token TEXT,
 	ADD COLUMN signup_token_time TIMESTAMPTZ;
 
--- TODO Rename austellung → ausstellung
+-- Fix typo
+ALTER TABLE betreuer
+	RENAME COLUMN fuehrungszeugnis_auststellung TO fuehrungszeugnis_ausstellung;

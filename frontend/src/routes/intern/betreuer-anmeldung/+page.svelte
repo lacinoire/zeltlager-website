@@ -70,7 +70,7 @@
 					required: false,
 				},
 				{
-					id: "fuehrungszeugnis_auststellung",
+					id: "fuehrungszeugnis_ausstellung",
 					name: "Austellungsdatum Erweitertes Führungszeugnis",
 					placeholder: "TT.MM.JJJJ",
 					required: false,
