@@ -41,16 +41,6 @@
 		{
 			name: "Zeltlager-relevantes",
 			fields: [
-				{
-					id: "ernaehrung",
-					name: "Ernährung",
-					type: "radio",
-					variants: [
-						{ name: "Alles" },
-						{ name: "Vegetarisch" },
-						{ name: "Vegan" },
-					],
-				},
 				{ id: "tetanus_impfung", name: "Tetanusimpfung", type: "radio" },
 				{
 					name: "Krankenversicherung",
@@ -100,6 +90,7 @@
 			name: "Zusätzliche Angaben",
 			id: "zusatz",
 			fields: [
+				{ name: "Vegetarier", type: "radio" },
 				{
 					id: "unvertraeglichkeiten",
 					name: "Lebens&shy;mittel&shy;unver&shy;träglichkeiten/-allergien",
@@ -207,7 +198,7 @@
 		f.nachname.value = "b";
 		f.geburtsdatum.value = "1.1.2000";
 		f.geschlecht.value = "w";
-		f.ernaehrung.value = "alles";
+		f.vegetarier.value = "true";
 		f.tetanus_impfung.value = "true";
 		f.krankenversicherung.value = "gesetzlich";
 		f.mail.value = "a@b";

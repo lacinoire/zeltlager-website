@@ -36,16 +36,6 @@
 						{ id: "false", name: "Nichtschwimmer" },
 					],
 				},
-				{
-					id: "ernaehrung",
-					name: "Ernährung",
-					type: "radio",
-					variants: [
-						{ name: "Alles" },
-						{ name: "Vegetarisch" },
-						{ name: "Vegan" },
-					],
-				},
 				{ id: "tetanus_impfung", name: "Tetanusimpfung", type: "radio" },
 				{
 					name: "Krankenversicherung",
@@ -104,6 +94,7 @@
 			name: "Zusätzliche Angaben",
 			id: "zusatz",
 			fields: [
+				{ name: "Vegetarier", type: "radio" },
 				{
 					id: "unvertraeglichkeiten",
 					name: "Lebens&shy;mittel&shy;unver&shy;träglichkeiten/-allergien",
@@ -238,7 +229,7 @@
 		f.geburtsdatum.value = "1.1.2010";
 		f.geschlecht.value = "w";
 		f.schwimmer.value = "true";
-		f.ernaehrung.value = "alles";
+		f.vegetarier.value = "true";
 		f.tetanus_impfung.value = "true";
 		f.krankenversicherung.value = "gesetzlich";
 		f.eltern_name.value = "c";

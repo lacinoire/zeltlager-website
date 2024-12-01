@@ -11,7 +11,7 @@ use std::net::IpAddr;
 use std::net::SocketAddr;
 
 use actix::prelude::*;
-use anyhow::{bail, format_err, Result};
+use anyhow::{Result, bail, format_err};
 use chrono::Utc;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
@@ -21,10 +21,10 @@ use dotenv::dotenv;
 use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
 use log::info;
+use scrypt::Scrypt;
 use scrypt::password_hash::{
 	McfHasher, PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
 };
-use scrypt::Scrypt;
 use serde::Serialize;
 
 use crate::auth;
@@ -298,6 +298,7 @@ impl Handler<DownloadMembersMessage> for DbExecutor {
 			geburtsdatum,
 			geschlecht,
 			schwimmer,
+			vegetarier,
 			tetanus_impfung,
 			eltern_name,
 			eltern_mail,
@@ -314,7 +315,6 @@ impl Handler<DownloadMembersMessage> for DbExecutor {
 			krankenversicherung,
 			land,
 			krankheiten,
-			ernaehrung,
 			eigenanreise,
 		);
 
@@ -371,10 +371,10 @@ impl Handler<DownloadBetreuerMessage> for DbExecutor {
 			unvertraeglichkeiten,
 			medikamente,
 			krankenversicherung,
+			vegetarier,
 			tetanus_impfung,
 			land,
 			krankheiten,
-			ernaehrung,
 			juleica_gueltig_bis,
 		);
 

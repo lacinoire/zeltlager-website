@@ -11,12 +11,12 @@ use ipnetwork::IpNetwork;
 use log::warn;
 use serde::Serialize;
 
+use super::FormError;
 use super::schema::betreuer;
 use super::schema::erwischt_member;
 use super::schema::rate_limiting;
 use super::schema::teilnehmer;
 use super::schema::users;
-use super::FormError;
 
 macro_rules! get_bool {
 	($map:ident, $key:expr) => {
@@ -71,6 +71,7 @@ pub struct Teilnehmer {
 	pub geburtsdatum: chrono::NaiveDate,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
+	pub vegetarier: bool,
 	pub tetanus_impfung: bool,
 	pub eltern_name: String,
 	pub eltern_mail: String,
@@ -87,7 +88,6 @@ pub struct Teilnehmer {
 	pub krankenversicherung: String,
 	pub land: String,
 	pub krankheiten: String,
-	pub ernaehrung: String,
 	pub eigenanreise: bool,
 }
 
@@ -99,6 +99,7 @@ pub struct FullTeilnehmer {
 	pub geburtsdatum: chrono::NaiveDate,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
+	pub vegetarier: bool,
 	pub tetanus_impfung: bool,
 	pub eltern_name: String,
 	pub eltern_mail: String,
@@ -118,7 +119,6 @@ pub struct FullTeilnehmer {
 	pub krankenversicherung: String,
 	pub land: String,
 	pub krankheiten: String,
-	pub ernaehrung: String,
 	pub eigenanreise: bool,
 }
 
@@ -146,10 +146,10 @@ pub struct Supervisor {
 	pub unvertraeglichkeiten: Option<String>,
 	pub medikamente: Option<String>,
 	pub krankenversicherung: Option<String>,
+	pub vegetarier: Option<bool>,
 	pub tetanus_impfung: Option<bool>,
 	pub land: Option<String>,
 	pub krankheiten: Option<String>,
-	pub ernaehrung: Option<String>,
 	pub juleica_gueltig_bis: Option<chrono::NaiveDate>,
 }
 
@@ -177,10 +177,10 @@ pub struct FullSupervisor {
 	pub unvertraeglichkeiten: Option<String>,
 	pub medikamente: Option<String>,
 	pub krankenversicherung: Option<String>,
+	pub vegetarier: Option<bool>,
 	pub tetanus_impfung: Option<bool>,
 	pub land: Option<String>,
 	pub krankheiten: Option<String>,
-	pub ernaehrung: Option<String>,
 	pub juleica_gueltig_bis: Option<chrono::NaiveDate>,
 	pub signup_token: Option<String>,
 	pub signup_token_time: Option<chrono::NaiveDateTime>,
@@ -352,19 +352,6 @@ pub fn check_krankenversicherung(text: &str) -> Result<(), FormError> {
 	Ok(())
 }
 
-pub fn check_ernaehrung(text: &str) -> Result<(), FormError> {
-	if text != "alles" && text != "vegetarisch" && text != "vegan" {
-		return Err(FormError {
-			field: Some("ernaehrung".into()),
-			message: format!(
-				"Ungültige Ernährung ({}), muss entweder alles, vegetarisch oder vegan sein",
-				text
-			),
-		});
-	}
-	Ok(())
-}
-
 pub fn check_email(text: &str, field: &str) -> Result<(), FormError> {
 	let at_pos = text.find('@');
 	let error = if at_pos.is_none() {
@@ -465,7 +452,7 @@ impl Teilnehmer {
 			geschlecht,
 
 			schwimmer: get_bool!(map, "schwimmer")?,
-			ernaehrung: get_str!(map, "ernaehrung")?,
+			vegetarier: get_bool!(map, "vegetarier")?,
 			tetanus_impfung: get_bool!(map, "tetanus_impfung")?,
 
 			eltern_name: get_str!(map, "eltern_name")?,
@@ -513,7 +500,6 @@ impl Teilnehmer {
 		check_krankenversicherung(&res.krankenversicherung)?;
 		check_email(&res.eltern_mail, "eltern_mail")?;
 		check_house_number(&res.hausnummer)?;
-		check_ernaehrung(&res.ernaehrung)?;
 
 		// Check birth date
 		let birthday = res.geburtsdatum.and_time(Default::default()).and_utc();
@@ -579,7 +565,6 @@ impl Teilnehmer {
 		self.krankenversicherung = self.krankenversicherung.trim().into();
 		self.land = self.land.trim().into();
 		self.krankheiten = self.krankheiten.trim().into();
-		self.ernaehrung = self.ernaehrung.trim().into();
 	}
 }
 
@@ -608,7 +593,7 @@ impl Supervisor {
 			geburtsdatum,
 			geschlecht,
 
-			ernaehrung: Some(get_str!(map, "ernaehrung")?),
+			vegetarier: Some(get_bool!(map, "vegetarier")?),
 			tetanus_impfung: Some(get_bool!(map, "tetanus_impfung")?),
 
 			juleica_nummer,
@@ -667,7 +652,6 @@ impl Supervisor {
 		check_krankenversicherung(res.krankenversicherung.as_ref().unwrap())?;
 		check_email(&res.mail, "mail")?;
 		check_house_number(res.hausnummer.as_ref().unwrap())?;
-		check_ernaehrung(res.ernaehrung.as_ref().unwrap())?;
 
 		// Check Juleica Number
 		if let Some(ref jn) = res.juleica_nummer {

@@ -3,12 +3,6 @@ ALTER TABLE teilnehmer
 ALTER TABLE teilnehmer
 	RENAME COLUMN kommentar TO besonderheiten;
 ALTER TABLE teilnehmer
-	ADD COLUMN vegetarier BOOLEAN NOT NULL DEFAULT FALSE;
-UPDATE teilnehmer
-    SET vegetarier = (ernaehrung = 'vegetarisch');
-ALTER TABLE teilnehmer
-	DROP COLUMN ernaehrung;
-ALTER TABLE teilnehmer
 	DROP COLUMN eigenanreise;
 
 ALTER TABLE betreuer
@@ -21,6 +15,7 @@ ALTER TABLE betreuer
 	ALTER COLUMN unvertraeglichkeiten SET NOT NULL,
 	ALTER COLUMN medikamente SET NOT NULL,
 	ALTER COLUMN krankenversicherung SET NOT NULL,
+	ALTER COLUMN vegetarier SET NOT NULL,
 	ALTER COLUMN tetanus_impfung SET NOT NULL,
 	ALTER COLUMN land SET NOT NULL;
 ALTER TABLE betreuer
@@ -32,12 +27,6 @@ ALTER TABLE betreuer
 	DROP COLUMN krankheiten;
 ALTER TABLE betreuer
 	RENAME COLUMN kommentar TO besonderheiten;
-ALTER TABLE betreuer
-	ADD COLUMN vegetarier BOOLEAN NOT NULL DEFAULT FALSE;
-UPDATE betreuer
-    SET vegetarier = (ernaehrung = 'vegetarisch');
-ALTER TABLE betreuer
-	DROP COLUMN ernaehrung;
 
 ALTER TABLE betreuer
 	RENAME COLUMN fuehrungszeugnis_ausstellung TO fuehrungszeugnis_auststellung;

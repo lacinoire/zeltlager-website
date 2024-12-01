@@ -24,10 +24,10 @@ diesel::table! {
         unvertraeglichkeiten -> Nullable<Text>,
         medikamente -> Nullable<Text>,
         krankenversicherung -> Nullable<Text>,
+        vegetarier -> Nullable<Bool>,
         tetanus_impfung -> Nullable<Bool>,
         land -> Nullable<Text>,
         krankheiten -> Nullable<Text>,
-        ernaehrung -> Nullable<Text>,
         juleica_gueltig_bis -> Nullable<Date>,
         signup_token -> Nullable<Text>,
         signup_token_time -> Nullable<Timestamptz>,
@@ -75,6 +75,7 @@ diesel::table! {
         geburtsdatum -> Date,
         geschlecht -> Text,
         schwimmer -> Bool,
+        vegetarier -> Bool,
         tetanus_impfung -> Bool,
         eltern_name -> Text,
         eltern_mail -> Text,
@@ -94,7 +95,6 @@ diesel::table! {
         krankenversicherung -> Text,
         land -> Text,
         krankheiten -> Text,
-        ernaehrung -> Text,
         eigenanreise -> Bool,
     }
 }

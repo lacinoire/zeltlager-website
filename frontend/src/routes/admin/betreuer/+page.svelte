@@ -26,7 +26,7 @@
 		fuehrungszeugnis_eingesehen: Moment | null;
 		krankenversicherung: string;
 		tetanus_impfung: boolean;
-		ernaehrung: string;
+		vegetarier: boolean;
 		unvertraeglichkeiten: string;
 		allergien: string;
 		krankheiten: string;
@@ -61,7 +61,7 @@
 		{ name: "Führungszeugnis Eingesehen", displayName: `Führungs${S}zeugnis Eingesehen` },
 		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung` },
 		{ name: "Tetanus-Impfung" },
-		{ name: "Ernährung" },
+		{ name: "Vegetarier" },
 		{ name: "Unverträglichkeiten" },
 		{ name: "Allergien" },
 		{ name: "Krankheiten" },
@@ -182,7 +182,7 @@
 				fuehrungszeugnis_eingesehen,
 				m.krankenversicherung,
 				m.tetanus_impfung,
-				m.ernaehrung,
+				m.vegetarier,
 				m.unvertraeglichkeiten,
 				m.allergien,
 				m.krankheiten,
@@ -344,7 +344,7 @@
 						</td>
 						<td>{e.krankenversicherung}</td>
 						<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
-						<td>{e.ernaehrung}</td>
+						<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
 						<td>{e.unvertraeglichkeiten}</td>
 						<td>{e.allergien}</td>
 						<td>{e.krankheiten}</td>
