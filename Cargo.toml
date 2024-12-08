@@ -28,7 +28,6 @@ log = "0.4"
 mime = "0.3"
 notify = "6"
 notify-debouncer-mini = "0.3"
-printpdf = "0.6"
 rand = "0.8"
 rpassword = "7"
 scrypt = "0.7" # 0.8 removed the old mcf format

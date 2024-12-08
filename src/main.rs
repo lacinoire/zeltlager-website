@@ -55,7 +55,7 @@ const GERMAN_DATE_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
 const PRIMITIVE_DATE_TIME_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
 	format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 const LAGER_START_STR: &str = include_str!("../frontend/lager-start.txt");
-const LAGER_START: LazyLock<Date> =
+static LAGER_START: LazyLock<Date> =
 	LazyLock::new(|| Date::parse(LAGER_START_STR.trim(), ISO_DATE_FORMAT).unwrap());
 
 fn cookie_maxtime() -> Duration { Duration::days(2) }
@@ -381,13 +381,10 @@ async fn menu(
 
 		// Links to other sites
 		for site in &site_descriptions.sites {
-			match &site.role {
-				Some(role) => {
-					if !roles.as_deref().unwrap_or(&[]).contains(role) {
-						continue;
-					}
+			if let Some(role) = &site.role {
+				if !roles.as_deref().unwrap_or(&[]).contains(role) {
+					continue;
 				}
-				None => {}
 			}
 			menu_items.push(MenuItem {
 				title: site.title.clone(),
@@ -549,9 +546,7 @@ async fn main() -> Result<()> {
 							.service(erwischt::create_game)
 							.service(erwischt::delete_game)
 							.service(erwischt::catch)
-							.service(erwischt::insert)
-							.service(erwischt::create_game_pdf)
-							.service(erwischt::create_members_pdf),
+							.service(erwischt::insert),
 					),
 			);
 

@@ -28,7 +28,7 @@ pub fn split_image_name(s: &str) -> String {
 
 pub async fn list_images(name: String) -> HttpResponse {
 	// List images
-	let files = match fs::read_dir(&format!("Bilder{}", name)) {
+	let files = match fs::read_dir(format!("Bilder{name}")) {
 		Ok(files) => files,
 		Err(e) => {
 			error!("Failed to list images in {}: {}", name, e);

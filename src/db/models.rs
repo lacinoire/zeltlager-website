@@ -451,7 +451,7 @@ where
 
 struct TimeVisitor<T: ?Sized>(PhantomData<T>);
 
-impl<'a> serde::de::Visitor<'a> for TimeVisitor<Date> {
+impl serde::de::Visitor<'_> for TimeVisitor<Date> {
 	type Value = Date;
 
 	fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -592,7 +592,7 @@ impl Teilnehmer {
 
 		// Check birth date
 		let now = OffsetDateTime::now_utc().date();
-		let years = years_old(res.geburtsdatum, &*LAGER_START);
+		let years = years_old(res.geburtsdatum, &LAGER_START);
 		if now <= res.geburtsdatum || years >= 100 {
 			return Err(FormError {
 				field: Some("geburtsdatum".into()),
@@ -756,7 +756,7 @@ impl Supervisor {
 		}
 		// Check birth date
 		let now = OffsetDateTime::now_utc().date();
-		let years = years_old(res.geburtsdatum, &*LAGER_START);
+		let years = years_old(res.geburtsdatum, &LAGER_START);
 		if now <= res.geburtsdatum || years >= 100 {
 			return Err(FormError {
 				field: Some("geburtsdatum".into()),

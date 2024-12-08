@@ -8,7 +8,7 @@ use std::process::Command;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
-use anyhow::{bail, format_err, Result};
+use anyhow::{Result, bail, format_err};
 use log::{debug, error, warn};
 use notify::RecursiveMode;
 use notify_debouncer_mini::new_debouncer;
@@ -74,7 +74,7 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 	}
 
 	// Remove outdated thumbnails
-	if let Ok(thumbs) = fs::read_dir(&path.join("thumbs")) {
+	if let Ok(thumbs) = fs::read_dir(path.join("thumbs")) {
 		for file in thumbs {
 			let file = file?;
 			let name = file.file_name();
