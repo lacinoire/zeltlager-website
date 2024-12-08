@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::marker::PhantomData;
 
-use chrono::{self, DateTime, Datelike, NaiveDate, Utc};
 use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql};
 use diesel::serialize::{self, Output, ToSql};
@@ -10,6 +10,10 @@ use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
 use log::warn;
 use serde::Serialize;
+use serde::ser::Error;
+use time::{Date, OffsetDateTime, PrimitiveDateTime};
+
+use crate::{GERMAN_DATE_FORMAT, ISO_DATE_FORMAT, LAGER_START, PRIMITIVE_DATE_TIME_FORMAT};
 
 use super::FormError;
 use super::schema::betreuer;
@@ -68,7 +72,8 @@ macro_rules! check_empty {
 pub struct Teilnehmer {
 	pub vorname: String,
 	pub nachname: String,
-	pub geburtsdatum: chrono::NaiveDate,
+	#[serde(with = "date")]
+	pub geburtsdatum: Date,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
 	pub vegetarier: bool,
@@ -96,7 +101,8 @@ pub struct FullTeilnehmer {
 	pub id: i32,
 	pub vorname: String,
 	pub nachname: String,
-	pub geburtsdatum: chrono::NaiveDate,
+	#[serde(with = "date")]
+	pub geburtsdatum: Date,
 	pub geschlecht: Gender,
 	pub schwimmer: bool,
 	pub vegetarier: bool,
@@ -110,7 +116,8 @@ pub struct FullTeilnehmer {
 	pub plz: String,
 	pub kommentar: String,
 	pub agb: bool,
-	pub anmeldedatum: chrono::NaiveDateTime,
+	#[serde(with = "primitive_datetime")]
+	pub anmeldedatum: PrimitiveDateTime,
 	pub bezahlt: bool,
 	pub anwesend: bool,
 	pub allergien: String,
@@ -128,7 +135,8 @@ pub struct FullTeilnehmer {
 pub struct Supervisor {
 	pub vorname: String,
 	pub nachname: String,
-	pub geburtsdatum: chrono::NaiveDate,
+	#[serde(with = "date")]
+	pub geburtsdatum: Date,
 	pub geschlecht: Gender,
 	pub juleica_nummer: Option<String>,
 	pub mail: String,
@@ -140,8 +148,10 @@ pub struct Supervisor {
 	pub kommentar: Option<String>,
 	pub agb: bool,
 	pub selbsterklaerung: bool,
-	pub fuehrungszeugnis_ausstellung: Option<chrono::NaiveDate>,
-	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+	#[serde(with = "opt_date")]
+	pub fuehrungszeugnis_ausstellung: Option<Date>,
+	#[serde(with = "opt_date")]
+	pub fuehrungszeugnis_eingesehen: Option<Date>,
 	pub allergien: Option<String>,
 	pub unvertraeglichkeiten: Option<String>,
 	pub medikamente: Option<String>,
@@ -150,7 +160,8 @@ pub struct Supervisor {
 	pub tetanus_impfung: Option<bool>,
 	pub land: Option<String>,
 	pub krankheiten: Option<String>,
-	pub juleica_gueltig_bis: Option<chrono::NaiveDate>,
+	#[serde(with = "opt_date")]
+	pub juleica_gueltig_bis: Option<Date>,
 }
 
 #[derive(Clone, Debug, Serialize, Queryable)]
@@ -158,7 +169,8 @@ pub struct FullSupervisor {
 	pub id: i32,
 	pub vorname: String,
 	pub nachname: String,
-	pub geburtsdatum: chrono::NaiveDate,
+	#[serde(with = "date")]
+	pub geburtsdatum: Date,
 	pub geschlecht: Gender,
 	pub juleica_nummer: Option<String>,
 	pub mail: String,
@@ -170,9 +182,12 @@ pub struct FullSupervisor {
 	pub kommentar: Option<String>,
 	pub agb: bool,
 	pub selbsterklaerung: bool,
-	pub fuehrungszeugnis_ausstellung: Option<chrono::NaiveDate>,
-	pub fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
-	pub anmeldedatum: chrono::NaiveDateTime,
+	#[serde(with = "opt_date")]
+	pub fuehrungszeugnis_ausstellung: Option<Date>,
+	#[serde(with = "opt_date")]
+	pub fuehrungszeugnis_eingesehen: Option<Date>,
+	#[serde(with = "primitive_datetime")]
+	pub anmeldedatum: PrimitiveDateTime,
 	pub allergien: Option<String>,
 	pub unvertraeglichkeiten: Option<String>,
 	pub medikamente: Option<String>,
@@ -181,9 +196,12 @@ pub struct FullSupervisor {
 	pub tetanus_impfung: Option<bool>,
 	pub land: Option<String>,
 	pub krankheiten: Option<String>,
-	pub juleica_gueltig_bis: Option<chrono::NaiveDate>,
+	#[serde(with = "opt_date")]
+	pub juleica_gueltig_bis: Option<Date>,
+	#[serde(skip)]
 	pub signup_token: Option<String>,
-	pub signup_token_time: Option<chrono::NaiveDateTime>,
+	#[serde(skip)]
+	pub signup_token_time: Option<PrimitiveDateTime>,
 }
 
 #[derive(Clone, Debug, Insertable, Queryable, Identifiable)]
@@ -192,7 +210,7 @@ pub struct FullSupervisor {
 pub struct RateLimiting {
 	pub ip_addr: IpNetwork,
 	pub counter: i32,
-	pub first_count: chrono::NaiveDateTime,
+	pub first_count: PrimitiveDateTime,
 }
 
 #[derive(Clone, Debug, Insertable)]
@@ -218,7 +236,8 @@ pub struct Role {
 #[derive(Clone, Debug, Queryable, Serialize)]
 pub struct ErwischtGame {
 	pub id: i32,
-	pub created: chrono::NaiveDateTime,
+	#[serde(with = "primitive_datetime")]
+	pub created: PrimitiveDateTime,
 }
 
 #[derive(Clone, Debug, Insertable)]
@@ -236,14 +255,15 @@ pub struct ErwischtMember {
 	pub name: String,
 	pub target: i32,
 	pub catcher: Option<i32>,
-	pub last_change: Option<chrono::NaiveDateTime>,
+	#[serde(with = "opt_primitive_datetime")]
+	pub last_change: Option<PrimitiveDateTime>,
 }
 
-pub fn try_parse_date(s: &str, field: &str) -> Result<NaiveDate, FormError> {
-	const FORMATS: &[&str] = &["%Y-%m-%d", "%d.%m.%Y"];
+pub fn try_parse_date(s: &str, field: &str) -> Result<Date, FormError> {
+	let formats = &[GERMAN_DATE_FORMAT, ISO_DATE_FORMAT];
 	let mut res = None;
-	for f in FORMATS {
-		if let Ok(date) = NaiveDate::parse_from_str(s, f) {
+	for f in formats {
+		if let Ok(date) = Date::parse(s, &f) {
 			res = Some(date);
 			break;
 		}
@@ -253,16 +273,16 @@ pub fn try_parse_date(s: &str, field: &str) -> Result<NaiveDate, FormError> {
 		if date.year() <= 1900 {
 			// Only the last digits of the year where written so correct it.
 			// Like 10 for 2010
-			let cur_year = Utc::now().year();
+			let cur_year = OffsetDateTime::now_utc().year();
 			if date.year() <= cur_year % 100 {
-				date = NaiveDate::from_ymd_opt(
+				date = Date::from_calendar_date(
 					date.year() + cur_year / 100 * 100,
 					date.month(),
 					date.day(),
 				)
 				.unwrap();
 			} else {
-				date = NaiveDate::from_ymd_opt(
+				date = Date::from_calendar_date(
 					date.year() + cur_year / 100 * 100 - 100,
 					date.month(),
 					date.day(),
@@ -296,24 +316,10 @@ pub fn try_parse_gender(s: &str) -> Result<Gender, FormError> {
 	}
 }
 
-pub fn get_birthday_date(birthday_date: &str) -> DateTime<Utc> {
-	let date = NaiveDate::parse_from_str(&format!("0000-{}", birthday_date), "%Y-%m-%d")
-		.expect("Date has wrong format");
-	let mut date = date.and_time(Default::default()).and_utc();
-
-	// Set the right year
-	let now = Utc::now();
-	date = date.with_year(now.year()).unwrap();
-	if date < now {
-		date = date.with_year(now.year() + 1).unwrap();
-	}
-	date
-}
-
-pub fn years_old(date: DateTime<Utc>, birthday_date: &DateTime<Utc>) -> i32 {
+pub fn years_old(date: Date, birthday_date: &Date) -> i32 {
 	let mut years = birthday_date.year() - date.year();
-	if birthday_date.month() < date.month()
-		|| (birthday_date.month() == date.month() && birthday_date.day() < date.day())
+	if (birthday_date.month() as u8) < (date.month() as u8)
+		|| (birthday_date.month() as u8 == date.month() as u8 && birthday_date.day() < date.day())
 	{
 		years -= 1;
 	}
@@ -437,10 +443,87 @@ where
 	}
 }
 
+struct TimeVisitor<T: ?Sized>(PhantomData<T>);
+
+impl<'a> serde::de::Visitor<'a> for TimeVisitor<Date> {
+	type Value = Date;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		formatter.write_str("a `Date`")
+	}
+
+	fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Date, E> {
+		Date::parse(value, ISO_DATE_FORMAT).map_err(E::custom)
+	}
+}
+
+impl<'a> serde::de::Visitor<'a> for TimeVisitor<Option<Date>> {
+	type Value = Option<Date>;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		formatter.write_str("a `Option<Date>`")
+	}
+
+	fn visit_some<D: serde::Deserializer<'a>>(
+		self, deserializer: D,
+	) -> Result<Self::Value, D::Error> {
+		deserializer.deserialize_any(TimeVisitor::<Date>(PhantomData)).map(Some)
+	}
+
+	fn visit_none<E: serde::de::Error>(self) -> Result<Self::Value, E> { Ok(None) }
+
+	fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> { Ok(None) }
+}
+
+pub mod date {
+	use super::*;
+	pub fn serialize<S: serde::Serializer>(date: &Date, serializer: S) -> Result<S::Ok, S::Error> {
+		date.format(ISO_DATE_FORMAT).map_err(S::Error::custom)?.serialize(serializer)
+	}
+}
+
+pub mod opt_date {
+	use super::*;
+	pub fn serialize<S: serde::Serializer>(
+		date: &Option<Date>, serializer: S,
+	) -> Result<S::Ok, S::Error> {
+		date.map(|d| d.format(ISO_DATE_FORMAT))
+			.transpose()
+			.map_err(S::Error::custom)?
+			.serialize(serializer)
+	}
+
+	pub fn deserialize<'a, D: serde::Deserializer<'a>>(
+		deserializer: D,
+	) -> Result<Option<Date>, D::Error> {
+		deserializer.deserialize_option(TimeVisitor::<Option<Date>>(PhantomData))
+	}
+}
+
+pub mod primitive_datetime {
+	use super::*;
+	pub fn serialize<S: serde::Serializer>(
+		datetime: &PrimitiveDateTime, serializer: S,
+	) -> Result<S::Ok, S::Error> {
+		datetime.format(PRIMITIVE_DATE_TIME_FORMAT).map_err(S::Error::custom)?.serialize(serializer)
+	}
+}
+
+pub mod opt_primitive_datetime {
+	use super::*;
+	pub fn serialize<S: serde::Serializer>(
+		datetime: &Option<PrimitiveDateTime>, serializer: S,
+	) -> Result<S::Ok, S::Error> {
+		datetime
+			.map(|d| d.format(PRIMITIVE_DATE_TIME_FORMAT))
+			.transpose()
+			.map_err(S::Error::custom)?
+			.serialize(serializer)
+	}
+}
+
 impl Teilnehmer {
-	pub fn from_hashmap(
-		mut map: HashMap<String, String>, birthday_date: &str,
-	) -> Result<Self, FormError> {
+	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self, FormError> {
 		let date = get_str!(map, "geburtsdatum")?;
 		let geburtsdatum = try_parse_date(&date, "geburtsdatum")?;
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
@@ -502,16 +585,15 @@ impl Teilnehmer {
 		check_house_number(&res.hausnummer)?;
 
 		// Check birth date
-		let birthday = res.geburtsdatum.and_time(Default::default()).and_utc();
-		let now = Utc::now();
-		let years = years_old(birthday, &get_birthday_date(birthday_date));
-		if now <= birthday || years >= 100 {
+		let now = OffsetDateTime::now_utc().date();
+		let years = years_old(res.geburtsdatum, &*LAGER_START);
+		if now <= res.geburtsdatum || years >= 100 {
 			return Err(FormError {
 				field: Some("geburtsdatum".into()),
 				message: format!(
 					"Sind Sie sicher, dass {} das Geburtsdatum Ihres Kindes ist?\nBitte geben Sie \
 					 das Geburtsdatum im Format TT.MM.JJJJ an.",
-					res.geburtsdatum.format("%d.%m.%Y")
+					res.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
 				),
 			});
 		}
@@ -522,7 +604,7 @@ impl Teilnehmer {
 				message: format!(
 					"Ihr Kind ist zu jung (Geburtsdatum {}).\nDas Zeltlager ist für Kinder und \
 					 Jugendliche zwischen 7 und 15 Jahren.",
-					res.geburtsdatum.format("%d.%m.%Y")
+					res.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
 				),
 			});
 		}
@@ -535,7 +617,7 @@ impl Teilnehmer {
 					 Jahren), die auf das Zeltlager mitfahren.\nInfos dazu finden Sie auf der \
 					 Betreuerseite.\nDas Zeltlager ist für Kinder und Jugendliche zwischen 7 und \
 					 15 Jahren.",
-					res.geburtsdatum.format("%d.%m.%Y")
+					res.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
 				),
 			});
 		}
@@ -569,9 +651,7 @@ impl Teilnehmer {
 }
 
 impl Supervisor {
-	pub fn from_hashmap(
-		mut map: HashMap<String, String>, birthday_date: &str,
-	) -> Result<Self, FormError> {
+	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self, FormError> {
 		let date = get_str!(map, "geburtsdatum")?;
 		let geburtsdatum = try_parse_date(&date, "geburtsdatum")?;
 		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
@@ -666,16 +746,15 @@ impl Supervisor {
 			}
 		}
 		// Check birth date
-		let birthday = res.geburtsdatum.and_time(Default::default()).and_utc();
-		let now = Utc::now();
-		let years = years_old(birthday, &get_birthday_date(birthday_date));
-		if now <= birthday || years >= 100 {
+		let now = OffsetDateTime::now_utc().date();
+		let years = years_old(res.geburtsdatum, &*LAGER_START);
+		if now <= res.geburtsdatum || years >= 100 {
 			return Err(FormError {
 				field: Some("geburtsdatum".into()),
 				message: format!(
 					"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben Sie das \
 					 Geburtsdatum im Format TT.MM.JJJJ an.",
-					res.geburtsdatum.format("%d.%m.%Y")
+					res.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
 				),
 			});
 		}
@@ -686,7 +765,7 @@ impl Supervisor {
 				message: format!(
 					"Mit deinem Geburtsdatum {} bist du leider zu jung, um als Betreuer mit aufs \
 					 Zeltlager zu fahren 🙂, bitte melde dich als Teilnehmer an.",
-					res.geburtsdatum.format("%d.%m.%Y")
+					res.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
 				),
 			});
 		}

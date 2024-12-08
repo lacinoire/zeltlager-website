@@ -66,10 +66,6 @@ pub struct Config {
 
 	/// The maximum allowed amount of members.
 	pub max_members: i64,
-	/// The month and day to check the age of a member when signing up.
-	///
-	/// This should be in the format `mm-dd`.
-	pub birthday_date: String,
 	/// An error message, which will be displayed on generic errors.
 	///
 	/// Put here something like: Please write us an e-mail.

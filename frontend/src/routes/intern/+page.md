@@ -19,7 +19,7 @@ Wenn du einen Juleica-Kurs gemacht hast, kannst du die Karte online unter [julei
 Wichtige Information zum Stellen des Antrags:  
 Träger und Ausbildung: **Bayerische Sportjugend im BLSV Kreis München-Stadt**
 
-Die Vereinsbestätigung über die Praxisbegleitung kannst du dir [hier](/files/Vereinsbestaetigung-Praxisbegleitung.pdf) herunterladen und ausfüllen.
+Die Vereinsbestätigung über die Praxisbegleitung kannst du dir <a href="/files/Vereinsbestaetigung-Praxisbegleitung.pdf" rel="external">hier</a> herunterladen und ausfüllen.
 
 ### Verlängerung der Juleica
 
@@ -44,7 +44,7 @@ Mögliche Erste-Hilfe-Kurse über die Münchner Sportjugend findest du unter [ww
 Wenn du das erste Mal als Betreuer:in ins Zeltlager mitfährst, benötigst du außerdem ein erweitertes Führungszeugnis.
 Das erweiterte Führungszeugnis musst du beantragen, wohnst du in München, geht das [auf der Seite des KVR](https://stadt.muenchen.de/service/info/hauptabteilung-ii-buergerangelegenheiten/10104268/).
 
-Zum Beantragen musst du den [Nachweis über ehrenamtliche Tätigkeit](/files/Nachweis-ueber-ehrenamtliche-Taetigkeit.pdf) ausfüllen.
+Zum Beantragen musst du den <a href="/files/Nachweis-ueber-ehrenamtliche-Taetigkeit.pdf" rel="external">Nachweis über ehrenamtliche Tätigkeit</a> ausfüllen.
 
 ### Anmeldung bei meinZeltlager
 
@@ -85,7 +85,7 @@ Sobald die Planung abgeschlossen ist, bekommst du wieder Bescheid und musst dein
 Mögliche Programmpunkte
 
 -   1, 2 oder 3
--   Schlag den Supervisor 🥊
+-   Schlag den Betreuer 🥊
 -   Lagerolympiade 🥇
 -   Ü-Abend (Überaschungsabend)
 
@@ -130,8 +130,8 @@ Nach dem Lager ist vor dem Lager. Es geht wieder von vorne los! 😊
 
 ## Downloads
 
-[Vereinsbestätigung über die Praxisbegleitung](/files/Vereinsbestaetigung-Praxisbegleitung.pdf)  
+<a href="/files/Vereinsbestaetigung-Praxisbegleitung.pdf" rel="external">Vereinsbestätigung über die Praxisbegleitung</a>  
 [Mitgliedsantrag FT Gern](/files/mitgliedsantrag-2023.pdf)  
-[Nachweis über ehrenamtliche Tätigkeit](/files/Nachweis-ueber-ehrenamtliche-Taetigkeit.pdf)
+<a href="/files/Nachweis-ueber-ehrenamtliche-Taetigkeit.pdf" rel="external">Nachweis über ehrenamtliche Tätigkeit
 
 </div>

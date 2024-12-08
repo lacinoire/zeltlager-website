@@ -9,7 +9,7 @@ use anyhow::Result;
 use log::{error, warn};
 use serde::Serialize;
 
-use crate::{db, mail, HttpResponse, State};
+use crate::{HttpResponse, State, db, mail};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
@@ -40,6 +40,28 @@ async fn signup_check_count(
 			),
 		})
 	} else {
+		if let Some(log_file) = log_file {
+			let res: Result<_, Error> = (|| {
+				let _lock = log_mutex.lock().unwrap();
+				let mut file =
+					std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
+				writeln!(
+					file,
+					"{}: Teilnehmer: {}",
+					time::OffsetDateTime::now_utc()
+						.format(&time::format_description::well_known::Rfc3339)
+						.unwrap(),
+					serde_json::to_string(&member)?
+				)?;
+
+				Ok(())
+			})();
+
+			if let Err(error) = res {
+				warn!("Failed to log new member: {:?}", error);
+			}
+		}
+
 		match db_addr.send(db::SignupMessage { member: member.clone() }).await {
 			Err(error) => {
 				warn!("Error inserting into database: {:?}", error);
@@ -48,22 +70,6 @@ async fn signup_check_count(
 				warn!("Error inserting into database: {:?}", error);
 			}
 			Ok(Ok(())) => {
-				if let Some(log_file) = log_file {
-					let res: Result<_, Error> = (|| {
-						let _lock = log_mutex.lock().unwrap();
-						let mut file =
-							std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
-						writeln!(file, "Teilnehmer: {}", serde_json::to_string(&member)?)?;
-
-						Ok(())
-					})();
-
-					if let Err(error) = res {
-						warn!("Failed to log new member: {:?}", error);
-						// Ignore logging failure as it was saved in the db
-					}
-				}
-
 				return signup_mail(&mail_addr, member, error_message).await;
 			}
 		}
@@ -128,13 +134,12 @@ async fn signup_internal(
 	let mail_addr = state.mail_addr.clone();
 	let error_message = state.config.error_message.clone();
 	let max_members = state.config.max_members;
-	let birthday_date = state.config.birthday_date.clone();
 	let log_file = state.config.log_file.clone();
 	let log_mutex = state.log_mutex.clone();
 	let db_addr2 = db_addr.clone();
 
 	// Get the body of the request
-	let mut member = match db::models::Teilnehmer::from_hashmap(body, &birthday_date) {
+	let mut member = match db::models::Teilnehmer::from_hashmap(body) {
 		Ok(member) => member,
 		Err(error) => {
 			warn!("Error handling form content: {:?}", error);

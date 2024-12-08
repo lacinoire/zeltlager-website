@@ -47,11 +47,10 @@ body {
 }
 
 .input::placeholder {
-	color: hsla(
-		var(--bulma-input-h),
-		var(--bulma-input-s),
-		var(--bulma-input-color-l),
-		0.8);
+	color: hsla(var(--bulma-input-h),
+			var(--bulma-input-s),
+			var(--bulma-input-color-l),
+			0.8);
 }
 
 img {

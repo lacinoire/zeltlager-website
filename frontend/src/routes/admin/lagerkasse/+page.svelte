@@ -52,6 +52,25 @@
 		return data;
 	}
 
+	function applyFilter(all: Member[], sortBy: string) {
+		if (all === undefined) return;
+
+		const asc = sortBy.endsWith("asc");
+		let sortFn: (a: Member, b: Member) => number;
+		if (sortBy.startsWith("Name-")) {
+			sortFn = (a, b) => {
+				const cmp = nameSortFn(a, b);
+				return asc ? cmp : -cmp;
+			};
+		} else {
+			sortFn = getSortByKeyFn(sortBy);
+		}
+
+	}
+
+	$: applyFilter(all, sortBy);
+
+
 	async function loadData() {
 		const resp = await fetch("/api/admin/teilnehmer");
 		if (!resp.ok) {
@@ -79,7 +98,7 @@
 		},
 		];
 
-		all.sort(getSortByKeyFn("Vorname-asc"))
+		all.sort(getSortByKeyFn(sortBy))
 
 		isLoading = false;
 	}

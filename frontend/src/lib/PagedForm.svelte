@@ -295,7 +295,9 @@
 											required
 											type="checkbox"
 											on:change={saveEntries} />
-											{@html field.name}
+											<span class="label" style="display: inline;">
+												{@html field.name}
+											</span>
 									</label>
 								{/if}
 							</div>
@@ -352,7 +354,7 @@
 							</button>
 						{/if}
 					</span>
-					{#if formSaved}
+					{#if formSaved && curCategory == categories.length - 1}
 						<button
 							class="button reset-button"
 							on:click|preventDefault={clearEntries}
@@ -391,6 +393,10 @@
 		margin-top: 2em;
 	}
 
+	.button.is-primary {
+		font-weight: bold;
+	}
+
 	.optional {
 		float: right;
 		font-style: italic;
@@ -399,8 +405,8 @@
 		float: right;
 	}
 
-	.radio +.radio {
-		margin-left: 0.5em;
+	.radio {
+		margin-right: 0.5em;
 	}
 
 	.progress-indicator-container {
@@ -415,6 +421,8 @@
 		.helpTooltipContent {
 			display: none;
 			position: absolute;
+			left: 0;
+			bottom: 1.5em;
 			background-color: #000c;
 			color: #fff;
 			padding: 0.4em;
@@ -531,7 +539,7 @@
 
 				.bar {
 					width: $bar-thickness;
-					height: 4em;
+					height: 2em;
 					margin-left: $bar-margin;
 				}
 

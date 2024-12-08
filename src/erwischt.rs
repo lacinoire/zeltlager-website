@@ -2,13 +2,13 @@
 
 use actix_web::*;
 use anyhow::bail;
-use chrono::Utc;
 use diesel::prelude::*;
 use log::error;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
+use time::{OffsetDateTime, PrimitiveDateTime};
 
-use crate::{db, State};
+use crate::{State, db};
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct CatchData {
@@ -185,9 +185,13 @@ pub(crate) async fn catch(state: web::Data<State>, data: web::Json<CatchData>) -
 			use db::schema::erwischt_member;
 			use db::schema::erwischt_member::columns::*;
 
+			let now = OffsetDateTime::now_utc();
 			let r = diesel::update(erwischt_member::table)
 				.filter(game.eq(data.game).and(id.eq(data.member)))
-				.set((catcher.eq(data.catcher), last_change.eq(Some(Utc::now().naive_utc()))))
+				.set((
+					catcher.eq(data.catcher),
+					last_change.eq(Some(PrimitiveDateTime::new(now.date(), now.time()))),
+				))
 				.execute(&mut db.connection)?;
 			if r == 0 {
 				bail!("Member not found");

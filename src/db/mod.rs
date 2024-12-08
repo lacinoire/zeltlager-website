@@ -12,7 +12,6 @@ use std::net::SocketAddr;
 
 use actix::prelude::*;
 use anyhow::{Result, bail, format_err};
-use chrono::Utc;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -26,6 +25,8 @@ use scrypt::password_hash::{
 	McfHasher, PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
 };
 use serde::Serialize;
+use time::OffsetDateTime;
+use time::PrimitiveDateTime;
 
 use crate::auth;
 
@@ -200,7 +201,6 @@ impl Handler<CheckRateMessage> for DbExecutor {
 	fn handle(&mut self, msg: CheckRateMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::rate_limiting::dsl::*;
 		use diesel::dsl::insert_into;
-		use diesel::dsl::now;
 
 		let parse_result = msg.ip.parse::<SocketAddr>();
 		let ip: IpNetwork = match parse_result {
@@ -211,11 +211,13 @@ impl Handler<CheckRateMessage> for DbExecutor {
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
-				if entry.first_count <= Utc::now().naive_utc() - crate::ratelimit_duration() {
+				let now = OffsetDateTime::now_utc();
+				let now = PrimitiveDateTime::new(now.date(), now.time());
+				if entry.first_count <= now - crate::ratelimit_duration() {
 					// reset counter and grant request
 					diesel::update(&entry).set(counter.eq(1)).execute(&mut self.connection)?;
 					diesel::update(&entry)
-						.set(first_count.eq(now.at_time_zone("utc")))
+						.set(first_count.eq(diesel::dsl::now.at_time_zone("utc")))
 						.execute(&mut self.connection)?;
 					Ok(true)
 				} else if entry.counter >= crate::RATELIMIT_MAX_COUNTER {
@@ -233,7 +235,7 @@ impl Handler<CheckRateMessage> for DbExecutor {
 					.values((
 						ip_addr.eq(ip),
 						counter.eq(1),
-						first_count.eq(now.at_time_zone("utc")),
+						first_count.eq(diesel::dsl::now.at_time_zone("utc")),
 					))
 					.execute(&mut self.connection)?;
 				Ok(true)

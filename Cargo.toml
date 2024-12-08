@@ -15,10 +15,8 @@ actix-web = "4"
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 base64 = "0.21"
-# TODO Remove chrono in favor of time
-chrono = { version = "0.4", features = ["serde"] }
 csv = "1"
-diesel = { version = "2", features = ["chrono", "postgres", "network-address", "time"] }
+diesel = { version = "2", features = ["postgres", "network-address", "time"] }
 diesel_migrations = "2"
 dotenv = "0.15"
 env_logger = "0.10"

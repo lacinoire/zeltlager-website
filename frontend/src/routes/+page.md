@@ -1,5 +1,5 @@
 <script>
-import { YEAR } from "$lib/utils";
+import { LAGER_START, YEAR } from "$lib/utils";
 </script>
 
 <svelte:head>
@@ -13,11 +13,11 @@ import { YEAR } from "$lib/utils";
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet dieses Mal voraussichtlich auf dem Sportgelände des **SV Salamander Türkheim** statt.
+Das Zeltlager findet auf dem Gelände eines Sportplatzes in der Umgebung von Landsberg am Lech statt.
 
-**Abfahrt:** Montag den 29.07.{YEAR} um 10:00 Uhr
+**Abfahrt:** Montag den {LAGER_START.format("DD.MM.YYYY")} um 10:00 Uhr
 
-**Rückkehr:** Freitag den 09.08.{YEAR} um ca. 14:00 Uhr
+**Rückkehr:** Freitag den {LAGER_START.clone().add(11, "days").format("DD.MM.YYYY")} um ca. 14:00 Uhr
 
 auf dem Parkplatz **Westfriedhof** in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
 
@@ -56,12 +56,12 @@ Auch könnt ihr Euch austoben bei verschiedenen Aktivitäten wie Fußball, Volle
 	<img src="/img/programm/SpieleFussballplatz.jpg" alt="Fußball" width="auto" height="100%" loading="lazy">
 </div>
 
-Abkühlung suchen wir in den naheliegenden Freibädern oder bei diversen Wasserschlachten am Lagerplatz. Selbstverständlich erkunden wir auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei Gruppenspielen wie „Das perfekte Zelt“ euren Teamgeist beweisen oder ihr kämpft gegen die Betreuer bei „Schlag den Supervisor“. Gemeinsam mit eurem Zelt bereitet ihr eine Vorführung für den großen Abschlussabend vor um den anderen zu zeigen, welches das beste Zelt am Zeltplatz ist 😉.
+Abkühlung suchen wir in den naheliegenden Freibädern oder bei diversen Wasserschlachten am Lagerplatz. Selbstverständlich erkunden wir auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei Gruppenspielen wie „Das perfekte Zelt“ euren Teamgeist beweisen oder ihr kämpft gegen die Betreuer bei „Schlag den Betreuer“. Gemeinsam mit eurem Zelt bereitet ihr eine Vorführung für den großen Abschlussabend vor um den anderen zu zeigen, welches das beste Zelt am Zeltplatz ist 😉.
 
 Unser [Zeltlagerteam](/ausstattung#team) plant im Vorfeld eure Zeltlagertage, damit sie so abwechslungsreich, spannend, unterhaltsam und aufregend wie nur möglich werden.
 
 Klickt euch durch und meldet euch an!
 
-Eure Supervisor 😃
+Eure Betreuer 😃
 
 </div>

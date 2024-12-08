@@ -5,7 +5,7 @@ use actix_web::{http::StatusCode, *};
 use log::warn;
 use serde::Serialize;
 
-use crate::{db, HttpResponse, State};
+use crate::{HttpResponse, State, db};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
@@ -17,18 +17,37 @@ async fn signup_internal(
 ) -> (StatusCode, SignupResult) {
 	let db_addr = state.db_addr.clone();
 	let error_message = state.config.error_message.clone();
-	let birthday_date = state.config.birthday_date.clone();
 	let log_file = state.config.log_file.clone();
 	let log_mutex = state.log_mutex.clone();
 
 	// Get the body of the request
-	let supervisor = match db::models::Supervisor::from_hashmap(body.clone(), &birthday_date) {
+	let supervisor = match db::models::Supervisor::from_hashmap(body.clone()) {
 		Ok(supervisor) => supervisor,
 		Err(error) => {
 			warn!("Error handling form content: {:?}", error);
 			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error) });
 		}
 	};
+	if let Some(log_file) = log_file {
+		let res: Result<_, Error> = (|| {
+			let _lock = log_mutex.lock().unwrap();
+			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
+			writeln!(
+				file,
+				"{}: Betreuer: {}",
+				time::OffsetDateTime::now_utc()
+					.format(&time::format_description::well_known::Rfc3339)
+					.unwrap(),
+				serde_json::to_string(&supervisor)?
+			)?;
+
+			Ok(())
+		})();
+
+		if let Err(error) = res {
+			warn!("Failed to log new supervisor: {:?}", error);
+		}
+	}
 
 	match db_addr.send(db::SignupSupervisorMessage { supervisor: supervisor.clone() }).await {
 		Ok(Err(error)) => {
@@ -38,22 +57,6 @@ async fn signup_internal(
 			warn!("Error inserting into database: {}", error);
 		}
 		Ok(Ok(())) => {
-			if let Some(log_file) = log_file {
-				let res: Result<_, Error> = (|| {
-					let _lock = log_mutex.lock().unwrap();
-					let mut file =
-						std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
-					writeln!(file, "Betreuer: {}", serde_json::to_string(&supervisor)?)?;
-
-					Ok(())
-				})();
-
-				if let Err(error) = res {
-					warn!("Failed to log new supervisor: {:?}", error);
-					// Ignore logging failure as it was saved in the db
-				}
-			}
-
 			return (StatusCode::OK, SignupResult { error: None });
 		}
 	}

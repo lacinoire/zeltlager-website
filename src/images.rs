@@ -5,13 +5,6 @@ use std::fs;
 use actix_web::*;
 use log::{error, warn};
 
-#[derive(Debug)]
-pub struct Images {
-	pub title: String,
-	/// Name of the folder
-	pub name: String,
-}
-
 pub fn split_image_name(s: &str) -> String {
 	#[derive(Debug, Eq, PartialEq)]
 	enum CharType {

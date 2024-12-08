@@ -1,1 +1,1 @@
-Anmeldung für das Zeltlager <#= YEAR #> von <#= self.member.vorname #> <#= self.member.nachname #>
+Anmeldung für das Zeltlager <#= LAGER_START.year() #> von <#= self.member.vorname #> <#= self.member.nachname #>

@@ -90,12 +90,16 @@
 			name: "Zusätzliche Angaben",
 			id: "zusatz",
 			fields: [
-				{ name: "Vegetarier", type: "radio" },
+				{
+					id: "vegetarier",
+					name: "Ich esse nur vegetarisch",
+					type: "radio",
+				},
 				{
 					id: "unvertraeglichkeiten",
 					name: "Lebens&shy;mittel&shy;unver&shy;träglichkeiten/-allergien",
 					type: "textarea",
-					help: "z.B. Haselnussallergie, Laktoseintoleranz, kein Schweinefleisch",
+					help: "z.B. Haselnussallergie, Laktoseintoleranz, kein Schweinefleisch, vegan",
 					required: false,
 				},
 				{

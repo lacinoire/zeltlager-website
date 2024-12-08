@@ -27,8 +27,6 @@ email_host = "smtp.email.addresse"
 
 # Die maximale Anzahl an Teilnehmern
 max_members = 70
-# Nach Erreichen der Maximalzahl wird diese Meldung angezeigt
-max_members_reached = '<div class="alert alert-primary" role="alert">Das Zeltlager für dieses Jahr ist leider schon voll.</div>'
 
 # Wird bei manchen Fehlern angezeigt (zusätlich zu einer Fehlermeldung)
 error_message = "Bitte informieren Sie uns über webmaster@meine.seite."

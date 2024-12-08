@@ -186,8 +186,8 @@
 <style>
 	@media screen and (max-width: 1023px) {
 		.container.main {
-			margin-left: 1em;
-			margin-right: 1em;
+			padding-left: 1em;
+			padding-right: 1em;
 		}
 	}
 
@@ -200,9 +200,9 @@
 	}
 
 	.container.main.wide {
-		max-width: calc(100% - 2em);
-		margin-left: 1em;
-		margin-right: 1em;
+		max-width: 100%;
+		padding-left: 1em;
+		padding-right: 1em;
 	}
 
 	.emph-item {

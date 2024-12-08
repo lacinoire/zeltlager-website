@@ -15,6 +15,7 @@
 	import EditableProperty from "$lib/EditableProperty.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
 	import SortableTable from "$lib/SortableTable.svelte";
+	import { LAGER_START } from "$lib/utils";
 	import type { Column } from "$lib/utils";
 
 	interface Member {
@@ -32,6 +33,7 @@
 		hausnummer: string;
 		ort: string;
 		plz: string;
+		eigenanreise: boolean;
 		schwimmer: boolean;
 		krankenversicherung: "geseztlich" | "privat" | "anderes";
 		tetanus_impfung: boolean;
@@ -57,6 +59,11 @@
 	let error: string | undefined;
 	let isLoading = true;
 
+	let mailModalOpen = false;
+	let mailModalLoading = false;
+	let mailModalInput: HTMLInputElement | undefined;
+	let mailModalButton: HTMLButtonElement | undefined;
+
 	// &shy;
 	const S = "\u00AD";
 
@@ -73,6 +80,7 @@
 		{ name: "Adresse" },
 		{ name: "Ort" },
 		{ name: "PLZ" },
+		{ name: "Eigenanreise", displayName: `Eigen${S}an${S}reise` },
 		{ name: "Schwimmer", displayName: `Schwim${S}mer` },
 		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung` },
 		{ name: "Tetanus-Impfung" },
@@ -213,6 +221,7 @@
 				m.strasse + " " + m.hausnummer,
 				m.ort,
 				m.plz,
+				m.eigenanreise,
 				m.schwimmer,
 				m.krankenversicherung,
 				m.tetanus_impfung,
@@ -252,11 +261,11 @@
 		// Find birthdays
 		birthdays = [];
 		for (const e of data) {
-			const start = moment.utc("1970-07-25").local();
-			const end = moment.utc("1970-08-20").local();
+			const start = LAGER_START.year(1970).local();
+			const end = LAGER_START.clone().add(12, "days").year(1970).local();
 			const birthday = moment(e.geburtsdatum);
 			birthday.year(1970);
-			// Potential birthays during the camp
+			// Birthay during the camp
 			if (birthday > start && birthday < end) birthdays.push(e);
 		}
 		birthdays.sort((aRow, bRow) => {
@@ -319,8 +328,51 @@
 		await loadData();
 	}
 
+	async function openMailModal() {
+		mailModalButton.innerHTML = "Kopieren";
+		mailModalLoading = true;
+		mailModalOpen = true;
+
+		// Fetch mails, separate by ;
+		// TODO Put into utils
+		const resp = await fetch("/api/admin/mails");
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+			}
+			return;
+		}
+		const data = await resp.json();
+
+		mailModalInput.value = data.join(";");
+
+		mailModalLoading = false;
+	}
+
+	async function copyMails() {
+		try {
+			await navigator.clipboard.writeText(mailModalInput.value);
+			mailModalButton.innerHTML = "✔";
+		} catch (err) {
+			console.log("Failed to copy", err);
+			mailModalButton.innerHTML = "✘ Kopieren fehlgeschlagen";
+		}
+	}
+
+  function documentKeyDown(event) {
+    if (event.key === "Escape") {
+      mailModalOpen = false;
+    }
+  }
+
 	onMount(loadData);
 </script>
+
+<svelte:document on:keydown={documentKeyDown} />
 
 <svelte:head>
 	<title>Teilnehmer – Zeltlager – FT München Gern e.V.</title>
@@ -386,6 +438,19 @@
 		<!-- svelte-ignore a11y-invalid-attribute -->
 		<a on:click={() => createXlsx(createData(true), true)} href="#">.xlsx</a>
 	</div>
+
+	<p class="buttons">
+		<button
+			class="button is-info"
+			on:click|preventDefault={openMailModal}>
+	    <span class="icon">
+				✉️
+			</span>
+			<span>
+				Eltern E-Mailadressen anzeigen
+			</span>
+		</button>
+	</p>
 </div>
 
 {#if sortType === "alphabetisch"}
@@ -415,6 +480,7 @@
 							<td>{e.strasse} {e.hausnummer}</td>
 							<td>{e.ort}</td>
 							<td>{e.plz}</td>
+							<td><input type="checkbox" checked={e.eigenanreise} disabled /></td>
 							<td><input type="checkbox" checked={e.schwimmer} disabled /></td>
 							<td>{e.krankenversicherung}</td>
 							<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
@@ -509,6 +575,25 @@
 		{/if}
 	</tbody>
 </table>
+
+<div class="modal" class:is-active={mailModalOpen}>
+  <div class="modal-background" on:click={() => mailModalOpen = false}></div>
+  <div class="modal-content">
+  	<div class="box">
+  		<div class="field has-addons">
+			  <div class="control" style="flex-grow: 1;">
+			    <input class="input" class:is-skeleton={mailModalLoading} type="text" bind:this={mailModalInput} />
+			  </div>
+			  <div class="control">
+			    <button class="button is-info" class:is-skeleton={mailModalLoading} on:click={copyMails} bind:this={mailModalButton}>
+			    	Kopieren
+			    </button>
+			  </div>
+			</div>
+	  </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close" on:click={() => mailModalOpen = false}></button>
+</div>
 
 <style lang="scss">
 	.header-flex {

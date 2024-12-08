@@ -18,20 +18,20 @@
 		juleica_gueltig_bis: Moment | null;
 		mail: string;
 		handynummer: string;
-		strasse: string;
-		hausnummer: string;
-		ort: string;
-		plz: string;
+		strasse: string | null;
+		hausnummer: string | null;
+		ort: string | null;
+		plz: string | null;
 		fuehrungszeugnis_ausstellung: Moment | null;
 		fuehrungszeugnis_eingesehen: Moment | null;
-		krankenversicherung: string;
-		tetanus_impfung: boolean;
-		vegetarier: boolean;
-		unvertraeglichkeiten: string;
-		allergien: string;
-		krankheiten: string;
-		medikamente: string;
-		kommentar: string;
+		krankenversicherung: string | null;
+		tetanus_impfung: boolean | null;
+		vegetarier: boolean | null;
+		unvertraeglichkeiten: string | null;
+		allergien: string | null;
+		krankheiten: string | null;
+		medikamente: string | null;
+		kommentar: string | null;
 		anmeldedatum: Moment;
 	}
 
@@ -319,7 +319,7 @@
 						<td>{e.nachname}</td>
 						<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
 						<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-						<td>{e.juleica_nummer}</td>
+						<td>{e.juleica_nummer ?? ""}</td>
 						<td>
 							{#if e.juleica_gueltig_bis !== null}
 								{e.juleica_gueltig_bis.format("DD.MM.YYYY")}
@@ -327,9 +327,9 @@
 						</td>
 						<td>{e.mail}</td>
 						<td>{e.handynummer}</td>
-						<td>{e.strasse} {e.hausnummer}</td>
-						<td>{e.ort}</td>
-						<td>{e.plz}</td>
+						<td>{e.strasse ?? ""} {e.hausnummer ?? ""}</td>
+						<td>{e.ort ?? ""}</td>
+						<td>{e.plz ?? ""}</td>
 						<td>
 							<EditableProperty
 								bind:value={e.fuehrungszeugnis_ausstellung}
@@ -342,14 +342,14 @@
 								isMoment={true}
 								on:edit={(ev) => editEntry(e, ev)} />
 						</td>
-						<td>{e.krankenversicherung}</td>
+						<td>{e.krankenversicherung ?? ""}</td>
 						<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
 						<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
-						<td>{e.unvertraeglichkeiten}</td>
-						<td>{e.allergien}</td>
-						<td>{e.krankheiten}</td>
-						<td>{e.medikamente}</td>
-						<td>{e.kommentar}</td>
+						<td>{e.unvertraeglichkeiten ?? ""}</td>
+						<td>{e.allergien ?? ""}</td>
+						<td>{e.krankheiten ?? ""}</td>
+						<td>{e.medikamente ?? ""}</td>
+						<td>{e.kommentar ?? ""}</td>
 						<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
 						<!-- svelte-ignore a11y-invalid-attribute -->
 						<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>

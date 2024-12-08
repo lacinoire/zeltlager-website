@@ -4,5 +4,50 @@ Sehr geehrte/r <#= self.member.eltern_name #>,
 die Teilnahmegebühr für <# if self.member.geschlecht == Gender::Male { #>Ihren Sohn<# } else { #>Ihre Tochter<# } #> <#= self.member.vorname #> ist eingegangen.
 Damit ist <# if self.member.geschlecht == Gender::Male { #>er<# } else { #>sie<# } #> verbindlich zum Zeltlager angemeldet.
 
+<# if !self.member.eigenanreise { #>
+Abfahrt: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> um 10:00 Uhr
+Ankunft: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> um ca. 14:00 Uhr
+auf dem Parkplatz Westfriedhof in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
+<# } else { #>
+Ankunft: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> bis 11:00 Uhr
+Abfahrt: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> bis 14:00 Uhr
+vom Zeltlager. Den genauen Ort des Zeltlagers, in der Umgebung von Landsberg am Lech, teilen wir Ihnen vor dem Zeltlager mit.
+<# } #>
+
+Ihr Kind benötigt folgende persönliche Ausrüstung:
+
+- Feldbett oder 3-Bein Liege 🛏
+- Warmer Schlafsack 🛌
+
+Persönliche zeltlagergerechte Kleidung:
+
+- Warme Jacke 🧥
+- Sport- 👟 und Badebekleidung 👙 mit kleinem Rucksack oder Tasche 🎒
+- Waschzeug, Handtücher 🛁
+- 8 mal Unterwäsche, 8 Paar Socken 🧦, 8 T-Shirts 👚
+- 3 Pullover, kurze und lange Hosen 👖
+- Sportschuhe, feste Schuhe, Sandalen, Gummistiefel 👞
+- Lesebuch 📘, Taschenlampe 🔦, Kartenspiele 🃏, Tischtennisschläger 🏓
+- wasserfester Sonnenschutz ☀️
+- Kopfbedeckung 🧢, Sonnenbrille 🕶
+- Regenschutz (je nach Wetterlage ins Handgepäck) 🌂
+
+Eine Brotzeit 🥪 wird nicht benötigt, es gibt am Montag Mittagessen im Zeltlager.
+
+Alle Kleidungsstücke, sowie die Liege und der Schlafsack deutlich mit Namen 🏷️ kennzeichnen. Wir empfehlen einen Wäschestift zur Beschriftung der Etiketten.
+
+Zur Abfahrt bitte einen verschlossen Briefumschlag mitbringen, beschriftet mit dem Namen des Teilnehmers mit folgendem Inhalt:
+- Krankenversicherungskarte
+- Handynummern der Erziehungsberechtigten
+- Taschengeld (maximal 15.- €, ist damit einbezahlt in die Zeltlagerbank und kann bei Bedarf von dem Teilnehmer abgehoben werden)
+- bei Bedarf neuere Impfdaten.
+
+Der Umschlag wird vor der Abfahrt eingesammelt.
+Vom Arzt verordnete Medikamente bitte ebenfalls gekennzeichnet mit Namen, Einnahmezyklus und Lagerungshinweisen getrennt zur Abfahrt mitbringen und an uns direkt übergeben.
+
+KEINE Wertsachen mitnehmen!
+
+Sie können diese Informationen auch auf unserer Website nachlesen: https://meinzeltlager.com/packliste
+
 Mit freundlichen Grüßen
 Ihr Zeltlager Team

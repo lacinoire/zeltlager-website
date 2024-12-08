@@ -94,12 +94,16 @@
 			name: "Zusätzliche Angaben",
 			id: "zusatz",
 			fields: [
-				{ name: "Vegetarier", type: "radio" },
+				{
+					id: "vegetarier",
+					name: "Mein Kind isst nur vegetarisch",
+					type: "radio",
+				},
 				{
 					id: "unvertraeglichkeiten",
 					name: "Lebens&shy;mittel&shy;unver&shy;träglichkeiten/-allergien",
 					type: "textarea",
-					help: "z.B. Haselnussallergie, Laktoseintoleranz, kein Schweinefleisch",
+					help: "z.B. Haselnussallergie, Laktoseintoleranz, kein Schweinefleisch, vegan",
 					required: false,
 				},
 				{
@@ -130,9 +134,13 @@
 				},
 				{
 					id: "eigenanreise",
-					name: "Ich habe die Möglichkeit mein Kind direkt ins Lager zu bringen",
-					help_tooltip: "Mein Kind fährt nicht mit dem Bus vom Westfriedhof", // TODO formulation
+					name: "Anreise",
+					help_tooltip: "Rückfahrt genauso entweder zum Westfriedhof<br>oder Abholung vom Zeltlager",
 					type: "radio",
+					variants: [
+						{ id: "false", name: "Mein Kind fährt mit dem bereitgestellten Bus vom Westfriedhof in München um 10:00 Uhr" },
+						{ id: "true", name: "Mein Kind wird am Anreisetag bis 11:00 Uhr direkt ins Zeltlager gebracht" },
+					],
 				},
 				{
 					id: "agb",

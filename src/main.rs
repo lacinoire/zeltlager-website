@@ -13,14 +13,13 @@ use std::sync::{Arc, LazyLock, Mutex};
 use actix_files::Files;
 use actix_identity::{Identity, IdentityExt, IdentityMiddleware};
 use actix_session::config::{PersistentSession, TtlExtensionPolicy};
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_session::{SessionMiddleware, storage::CookieSessionStore};
 use actix_web::body::MessageBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header::DispositionType;
 use actix_web::web::Data;
 use actix_web::*;
-use anyhow::{format_err, Result};
-use chrono::Duration;
+use anyhow::{Result, format_err};
 use clap::Parser;
 use futures::future::LocalBoxFuture;
 use futures::prelude::*;
@@ -29,7 +28,7 @@ use log::{error, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use time::macros::format_description;
-use time::Date;
+use time::{Date, Duration};
 
 mod admin;
 mod auth;
@@ -49,12 +48,15 @@ use config::{Config, MailAddress};
 const DEFAULT_PREFIX: &str = "public";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
 const KEY_FILE: &str = "secret.key";
+const ISO_DATE_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
+	format_description!("[year]-[month]-[day]");
+const GERMAN_DATE_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
+	format_description!("[day].[month].[year]");
+const PRIMITIVE_DATE_TIME_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
+	format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond]");
 const LAGER_START_STR: &str = include_str!("../frontend/lager-start.txt");
-const LAGER_START: LazyLock<Date> = LazyLock::new(|| {
-	Date::parse(LAGER_START_STR.trim(), format_description!("[year]-[month]-[day]")).unwrap()
-});
-// TODO Remove
-const YEAR: u32 = 2024;
+const LAGER_START: LazyLock<Date> =
+	LazyLock::new(|| Date::parse(LAGER_START_STR.trim(), ISO_DATE_FORMAT).unwrap());
 
 fn cookie_maxtime() -> Duration { Duration::days(2) }
 fn ratelimit_duration() -> Duration { Duration::days(1) }
@@ -322,7 +324,6 @@ impl Config {
 		if let Some(addr) = &self.test_mail {
 			mail::check_parsable(addr)?;
 		}
-		db::models::get_birthday_date(&self.birthday_date);
 		Ok(())
 	}
 }
@@ -505,14 +506,14 @@ async fn main() -> Result<()> {
 		.cookie_domain(state.config.domain.clone())
 		.session_lifecycle(
 			PersistentSession::default()
-				.session_ttl(cookie_maxtime().to_std().unwrap().try_into().unwrap())
+				.session_ttl(cookie_maxtime())
 				.session_ttl_extension_policy(TtlExtensionPolicy::OnEveryRequest),
 		);
 
 		let mut app = app
 			.wrap(
 				IdentityMiddleware::builder()
-					.visit_deadline(Some(cookie_maxtime().to_std().unwrap()))
+					.visit_deadline(Some(cookie_maxtime().unsigned_abs()))
 					.build(),
 			)
 			.wrap(session_middleware.build())

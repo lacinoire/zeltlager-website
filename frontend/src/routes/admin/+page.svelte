@@ -8,11 +8,6 @@
 	let error: string | undefined;
 	let success: string | undefined;
 
-	let mailModalOpen = false;
-	let mailModalLoading = false;
-	let mailModalInput: HTMLInputElement | undefined;
-	let mailModalButton: HTMLButtonElement | undefined;
-
 	let deleteModalOpen = false;
 	let deleteModalInput: HTMLInputElement | undefined;
 	let deleteModalLoading = false;
@@ -20,41 +15,6 @@
 	let deleteModalBetreuer: HTMLElement | undefined;
 	let deleteModalErwischtGames: HTMLElement | undefined;
 	let deleteIsLoading = false;
-
-	async function openMailModal() {
-		mailModalButton.innerHTML = "Kopieren";
-		mailModalLoading = true;
-		mailModalOpen = true;
-
-		// Fetch mails, separate by ;
-		// TODO Put into utils
-		const resp = await fetch("/api/admin/mails");
-		if (!resp.ok) {
-			// Unauthorized
-			if (resp.status == 401) {
-				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
-			} else {
-				console.error("Failed to load data", resp);
-				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
-			}
-			return;
-		}
-		const data = await resp.json();
-
-		mailModalInput.value = data.join(";");
-
-		mailModalLoading = false;
-	}
-
-	async function copyMails() {
-		try {
-			await navigator.clipboard.writeText(mailModalInput.value);
-			mailModalButton.innerHTML = "✔";
-		} catch (err) {
-			console.log("Failed to copy", err);
-			mailModalButton.innerHTML = "✘ Kopieren fehlgeschlagen";
-		}
-	}
 
 	async function fetchDeleteInfo() {
 		deleteModalLoading = true;
@@ -123,7 +83,6 @@
 
   function documentKeyDown(event) {
     if (event.key === "Escape") {
-      mailModalOpen = false;
       closeDeleteModal();
     }
   }
@@ -155,19 +114,6 @@
 
 <p class="buttons">
 	<button
-		class="button is-info"
-		on:click|preventDefault={openMailModal}>
-    <span class="icon">
-			✉️
-		</span>
-		<span>
-			Eltern E-Mailadressen anzeigen
-		</span>
-	</button>
-</p>
-
-<p class="buttons">
-	<button
 		class="button is-danger"
 		on:click|preventDefault={openDeleteModal}>
     <span class="icon">
@@ -179,6 +125,7 @@
 	</button>
 </p>
 
+<div style="display: none;"> <!-- TODO Not yet ready -->
 <h2 class="title is-2">Tabellen</h2>
 
 <div class="is-flex galleryContainer">
@@ -218,24 +165,6 @@
 		</div>
 	</a>
 </div>
-
-<div class="modal" class:is-active={mailModalOpen}>
-  <div class="modal-background" on:click={() => mailModalOpen = false}></div>
-  <div class="modal-content">
-  	<div class="box">
-  		<div class="field has-addons">
-			  <div class="control" style="flex-grow: 1;">
-			    <input class="input" class:is-skeleton={mailModalLoading} type="text" bind:this={mailModalInput} />
-			  </div>
-			  <div class="control">
-			    <button class="button is-info" class:is-skeleton={mailModalLoading} on:click={copyMails} bind:this={mailModalButton}>
-			    	Kopieren
-			    </button>
-			  </div>
-			</div>
-	  </div>
-  </div>
-  <button class="modal-close is-large" aria-label="close" on:click={() => mailModalOpen = false}></button>
 </div>
 
 <div class="modal" class:is-active={deleteModalOpen}>

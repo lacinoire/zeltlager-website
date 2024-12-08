@@ -5,8 +5,8 @@ use diesel::prelude::*;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::{db, mail, State};
-use time::OffsetDateTime;
+use crate::{State, db, mail};
+use time::{Date, OffsetDateTime};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct RemoveMemberData {
@@ -29,8 +29,10 @@ pub struct EditMemberData {
 pub struct EditSupervisorData {
 	supervisor: i32,
 	juleica_nummer: Option<String>,
-	fuehrungszeugnis_ausstellung: Option<chrono::NaiveDate>,
-	fuehrungszeugnis_eingesehen: Option<chrono::NaiveDate>,
+	#[serde(with = "crate::db::models::opt_date")]
+	fuehrungszeugnis_ausstellung: Option<Date>,
+	#[serde(with = "crate::db::models::opt_date")]
+	fuehrungszeugnis_eingesehen: Option<Date>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -261,7 +263,7 @@ fn betreuer_signup_date_last_year() -> OffsetDateTime {
 	let mut date = crate::LAGER_START.midnight().assume_utc();
 	let now = OffsetDateTime::now_utc();
 	if date > now {
-		// Start from next time, subtract a year to allow allow signups from last time.
+		// Start from next time, subtract a year to allow signups from last time.
 		date -= time::Duration::days(365);
 	}
 
@@ -302,6 +304,15 @@ pub async fn lager_info(state: web::Data<State>) -> HttpResponse {
 /// Remove all data for the current lager.
 #[delete("/lager")]
 pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
+	// Remove log file
+	if let Some(log_file) = &state.config.log_file {
+		if let Err(error) = std::fs::remove_file(log_file) {
+			if error.kind() != std::io::ErrorKind::NotFound {
+				error!("Failed to remove log file ({}): {error}", log_file.display());
+			}
+		}
+	}
+
 	match state
 		.db_addr
 		.send(db::RunOnDbMsg(move |db| {
