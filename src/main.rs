@@ -53,7 +53,7 @@ const ISO_DATE_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
 const GERMAN_DATE_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
 	format_description!("[day].[month].[year]");
 const PRIMITIVE_DATE_TIME_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
-	format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond]");
+	format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 const LAGER_START_STR: &str = include_str!("../frontend/lager-start.txt");
 const LAGER_START: LazyLock<Date> =
 	LazyLock::new(|| Date::parse(LAGER_START_STR.trim(), ISO_DATE_FORMAT).unwrap());

@@ -11,6 +11,7 @@ use ipnetwork::IpNetwork;
 use log::warn;
 use serde::Serialize;
 use serde::ser::Error;
+use time::macros::format_description;
 use time::{Date, OffsetDateTime, PrimitiveDateTime};
 
 use crate::{GERMAN_DATE_FORMAT, ISO_DATE_FORMAT, LAGER_START, PRIMITIVE_DATE_TIME_FORMAT};
@@ -260,7 +261,12 @@ pub struct ErwischtMember {
 }
 
 pub fn try_parse_date(s: &str, field: &str) -> Result<Date, FormError> {
-	let formats = &[GERMAN_DATE_FORMAT, ISO_DATE_FORMAT];
+	let formats = &[
+		GERMAN_DATE_FORMAT,
+		ISO_DATE_FORMAT,
+		format_description!("[day padding:none].[month padding:none].[year padding:none]"),
+		format_description!("[year padding:none]-[month padding:none]-[day padding:none]"),
+	];
 	let mut res = None;
 	for f in formats {
 		if let Ok(date) = Date::parse(s, &f) {
@@ -294,7 +300,7 @@ pub fn try_parse_date(s: &str, field: &str) -> Result<Date, FormError> {
 	} else {
 		Err(FormError {
 			field: Some(field.into()),
-			message: format!("Bitte geben Sie das Geburtsdatum ({}) im Format TT.MM.JJJJ an.", s),
+			message: format!("Bitte geben Sie das Datum ({}) im Format TT.MM.JJJJ an.", s),
 		})
 	}
 }
@@ -662,6 +668,12 @@ impl Supervisor {
 		} else {
 			None
 		};
+		let j_date = get_str!(map, "juleica_gueltig_bis")?;
+		let juleica_gueltig_bis = if !j_date.is_empty() {
+			Some(try_parse_date(&j_date, "juleica_gueltig_bis")?)
+		} else {
+			None
+		};
 
 		let juleica_nummer_str = get_str!(map, "juleica_nummer")?;
 		let juleica_nummer =
@@ -677,10 +689,7 @@ impl Supervisor {
 			tetanus_impfung: Some(get_bool!(map, "tetanus_impfung")?),
 
 			juleica_nummer,
-			juleica_gueltig_bis: Some(try_parse_date(
-				&get_str!(map, "juleica_gueltig_bis")?,
-				"juleica_gueltig_bis",
-			)?),
+			juleica_gueltig_bis,
 			mail: get_str!(map, "mail")?,
 			handynummer: get_str!(map, "handynummer")?,
 			land: Some(get_str!(map, "land")?),
@@ -776,5 +785,28 @@ impl Supervisor {
 		}
 
 		Ok(res)
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use time::{Date, Month};
+
+	use super::try_parse_date;
+
+	#[test]
+	fn parse_date() {
+		for d in &[
+			("02.01.2000", Date::from_calendar_date(2000, Month::January, 2)),
+			("2000-01-02", Date::from_calendar_date(2000, Month::January, 2)),
+			("02.01.01", Date::from_calendar_date(2001, Month::January, 2)),
+			("02.01.95", Date::from_calendar_date(1995, Month::January, 2)),
+			("2.1.2000", Date::from_calendar_date(2000, Month::January, 2)),
+			("2000-1-2", Date::from_calendar_date(2000, Month::January, 2)),
+		] {
+			println!("Parse: {}", d.0);
+			let res = try_parse_date(d.0, "").unwrap();
+			assert_eq!(d.1.unwrap(), res);
+		}
 	}
 }
