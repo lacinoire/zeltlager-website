@@ -21,7 +21,7 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 		error!("Error when scanning files: {:?}", e);
 	}
 
-	let mut debouncer = new_debouncer(Duration::from_secs(10), None, tx).unwrap();
+	let mut debouncer = new_debouncer(Duration::from_secs(10), tx).unwrap();
 	// Add a path to be watched. All files and directories at that path and
 	// below will be monitored for changes.
 	debouncer

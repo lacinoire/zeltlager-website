@@ -1,13 +1,13 @@
 use std::io::Write;
 use std::{env, io};
 
-use anyhow::{format_err, Result};
+use anyhow::{Result, format_err};
+use diesel::Connection;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::Connection;
 use dotenv::dotenv;
-use scrypt::password_hash::{PasswordHasher, SaltString};
 use scrypt::Scrypt;
+use scrypt::password_hash::{PasswordHasher, SaltString};
 
 use crate::config::Action;
 use crate::db;
@@ -54,7 +54,7 @@ pub(crate) fn cmd_action(action: Action) -> Result<()> {
 
 			let pw = rpassword::prompt_password("Please enter the password: ").unwrap();
 			let salt = SaltString::generate(&mut rand::thread_rng());
-			let pw = Scrypt.hash_password_simple(pw.as_bytes(), salt.as_ref())?.to_string();
+			let pw = Scrypt.hash_password(pw.as_bytes(), &salt)?.to_string();
 			if exists {
 				diesel::update(users.filter(username.eq(&name)))
 					.set(password.eq(pw))

@@ -21,9 +21,7 @@ use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
 use log::info;
 use scrypt::Scrypt;
-use scrypt::password_hash::{
-	McfHasher, PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
-};
+use scrypt::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
 use serde::Serialize;
 use time::OffsetDateTime;
 use time::PrimitiveDateTime;
@@ -428,33 +426,14 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 				{
 					Ok(Some(user.id))
 				} else {
-					// If parsing in the new format does not work, try the old hash format
-					if scrypt::Scrypt
-						.verify_mcf_hash(msg.password.as_bytes(), &user.password)
-						.is_ok()
-					{
-						// Update password to new format
-						let salt = SaltString::generate(&mut rand::thread_rng());
-						let pw = Scrypt
-							.hash_password_simple(msg.password.as_bytes(), salt.as_ref())?
-							.to_string();
-						diesel::update(users.filter(username.eq(&msg.username)))
-							.set(password.eq(pw))
-							.execute(&mut self.connection)?;
-
-						Ok(Some(user.id))
-					} else {
-						Ok(None)
-					}
+					Ok(None)
 				}
 			}
 			Err(Error::NotFound) => {
 				// Hash a random password so we don’t leak much timing information if a user exists
 				// or not.
 				let salt = SaltString::generate(&mut rand::thread_rng());
-				let pw = Scrypt
-					.hash_password_simple(msg.username.as_bytes(), salt.as_ref())?
-					.to_string();
+				let pw = Scrypt.hash_password(msg.username.as_bytes(), &salt)?.to_string();
 				let hash = PasswordHash::new(&pw)?;
 				let _ = Scrypt.verify_password(msg.password.as_bytes(), &hash);
 				Ok(None)
