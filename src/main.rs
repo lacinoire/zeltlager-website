@@ -550,6 +550,7 @@ async fn main() -> Result<()> {
 					),
 			);
 
+		// Do not use last-modified, because it goes wrong when building with nix and the timestamp is 0
 		for name in &image_dirs {
 			let name2 = name.clone();
 			app = app
@@ -563,6 +564,7 @@ async fn main() -> Result<()> {
 						.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone()), false))
 						.service(
 							Files::new("", format!("Bilder{}", name))
+								.use_last_modified(false)
 								.mime_override(content_disposition_map)
 								.default_handler(web::to(not_found)),
 						),
@@ -573,6 +575,7 @@ async fn main() -> Result<()> {
 		app.wrap(ImagesPathRewriter { image_dirs: image_dirs.clone() })
 			.service(
 				Files::new("", "frontend/build")
+					.use_last_modified(false)
 					.mime_override(content_disposition_map)
 					.index_file("index.html")
 					.default_handler(web::to(not_found)),
