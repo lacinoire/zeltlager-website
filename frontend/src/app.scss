@@ -73,11 +73,11 @@ img {
 		margin-right: -1em;
 		background-color: rgb(240, 240, 240);
 
-		img:first-child {
+		:first-child {
 			padding-left: 1em;
 		}
 
-		img:last-child {
+		:last-child {
 			padding-right: 1em;
 		}
 	}
@@ -87,7 +87,8 @@ img {
 		flex-wrap: nowrap;
 	}
 
-	img {
+	img,
+	video {
 		max-width: 90vw;
 		width: 36em;
 		padding: 1em 0 1em 0;

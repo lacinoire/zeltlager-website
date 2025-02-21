@@ -25,9 +25,14 @@
 ## Küche
 
 <div class="d-flex flex-wrap align-items-start image-list">
+	<video controls>
+		<source src="/img/ausstattung/Kueche.mp4" type="video/mp4" />
+
+		Video kann nicht angezeigt werden, <a href="/img/ausstattung/Kueche.mp4">stattdessen herunterladen</a>
+	</video>
+	<img src="/img/ausstattung/AnhaengerLogo.jpeg" alt="Ein Küchenanhänger von hinten" width="auto" height="100%" loading="lazy">
 	<img src="/img/ausstattung/KuecheAußen.jpeg" alt="Unsere Küchenanhänger" width="auto" height="100%" loading="lazy">
 	<img src="/img/ausstattung/KuecheInnen.jpeg" alt="Die Küche von Innen" width="auto" height="100%" loading="lazy">
-	<img src="/img/ausstattung/AnhaengerLogo.jpeg" alt="Ein Küchenanhänger von hinten" width="auto" height="100%" loading="lazy">
 	<img src="/img/ausstattung/Kueche1.jpg" alt="Die Küche von Innen" width="auto" height="100%" loading="lazy">
 	<img src="/img/ausstattung/Kueche2.jpg" alt="Die Küche von Innen" width="auto" height="100%" loading="lazy">
 	<img src="/img/ausstattung/Kueche3.jpg" alt="Die Küche von Innen" width="auto" height="100%" loading="lazy">
