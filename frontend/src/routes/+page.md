@@ -13,7 +13,7 @@ import { LAGER_START, YEAR } from "$lib/utils";
 
 Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
 
-Das Zeltlager findet auf dem Gelände eines Sportplatzes im Umland von München statt.
+Das Zeltlager findet auf dem Gelände eines Sportvereins im Umland von München statt.
 
 **Abfahrt:** Montag den {LAGER_START.format("DD.MM.YYYY")} um 10:00 Uhr
 
