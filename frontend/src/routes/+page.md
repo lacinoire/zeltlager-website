@@ -37,6 +37,8 @@ Wir freuen uns schon auf das Zeltlager {YEAR}.
 
 Das Betreuerteam
 
+<a href="/anmeldung" class="button is-primary">Zur Anmeldung</a>
+
 # Spiele, Spaß und Abenteuer…
 
 Jedes Jahr habt ihr die Möglichkeit mit uns auf Reisen 😎 zu gehen. Für euch Kinder und Jugendliche zwischen 7 und 15 Jahren bieten wir ein Jugendzeltlager an, bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen.

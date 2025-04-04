@@ -68,10 +68,9 @@ img {
 	margin-top: 2em;
 	margin-bottom: 2em;
 
-	@media screen and (max-width: 1023px) {
+	@media screen and (max-width: calc(40em * 2)) {
 		margin-left: -1em;
 		margin-right: -1em;
-		background-color: rgb(240, 240, 240);
 
 		:first-child {
 			padding-left: 1em;
@@ -80,9 +79,8 @@ img {
 		:last-child {
 			padding-right: 1em;
 		}
-	}
 
-	@media screen and (max-width: calc(40em * 2)) {
+		background-color: rgb(240, 240, 240);
 		overflow-x: auto;
 		flex-wrap: nowrap;
 	}
@@ -133,6 +131,12 @@ print {
 
 	.field-body {
 		flex-grow: 3;
+	}
+}
+
+@media screen and (max-width: 1230px) {
+	.button {
+		width: 100%;
 	}
 }
 

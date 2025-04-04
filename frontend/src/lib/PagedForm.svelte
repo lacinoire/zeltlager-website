@@ -385,12 +385,18 @@
 		margin-bottom: 1.2em;
 	}
 
-	form > .field:not(:last-child) {
+	form > * > .field:not(:last-child) {
 		margin-bottom: 1.5em;
 	}
 
 	.button {
 		margin-top: 2em;
+	}
+
+	.checkbox input[type=checkbox], .radio input[type=radio] {
+		transform: scale(1.8);
+		margin: 10px;
+		margin-left: 5px;
 	}
 
 	.button.is-primary {
