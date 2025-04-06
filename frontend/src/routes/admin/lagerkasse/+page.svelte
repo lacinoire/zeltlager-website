@@ -23,6 +23,7 @@
 	}
 
 	let all: Member[];
+	let displayAll: Member[];
 	// For sorting by region, insert empty rows
 	let sortBy = "Vorname-asc";
 	// let sortType: SortType = "alphabetisch";
@@ -65,7 +66,8 @@
 		} else {
 			sortFn = getSortByKeyFn(sortBy);
 		}
-
+		all.sort(sortFn);
+		displayAll = all;
 	}
 
 	$: applyFilter(all, sortBy);
@@ -174,8 +176,8 @@
 
 <TableContainer>
 	<SortableTable columns={allColumns} bind:sortBy>
-		{#if all !== undefined}
-			{#each all as e}
+		{#if displayAll !== undefined}
+			{#each displayAll as e}
 				<tr>
 					<td>{e.vorname}</td>
 					<td>{e.nachname}</td>
