@@ -131,7 +131,7 @@ pub struct FullTeilnehmer {
 }
 
 // Without id, anmeldedatum and signup_token/time
-#[derive(Clone, Debug, Insertable, Serialize, Queryable)]
+#[derive(Clone, Debug, Insertable, Serialize, Queryable, AsChangeset)]
 #[diesel(table_name = betreuer)]
 pub struct Supervisor {
 	pub vorname: String,
@@ -674,6 +674,14 @@ impl Supervisor {
 		} else {
 			None
 		};
+
+		// Check that it is valid until the camp
+		if juleica_gueltig_bis.map(|d| d < *LAGER_START).unwrap_or_default() {
+			return Err(FormError {
+				field: Some("juleica_gueltig_bis".into()),
+				message: "Deine Juleica ist nicht mehr bis zum nächsten Zeltlager gültig!".into(),
+			});
+		}
 
 		let juleica_nummer_str = get_str!(map, "juleica_nummer")?;
 		let juleica_nummer =

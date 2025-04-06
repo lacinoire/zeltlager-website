@@ -260,6 +260,14 @@ export function splitImageName(s: string): string {
 	return res;
 }
 
+// Remove 'required' on fields for browsers that do not show any popup there and just fail to submit the form silently.
+export function updateFormRequired(form: HTMLFormElement | undefined) {
+	const userAgent = navigator.userAgent.toLowerCase();
+	if (userAgent.includes("android") && userAgent.includes("firefox") && form) {
+		form.querySelectorAll("input").forEach((element) => (element.required = false));
+	}
+}
+
 export const COUNTRIES: string[] = [
 	"Albanien",
 	"Andorra",

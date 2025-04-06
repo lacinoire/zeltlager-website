@@ -9,7 +9,7 @@ use lettre::{SmtpTransport, Transport};
 use t4rust_derive::Template;
 
 use crate::config::Config;
-use crate::db::models::{FullTeilnehmer, Gender, Teilnehmer};
+use crate::db::models::{FullSupervisor, FullTeilnehmer, Gender, Teilnehmer};
 use crate::{GERMAN_DATE_FORMAT, LAGER_START};
 
 pub struct MailExecutor {
@@ -22,6 +22,14 @@ impl Actor for MailExecutor {
 
 pub struct SignupMessage {
 	pub member: Teilnehmer,
+}
+
+#[derive(Template)]
+#[TemplatePath = "templates/resignup-mail.tt"]
+#[derive(Debug)]
+pub struct ResignupMessage {
+	pub supervisor: FullSupervisor,
+	pub token: String,
 }
 
 pub struct PayedMessage {
@@ -60,6 +68,10 @@ impl Message for SignupMessage {
 	type Result = Result<()>;
 }
 
+impl Message for ResignupMessage {
+	type Result = Result<()>;
+}
+
 impl Message for PayedMessage {
 	type Result = Result<()>;
 }
@@ -67,7 +79,7 @@ impl Message for PayedMessage {
 impl MailExecutor {
 	pub fn new(config: Config) -> Self { Self { config } }
 
-	fn send_mail(
+	fn send_eltern_mail(
 		&self, eltern_name: String, eltern_mail: String, subject: String, body: String,
 	) -> Result<()> {
 		let mut email_builder = lettre::Message::builder()
@@ -110,7 +122,40 @@ impl Handler<SignupMessage> for MailExecutor {
 		let subject = format!("{}", Subject { member: &msg.member }).trim().to_string();
 		let body = format!("{}", Body { member: &msg.member }).trim().to_string();
 
-		self.send_mail(msg.member.eltern_name.clone(), msg.member.eltern_mail, subject, body)
+		self.send_eltern_mail(msg.member.eltern_name.clone(), msg.member.eltern_mail, subject, body)
+	}
+}
+
+impl Handler<ResignupMessage> for MailExecutor {
+	type Result = Result<()>;
+
+	fn handle(&mut self, msg: ResignupMessage, _: &mut Self::Context) -> Self::Result {
+		let full_name = format!("{} {}", msg.supervisor.vorname, msg.supervisor.nachname);
+
+		let subject = format!("Zeltlager {} Betreueranmeldung", LAGER_START.year());
+		let body = format!("{}", msg).trim().to_string();
+
+		let email = lettre::Message::builder()
+			.to((full_name, msg.supervisor.mail.clone()).try_into()?)
+			.header(header::ContentType::TEXT_PLAIN)
+			.from(self.config.sender_mail.clone().try_into()?)
+			.subject(subject)
+			.body(body)?;
+
+		let mailer = SmtpTransport::starttls_relay(self.config.sender_mail_account.host.as_str())?
+			.credentials(Credentials::new(
+				self.config
+					.sender_mail_account
+					.name
+					.clone()
+					.unwrap_or_else(|| self.config.sender_mail.address.clone()),
+				self.config.sender_mail_account.password.clone(),
+			))
+			.build();
+
+		// Send the email
+		mailer.send(&email)?;
+		Ok(())
 	}
 }
 
@@ -121,7 +166,7 @@ impl Handler<PayedMessage> for MailExecutor {
 		let subject = format!("{}", PayedSubject { member: &msg.member }).trim().to_string();
 		let body = format!("{}", PayedBody { member: &msg.member }).trim().to_string();
 
-		self.send_mail(msg.member.eltern_name.clone(), msg.member.eltern_mail, subject, body)
+		self.send_eltern_mail(msg.member.eltern_name.clone(), msg.member.eltern_mail, subject, body)
 	}
 }
 

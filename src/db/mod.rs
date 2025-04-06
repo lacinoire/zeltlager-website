@@ -389,10 +389,36 @@ impl Handler<SignupSupervisorMessage> for DbExecutor {
 
 	fn handle(&mut self, msg: SignupSupervisorMessage, _: &mut Self::Context) -> Self::Result {
 		use self::schema::betreuer;
+		use self::schema::betreuer::columns::*;
 
-		diesel::insert_into(betreuer::table)
-			.values(&msg.supervisor)
-			.execute(&mut self.connection)?;
+		// Check if the e-mail already exists
+		let supervisor = match betreuer::table
+			.filter(mail.eq(&msg.supervisor.mail))
+			.select(id)
+			.first::<i32>(&mut self.connection)
+		{
+			Err(diesel::result::Error::NotFound) => None,
+			Err(e) => return Err(e.into()),
+			Ok(supervisor) => Some(supervisor),
+		};
+
+		if let Some(supervisor) = supervisor {
+			// Update
+			diesel::update(betreuer::table)
+				.filter(id.eq(&supervisor))
+				.set((
+					msg.supervisor,
+					anmeldedatum.eq(diesel::dsl::now),
+					signup_token.eq(None::<String>),
+					signup_token_time.eq(None::<PrimitiveDateTime>),
+				))
+				.execute(&mut self.connection)?;
+		} else {
+			// Insert new
+			diesel::insert_into(betreuer::table)
+				.values(&msg.supervisor)
+				.execute(&mut self.connection)?;
+		}
 
 		Ok(())
 	}

@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { onMount, tick, createEventDispatcher } from "svelte";
 	import { browser } from "$app/environment";
+	import { updateFormRequired } from "$lib/utils";
 	import type { FormError } from "$lib/utils";
 	import Icon from "$lib/Icon.svelte";
 	import { mdiDelete, mdiHelpCircle } from "@mdi/js";
@@ -162,11 +163,7 @@
 				}
 			}
 
-			// Remove required classes for firefox on android, it doesn't show any popup there
-			const userAgent = navigator.userAgent.toLowerCase();
-			if (userAgent.includes("android") && userAgent.includes("firefox") && form) {
-				form.querySelectorAll("input").forEach((element) => (element.required = false));
-			}
+			updateFormRequired(form);
 		}
 	});
 </script>

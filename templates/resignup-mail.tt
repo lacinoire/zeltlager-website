@@ -1,0 +1,9 @@
+<#@ template cleanws="true" #>
+Liebe<# if self.supervisor.geschlecht == Gender::Male { #>r<#
+} #> <#= self.supervisor.vorname #>,
+
+Mit diesem Link kannst du dich für das Zeltlager <#= LAGER_START.year() #> als Betreuer<# if self.supervisor.geschlecht == Gender::Female { #>in<#
+} #> anmelden: https://meinzeltlager.com/intern/betreuer-anmeldung-neu?token=<#= self.token #>
+Der Link ist für 24 Stunden gültig.
+
+Bis bald!

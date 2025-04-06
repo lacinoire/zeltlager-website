@@ -525,6 +525,8 @@ async fn main() -> Result<()> {
 					.service(signup::signup_nojs)
 					.service(signup_supervisor::signup)
 					.service(signup_supervisor::signup_nojs)
+					.service(signup_supervisor::resignup)
+					.service(signup_supervisor::get_data)
 					.service(
 						web::scope("/admin")
 							.wrap(HasRolePredicate::new(auth::Roles::Admin, true))
