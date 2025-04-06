@@ -162,6 +162,8 @@
 	<title>Lagerkasse – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
 
+<h1 class="title">Lagerkasse</h1>
+
 {#if error !== undefined}
 	<article class="message is-danger">
 		<div class="message-body">
