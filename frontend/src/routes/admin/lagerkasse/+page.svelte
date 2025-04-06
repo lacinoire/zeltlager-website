@@ -86,19 +86,7 @@
 			return;
 		}
 		const data = await resp.json();
-		// all = data;
-		all = [
-		{
-			vorname: "bob",
-			nachname: "almond"
-		},{
-			vorname: "alice",
-			nachname: "Chocolate"
-		},{
-			vorname: "charlie",
-			nachname: "brownie"
-		},
-		];
+		all = data;
 
 		all.sort(getSortByKeyFn(sortBy))
 
