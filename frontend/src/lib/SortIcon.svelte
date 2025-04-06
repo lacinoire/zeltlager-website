@@ -12,15 +12,17 @@
 	}
 </script>
 
-<button on:click={flipSort}>
+<button class="sortIcon" on:click={flipSort}>
 	{displayName === undefined ? name : displayName}
-	{#if sortBy === name + "-asc"}
-		<Icon name={mdiSortAscending} />
-	{:else if sortBy === name + "-desc"}
-		<Icon name={mdiSortDescending} />
-	{:else}
-		<span class="unsorted"><Icon name={mdiSort} /></span>
-	{/if}
+	<span>
+		{#if sortBy === name + "-asc"}
+			<Icon name={mdiSortAscending} />
+		{:else if sortBy === name + "-desc"}
+			<Icon name={mdiSortDescending} />
+		{:else}
+			<span class="unsorted"><Icon name={mdiSort} /></span>
+		{/if}
+	</span>
 </button>
 
 <style>

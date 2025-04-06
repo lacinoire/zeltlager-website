@@ -205,4 +205,10 @@
 		align-items: start;
 		gap: 3em;
 	}
+
+	@media print {
+		:global(.sortIcon span) {
+			display: none;
+		}
+	}
 </style>
