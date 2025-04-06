@@ -183,7 +183,7 @@
 				<tr>
 					<td>{e.vorname}</td>
 					<td>{e.nachname}</td>
-					<td></td>
+					<td class="betrag"></td>
 				</tr>
 			{/each}
 		{/if}
@@ -191,28 +191,43 @@
 </TableContainer>
 
 <style lang="scss">
-	.header-flex {
-		display: flex;
-		align-items: center;
-		gap: 1em;
-		margin-bottom: 1em;
-
-		.buttons,
-		.button {
-			margin-bottom: 0;
-		}
+	:global(.table) {
+		width: 100%;
+		border-collapse: collapse;
 	}
 
-	.multiTables {
-		display: flex;
-		flex-flow: row wrap;
-		align-items: start;
-		gap: 3em;
+
+	:global(.table td, .table th) {
+		white-space: nowrap;
+	}
+
+	:global(.table td.betrag) {
+		width: 99%;
 	}
 
 	@media print {
 		:global(.sortIcon span) {
 			display: none;
 		}
+
+		:global(h1.title) {
+			color: black;
+		}
+
+		:global(.table thead) {
+			background: none;
+		}
+
+		:global(.table thead th button) {
+			font-weight: bold;
+		}
+
+		:global(.table td, .table thead th, .table tbody tr:last-child td) {
+			padding: 0em 0.75em;
+			border-width: 2px;
+			border-color: black;
+			color: black;
+		}
+
 	}
 </style>
