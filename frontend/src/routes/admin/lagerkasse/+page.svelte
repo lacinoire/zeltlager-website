@@ -1,12 +1,9 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
-	import moment from "moment";
-	import type { Moment } from "moment";
 	import {
 		getSortByKeyFn,
 	} from "$lib/utils";
-	import EditableProperty from "$lib/EditableProperty.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
 	import SortableTable from "$lib/SortableTable.svelte";
 	import type { Column } from "$lib/utils";
@@ -24,9 +21,7 @@
 
 	let all: Member[];
 	let displayAll: Member[];
-	// For sorting by region, insert empty rows
 	let sortBy = "Vorname-asc";
-	// let sortType: SortType = "alphabetisch";
 	let error: string | undefined;
 	let isLoading = true;
 
@@ -91,56 +86,6 @@
 		all.sort(getSortByKeyFn(sortBy))
 
 		isLoading = false;
-	}
-
-	async function editEntry(
-		entry: Member,
-		event: CustomEvent<{ setEnabled: (enabled: boolean) => void }>
-	) {
-		event.detail.setEnabled(false);
-		const data = {
-			member: entry.id,
-			bezahlt: entry.bezahlt,
-			anwesend: entry.anwesend,
-		};
-		try {
-			const response = await fetch("/api/admin/teilnehmer/edit", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(data),
-			});
-			if (!response.ok) error = "Teilnehmer konnte nicht bearbeitet werden (Server-Fehler)";
-		} catch (e) {
-			console.error("Failed to edit member", e);
-			error = "Teilnehmer konnte nicht bearbeitet werden";
-		}
-		await loadData();
-		event.detail.setEnabled(true);
-	}
-
-	async function removeEntry(entry: Member) {
-		if (!window.confirm(`${entry.vorname} ${entry.nachname} löschen?`)) return;
-		try {
-			const data = {
-				member: entry.id,
-			};
-
-			const response = await fetch("/api/admin/teilnehmer/remove", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(data),
-			});
-			if (!response.ok) error = "Teilnehmer konnte nicht gelöscht werden (Server-Fehler)";
-		} catch (e) {
-			console.error("Failed to delete member", e);
-			error = "Teilnehmer konnte nicht gelöscht werden";
-		}
-
-		await loadData();
 	}
 
 	onMount(loadData);
