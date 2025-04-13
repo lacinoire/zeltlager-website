@@ -1,12 +1,9 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
-	import moment from "moment";
-	import type { Moment } from "moment";
 	import {
 		getSortByKeyFn,
 	} from "$lib/utils";
-	import EditableProperty from "$lib/EditableProperty.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
 	import SortableTable from "$lib/SortableTable.svelte";
 	import type { Column } from "$lib/utils";
@@ -23,9 +20,8 @@
 	}
 
 	let all: Member[];
-	// For sorting by region, insert empty rows
+	let displayAll: Member[];
 	let sortBy = "Vorname-asc";
-	// let sortType: SortType = "alphabetisch";
 	let error: string | undefined;
 	let isLoading = true;
 
@@ -65,7 +61,8 @@
 		} else {
 			sortFn = getSortByKeyFn(sortBy);
 		}
-
+		all.sort(sortFn);
+		displayAll = all;
 	}
 
 	$: applyFilter(all, sortBy);
@@ -84,73 +81,11 @@
 			return;
 		}
 		const data = await resp.json();
-		// all = data;
-		all = [
-		{
-			vorname: "bob",
-			nachname: "almond"
-		},{
-			vorname: "alice",
-			nachname: "Chocolate"
-		},{
-			vorname: "charlie",
-			nachname: "brownie"
-		},
-		];
+		all = data;
 
 		all.sort(getSortByKeyFn(sortBy))
 
 		isLoading = false;
-	}
-
-	async function editEntry(
-		entry: Member,
-		event: CustomEvent<{ setEnabled: (enabled: boolean) => void }>
-	) {
-		event.detail.setEnabled(false);
-		const data = {
-			member: entry.id,
-			bezahlt: entry.bezahlt,
-			anwesend: entry.anwesend,
-		};
-		try {
-			const response = await fetch("/api/admin/teilnehmer/edit", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(data),
-			});
-			if (!response.ok) error = "Teilnehmer konnte nicht bearbeitet werden (Server-Fehler)";
-		} catch (e) {
-			console.error("Failed to edit member", e);
-			error = "Teilnehmer konnte nicht bearbeitet werden";
-		}
-		await loadData();
-		event.detail.setEnabled(true);
-	}
-
-	async function removeEntry(entry: Member) {
-		if (!window.confirm(`${entry.vorname} ${entry.nachname} löschen?`)) return;
-		try {
-			const data = {
-				member: entry.id,
-			};
-
-			const response = await fetch("/api/admin/teilnehmer/remove", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(data),
-			});
-			if (!response.ok) error = "Teilnehmer konnte nicht gelöscht werden (Server-Fehler)";
-		} catch (e) {
-			console.error("Failed to delete member", e);
-			error = "Teilnehmer konnte nicht gelöscht werden";
-		}
-
-		await loadData();
 	}
 
 	onMount(loadData);
@@ -159,6 +94,8 @@
 <svelte:head>
 	<title>Lagerkasse – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
+
+<h1 class="title">Lagerkasse</h1>
 
 {#if error !== undefined}
 	<article class="message is-danger">
@@ -174,12 +111,12 @@
 
 <TableContainer>
 	<SortableTable columns={allColumns} bind:sortBy>
-		{#if all !== undefined}
-			{#each all as e}
+		{#if displayAll !== undefined}
+			{#each displayAll as e}
 				<tr>
 					<td>{e.vorname}</td>
 					<td>{e.nachname}</td>
-					<td></td>
+					<td class="betrag"></td>
 				</tr>
 			{/each}
 		{/if}
@@ -187,22 +124,43 @@
 </TableContainer>
 
 <style lang="scss">
-	.header-flex {
-		display: flex;
-		align-items: center;
-		gap: 1em;
-		margin-bottom: 1em;
-
-		.buttons,
-		.button {
-			margin-bottom: 0;
-		}
+	:global(.table) {
+		width: 100%;
+		border-collapse: collapse;
 	}
 
-	.multiTables {
-		display: flex;
-		flex-flow: row wrap;
-		align-items: start;
-		gap: 3em;
+
+	:global(.table td, .table th) {
+		white-space: nowrap;
+	}
+
+	:global(.table td.betrag) {
+		width: 99%;
+	}
+
+	@media print {
+		:global(.sortIcon span) {
+			display: none;
+		}
+
+		:global(h1.title) {
+			color: black;
+		}
+
+		:global(.table thead) {
+			background: none;
+		}
+
+		:global(.table thead th button) {
+			font-weight: bold;
+		}
+
+		:global(.table td, .table thead th, .table tbody tr:last-child td) {
+			padding: 0em 0.75em;
+			border-width: 2px;
+			border-color: black;
+			color: black;
+		}
+
 	}
 </style>
