@@ -19,11 +19,11 @@
 		nachname: string;
 	}
 
-	let all: Member[];
-	let displayAll: Member[];
-	let sortBy = "Vorname-asc";
-	let error: string | undefined;
-	let isLoading = true;
+	let all: Member[] = $state();
+	let displayAll: Member[] = $state();
+	let sortBy = $state("Vorname-asc");
+	let error: string | undefined = $state();
+	let isLoading = $state(true);
 
 	// &shy;
 	const S = "\u00AD";
@@ -48,7 +48,7 @@
 		return data;
 	}
 
-	function applyFilter(all: Member[], sortBy: string) {
+	$effect(() => {
 		if (all === undefined) return;
 
 		const asc = sortBy.endsWith("asc");
@@ -63,10 +63,7 @@
 		}
 		all.sort(sortFn);
 		displayAll = all;
-	}
-
-	$: applyFilter(all, sortBy);
-
+	});
 
 	async function loadData() {
 		const resp = await fetch("/api/admin/teilnehmer");

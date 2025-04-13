@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
-	let mail: string | undefined;
+	let mail: string | undefined = $state();
 
 	onMount(() => {
   	const urlParams = new URLSearchParams(window.location.search);

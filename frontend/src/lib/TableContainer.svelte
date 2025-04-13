@@ -2,12 +2,19 @@
 	// This is a horizontally scrollable container that adds an extra scrollbar that is fixed at
 	// the bottom of the screen.
 	import { onMount } from "svelte";
+	import type { Snippet } from "svelte";
 
-	let container: HTMLDivElement;
-	let scrollbar: HTMLDivElement;
+	interface Props {
+		children?: Snippet;
+	}
 
-	let showScrollbar = false;
-	let scrollbarWidth = 0;
+	let { children }: Props = $props();
+
+	let container: HTMLDivElement = $state();
+	let scrollbar: HTMLDivElement = $state();
+
+	let showScrollbar = $state(false);
+	let scrollbarWidth = $state(0);
 	let setupTimeout: NodeJS.Timeout | undefined;
 
 	function onScroll() {
@@ -39,18 +46,18 @@
 	});
 </script>
 
-<svelte:window on:resize={setup} />
+<svelte:window onresize={setup} />
 
 <div class="scroll-container">
-	<div class="table-container" bind:this={container} on:scroll={onContainerScroll}>
-		<slot />
+	<div class="table-container" bind:this={container} onscroll={onContainerScroll}>
+		{@render children?.()}
 	</div>
 	<div
 		class="fixed-scrollbar"
 		bind:this={scrollbar}
-		on:scroll={onScroll}
+		onscroll={onScroll}
 		class:is-hidden={!showScrollbar}>
-		<div style={"width: " + scrollbarWidth + "px;"} />
+		<div style={"width: " + scrollbarWidth + "px;"}></div>
 	</div>
 </div>
 

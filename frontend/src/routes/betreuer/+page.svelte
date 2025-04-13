@@ -5,7 +5,7 @@
 	import PagedForm from "$lib/PagedForm.svelte";
 	import type { Category } from "$lib/PagedForm.svelte";
 
-	let form: HTMLFormElement | undefined;
+	let form: HTMLFormElement | undefined = $state();
 	let isLoading = false;
 
 	const CATEGORIES: Category[] = [

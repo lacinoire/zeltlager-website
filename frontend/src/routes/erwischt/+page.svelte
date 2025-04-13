@@ -29,17 +29,17 @@
 	type Game = Member[];
 
 	const historyLength = 5;
-	let lastActions: Action[] = [];
+	let lastActions: Action[] = $state([]);
 
-	let games: GameEntry[] = [];
-	let currentGameId: number | undefined;
-	let currentGame: Game | undefined;
-	let filteredLive: Member[] | undefined;
-	let filteredCatched: Member[] | undefined;
+	let games: GameEntry[] = $state([]);
+	let currentGameId: number | undefined = $state();
+	let currentGame: Game | undefined = $state();
+	let filteredLive: Member[] | undefined = $state();
+	let filteredCatched: Member[] | undefined = $state();
 
-	let showTarget = false;
-	let insertMember = false;
-	let filter = "";
+	let showTarget = $state(false);
+	let insertMember = $state(false);
+	let filter = $state("");
 
 	if (browser) {
 		lastActions = localStorage.erwischtLastActions
@@ -148,11 +148,9 @@
 		showMembers(filter, showTarget, currentGame);
 	}
 
-	function showTargetChanged(showTarget: boolean) {
+	$effect(() => {
 		if (browser) localStorage.erwischtShowTarget = showTarget ? "true" : "false";
-	}
-
-	$: showTargetChanged(showTarget);
+	});
 
 	async function loadGames() {
 		let response: Response;
@@ -215,7 +213,7 @@
 		console.log("Loaded game", currentGameId);
 	}
 
-	$: loadGame(currentGameId);
+	$effect(() => loadGame(currentGameId));
 
 	/// Show the filtered members
 	function showMembers(filter: string, showTarget: boolean, currentGame: Game | undefined) {
@@ -249,7 +247,7 @@
 		filteredCatched.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
-	$: showMembers(filter, showTarget, currentGame);
+	$effect(() => showMembers(filter, showTarget, currentGame));
 
 	async function newGame() {
 		let response: Response;
@@ -319,12 +317,12 @@
 	<ul>
 		{#each games as game}
 			<li class:is-active={game.id === currentGameId}>
-				<!-- svelte-ignore a11y-missing-attribute -->
+				<!-- svelte-ignore a11y_missing_attribute -->
 				<a
 					role="button"
 					tabindex="0"
-					on:click={() => (currentGameId = game.id)}
-					on:keydown={(e) => {
+					onclick={() => (currentGameId = game.id)}
+					onkeydown={(e) => {
 						if (e.key === "Enter") currentGameId = game.id;
 					}}
 					title={game.created.format("DD.MM.YYYY HH:mm")}>
@@ -333,12 +331,12 @@
 			</li>
 		{/each}
 		<li>
-			<!-- svelte-ignore a11y-missing-attribute -->
+			<!-- svelte-ignore a11y_missing_attribute -->
 			<a
 				role="button"
 				tabindex="0"
-				on:click={newGame}
-				on:keydown={(e) => {
+				onclick={newGame}
+				onkeydown={(e) => {
 					if (e.key === "Enter") newGame();
 				}}
 				title="Neues Spiel erstellen">
@@ -350,7 +348,7 @@
 
 <div class="header-flex">
 	<div class="control">
-		<!-- svelte-ignore a11y-autofocus -->
+		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			class="input"
 			type="text"
@@ -361,21 +359,21 @@
 	<div class="tabs is-toggle togglebuttons">
 	  <ul>
 	    <li class:is-active={!insertMember}>
-				<!-- svelte-ignore a11y-invalid-attribute -->
-	      <a on:click={() => insertMember = !insertMember} href="#">
+				<!-- svelte-ignore a11y_invalid_attribute -->
+	      <a onclick={() => insertMember = !insertMember} href="#">
 	        <span>erwischen</span>
 	      </a>
 	    </li>
 	    <li class:is-active={insertMember}>
-				<!-- svelte-ignore a11y-invalid-attribute -->
-	      <a on:click={() => insertMember = !insertMember} href="#">
+				<!-- svelte-ignore a11y_invalid_attribute -->
+	      <a onclick={() => insertMember = !insertMember} href="#">
 	        <span>einfügen</span>
 	      </a>
 	    </li>
 	  </ul>
 	</div>
 	<div>
-		<button class="button is-danger" on:click={deleteGame}>
+		<button class="button is-danger" onclick={deleteGame}>
 			Spiel löschen
 		</button>
 	</div>
@@ -391,7 +389,7 @@
 					anzeigen <input type="checkbox" bind:checked={showTarget} />
 				</label>
 			</th>
-			<th />
+			<th></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -406,23 +404,23 @@
 					</td>
 					<td class="alignRight">
 						{#if insertMember}
-							<!-- svelte-ignore a11y-missing-attribute -->
+							<!-- svelte-ignore a11y_missing_attribute -->
 							<a
 								role="button"
 								tabindex="0"
-								on:click={() => insertNewMember(m.nextTarget.id)}
-								on:keydown={(e) => {
+								onclick={() => insertNewMember(m.nextTarget.id)}
+								onkeydown={(e) => {
 									if (e.key === "Enter") insertNewMember(m.nextTarget.id);
 								}}>
 								einfügen
 							</a>
 						{:else}
-							<!-- svelte-ignore a11y-missing-attribute -->
+							<!-- svelte-ignore a11y_missing_attribute -->
 							<a
 								role="button"
 								tabindex="0"
-								on:click={() => catchMember(m.id, m.nextTarget.id)}
-								on:keydown={(e) => {
+								onclick={() => catchMember(m.id, m.nextTarget.id)}
+								onkeydown={(e) => {
 									if (e.key === "Enter") catchMember(m.id, m.nextTarget.id);
 								}}>
 								erwischt
@@ -443,7 +441,7 @@
 			<th>Name</th>
 			<th>Von</th>
 			<th>Zeit</th>
-			<th />
+			<th></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -458,12 +456,12 @@
 						{m.last_change.format("DD.MM. HH:mm")}
 					</td>
 					<td>
-						<!-- svelte-ignore a11y-missing-attribute -->
+						<!-- svelte-ignore a11y_missing_attribute -->
 						<a
 							role="button"
 							tabindex="0"
-							on:click={() => catchMember(null, m.id)}
-							on:keydown={(e) => {
+							onclick={() => catchMember(null, m.id)}
+							onkeydown={(e) => {
 								if (e.key === "Enter") catchMember(null, m.id);
 							}}>
 							wiederbeleben
@@ -489,12 +487,12 @@
 						{findMember(a.member).name} wiederbelebt
 					{/if}
 				</div>
-				<!-- svelte-ignore a11y-missing-attribute -->
+				<!-- svelte-ignore a11y_missing_attribute -->
 				<a
 					role="button"
 					tabindex="0"
-					on:click={() => catchMember(a.lastCatcher, a.member)}
-					on:keydown={(e) => {
+					onclick={() => catchMember(a.lastCatcher, a.member)}
+					onkeydown={(e) => {
 						if (e.key === "Enter") catchMember(a.lastCatcher, a.member);
 					}}>
 					rückgängig

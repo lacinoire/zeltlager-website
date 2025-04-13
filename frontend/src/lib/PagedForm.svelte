@@ -1,5 +1,3 @@
-<svelte:options accessors={true} />
-
 <script lang="ts">
 	import { onMount, tick, createEventDispatcher } from "svelte";
 	import { browser } from "$app/environment";
@@ -8,13 +6,13 @@
 	import Icon from "$lib/Icon.svelte";
 	import { mdiDelete, mdiHelpCircle } from "@mdi/js";
 
-	let error: FormError | undefined;
-	let isLoading = false;
-	let errorMsg: HTMLElement | undefined;
-	let curCategory: number = 0;
-	let formSaved = false;
+	let error: FormError | undefined = $state();
+	let isLoading = $state(false);
+	let errorMsg: HTMLElement | undefined = $state();
+	let curCategory: number = $state(0);
+	let formSaved = $state(false);
 	// Value to trigger updates for the category state
-	let somethingChanged = false;
+	let somethingChanged = $state(false);
 
 	const dispatch = createEventDispatcher<{ submit: undefined }>();
 
@@ -55,13 +53,22 @@
 		{ id: "false", name: "Nein" },
 	];
 
-	export let form: HTMLFormElement | undefined;
+	interface Props {
+		form: HTMLFormElement | undefined;
+		name: string;
+		categories: Category[];
+		submitText: string;
+		nojs_submit_url: string;
+	}
 
-	export let name: string;
-	export let categories: Category[];
-	export let submitText: string;
-
-	export let nojs_submit_url: string;
+	let {
+		form = $bindable(),
+		name,
+		categories,
+		submitText,
+		nojs_submit_url
+	}: Props = $props();
+	export { form };
 
 	export async function setError(msg: string) {
 		error = { message: msg };
@@ -91,7 +98,8 @@
 		return true;
 	}
 
-	function setCategory(cat: number) {
+	function setCategory(e, cat: number) {
+		e.preventDefault();
 		curCategory = cat;
 		const id = categories[cat].id ?? categories[cat].name.toLowerCase();
 		location.hash = `#${id}`;
@@ -128,6 +136,11 @@
 		}
 	}
 
+	function onClearEntries(e) {
+		e.preventDefault();
+		clearEntries();
+	}
+
 	export function clearEntries() {
 		localStorage.removeItem(name);
 		formSaved = false;
@@ -135,7 +148,8 @@
 		somethingChanged = !somethingChanged;
 	}
 
-	async function handleSubmit() {
+	async function handleSubmit(e) {
+		e.preventDefault();
 		// Skip if there is a submit in progress
 		if (isLoading && error === undefined) return;
 		error = undefined;
@@ -195,7 +209,7 @@
 						<div class="progress-label">
 							<a
 								href={`#${category.id ?? category.name.toLowerCase()}`}
-								on:click={() => (curCategory = i)}>{category.name}</a>
+								onclick={() => (curCategory = i)}>{category.name}</a>
 						</div>
 					</div>
 				</div>
@@ -208,7 +222,7 @@
 	class="form"
 	method="post"
 	action={nojs_submit_url}
-	on:submit|preventDefault={handleSubmit}
+	onsubmit={handleSubmit}
 	bind:this={form}>
 	{#each categories as category, i}
 		<div
@@ -259,9 +273,9 @@
 										autocomplete={field.autocomplete ?? false}
 										value={field.defaultValue ?? ""}
 										inputmode={field.inputmode ?? ""}
-										on:keydown={field.keydown}
-										on:blur={saveEntries}
-										on:focusout={field.focusout}
+										onkeydown={field.keydown}
+										onblur={saveEntries}
+										onfocusout={field.focusout}
 										type={field.type ?? "text"} />
 								{:else if field.type === "radio"}
 									{#each field.variants ?? DEFAULT_VARIANTS as variant}
@@ -271,7 +285,7 @@
 												value={variant.id ?? variant.name.toLowerCase()}
 												required
 												type="radio"
-												on:change={saveEntries} />
+												onchange={saveEntries} />
 											{variant.name}
 										</label>
 									{/each}
@@ -279,7 +293,7 @@
 									<textarea
 										id={field.id ?? field.name.toLowerCase()}
 										name={field.id ?? field.name.toLowerCase()}
-										on:blur={saveEntries}
+										onblur={saveEntries}
 										cols="40"
 										rows="1"
 										class="textarea"
@@ -293,7 +307,7 @@
 											value="true"
 											required
 											type="checkbox"
-											on:change={saveEntries} />
+											onchange={saveEntries} />
 											<span class="label" style="display: inline;">
 												{@html field.name}
 											</span>
@@ -334,7 +348,7 @@
 						{#if curCategory != 0 && browser}
 							<button
 								class="button"
-								on:click|preventDefault={() => setCategory(curCategory - 1)}>
+								onclick={(e) => setCategory(e, curCategory - 1)}>
 								Zurück
 							</button>
 						{/if}
@@ -348,7 +362,7 @@
 						{:else}
 							<button
 								class="button is-info"
-								on:click|preventDefault={() => setCategory(curCategory + 1)}>
+								onclick={(e) => setCategory(e, curCategory + 1)}>
 								Weiter
 							</button>
 						{/if}
@@ -356,7 +370,7 @@
 					{#if formSaved && curCategory == categories.length - 1}
 						<button
 							class="button reset-button"
-							on:click|preventDefault={clearEntries}
+							onclick={onClearEntries}
 							title="Formular zurücksetzen">
 							<Icon name={mdiDelete} />
 						</button>

@@ -4,11 +4,12 @@
 	import { goto } from "$app/navigation";
 	import { updateFormRequired } from "$lib/utils";
 
-	let form: HTMLFormElement | undefined;
-	let error: string | undefined;
-	let isLoading = false;
+	let form: HTMLFormElement | undefined = $state();
+	let error: string | undefined = $state();
+	let isLoading = $state(false);
 
-	async function handleSubmit() {
+	async function handleSubmit(e) {
+		e.preventDefault();
 		// Skip if there is a submit in progress
 		if (isLoading && error === undefined) return;
 		error = undefined;
@@ -86,7 +87,7 @@ Bitte aktiviere JavaScript
 <form
 	class="form"
 	action="#"
-	on:submit|preventDefault={handleSubmit}
+	onsubmit={handleSubmit}
 	bind:this={form}>
 	<input
 		id="mail"

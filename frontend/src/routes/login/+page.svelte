@@ -1,18 +1,17 @@
 <script lang="ts">
-	let error: string | undefined;
-	let isLoading = false;
-	let showPassword: boolean = false;
-	let passwordInput: HTMLInputElement | undefined;
-	let loginForm: HTMLFormElement | undefined;
+	let error: string | undefined = $state();
+	let isLoading = $state(false);
+	let showPassword: boolean = $state(false);
+	let passwordInput: HTMLInputElement | undefined = $state();
+	let loginForm: HTMLFormElement | undefined = $state();
 
-	function setShowPassword(showPassword: boolean) {
+	$effect(() => {
 		if (passwordInput === undefined) return;
 		passwordInput.setAttribute("type", showPassword ? "text" : "password");
-	}
+	});
 
-	$: setShowPassword(showPassword);
-
-	async function login() {
+	async function login(e) {
+		e.preventDefault();
 		if (isLoading && error === undefined) return;
 		error = undefined;
 		isLoading = true;
@@ -76,7 +75,7 @@
 	<form
 		method="post"
 		action="/api/login-nojs"
-		on:submit|preventDefault={login}
+		onsubmit={login}
 		bind:this={loginForm}>
 		<div class="field">
 			<div class="control">

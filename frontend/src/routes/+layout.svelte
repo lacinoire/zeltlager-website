@@ -1,10 +1,16 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import type { Snippet } from "svelte";
 	import { page } from "$app/stores";
 	import { browser } from "$app/environment";
 	import { afterNavigate } from "$app/navigation";
 
 	import "../app.scss";
+	interface Props {
+		children?: Snippet;
+	}
+
+	let { children }: Props = $props();
 
 	interface ExtraMenuItem {
 		title: string;
@@ -17,11 +23,11 @@
 		items: ExtraMenuItem[];
 	}
 
-	$: isWide = ["/admin/betreuer", "/admin/teilnehmer"].includes($page.route.id ?? "");
+	let isWide = $derived(["/admin/betreuer", "/admin/teilnehmer"].includes($page.route.id ?? ""));
 
-	let showNavbar = false;
-	let menuData: MenuData = { isLoggedIn: false, globalMessage: null, items: [] };
-	let location: string = browser ? window.location.pathname : "";
+	let showNavbar = $state(false);
+	let menuData: MenuData = $state({ isLoggedIn: false, globalMessage: null, items: [] });
+	let location: string = $state(browser ? window.location.pathname : "");
 
 	async function loadMenuItems() {
 		const params = new URLSearchParams();
@@ -52,13 +58,13 @@
 			<a class="navbar-brand" href="/">
 				<img src="/img/MeinZeltlager.svg" style="padding: 0; height: 60px;" alt="Logo" />
 			</a>
-			<!-- svelte-ignore a11y-missing-attribute -->
+			<!-- svelte-ignore a11y_missing_attribute -->
 	    <a role="button" class="navbar-burger" aria-label="menu"
 				tabindex="0"
 				aria-expanded={showNavbar}
 				class:is-active={showNavbar}
-				on:click={() => (showNavbar = !showNavbar)}
-				on:keydown={(e) => {
+				onclick={() => (showNavbar = !showNavbar)}
+				onkeydown={(e) => {
 					if (e.key === "Enter") showNavbar = !showNavbar;
 				}}>
 	      <span aria-hidden="true"></span>
@@ -71,8 +77,8 @@
 		<div
 			class="navbar-menu"
 			class:is-active={showNavbar}
-			on:click={() => (showNavbar = false)}
-			on:keydown={(e) => {
+			onclick={() => (showNavbar = false)}
+			onkeydown={(e) => {
 				if (e.key === "Enter") showNavbar = false;
 			}}>
 			<div class="navbar-start">
@@ -154,7 +160,7 @@
 		</div>
 	{/if}
 
-	<slot />
+	{@render children?.()}
 </div>
 
 <footer class="footer">

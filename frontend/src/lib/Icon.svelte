@@ -1,13 +1,25 @@
 <svelte:options immutable />
 
 <script lang="ts">
-	export let raw: string | undefined = undefined;
-	export let size: number | string = "1.2em";
-	export let name: string | undefined = undefined;
-	export let isLeft: boolean = false;
-	export let isRight: boolean = false;
-	export let style: string = "";
-	export let title: string | undefined = undefined;
+	interface Props {
+		raw?: string | undefined;
+		size?: number | string;
+		name?: string | undefined;
+		isLeft?: boolean;
+		isRight?: boolean;
+		style?: string;
+		title?: string | undefined;
+	}
+
+	let {
+		raw = undefined,
+		size = "1.2em",
+		name = undefined,
+		isLeft = false,
+		isRight = false,
+		style = "",
+		title = undefined
+	}: Props = $props();
 </script>
 
 <span class="icon{isLeft ? ' is-left' : ''}{isRight ? ' is-right' : ''}" {title}>

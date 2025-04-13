@@ -5,16 +5,16 @@
 	import Icon from "$lib/Icon.svelte";
 	import { sleep } from "$lib/utils";
 
-	let error: string | undefined;
-	let success: string | undefined;
+	let error: string | undefined = $state();
+	let success: string | undefined = $state();
 
-	let deleteModalOpen = false;
-	let deleteModalInput: HTMLInputElement | undefined;
-	let deleteModalLoading = false;
-	let deleteModalTeilnehmer: HTMLElement | undefined;
-	let deleteModalBetreuer: HTMLElement | undefined;
-	let deleteModalErwischtGames: HTMLElement | undefined;
-	let deleteIsLoading = false;
+	let deleteModalOpen = $state(false);
+	let deleteModalInput: HTMLInputElement | undefined = $state();
+	let deleteModalLoading = $state(false);
+	let deleteModalTeilnehmer: HTMLElement | undefined = $state();
+	let deleteModalBetreuer: HTMLElement | undefined = $state();
+	let deleteModalErwischtGames: HTMLElement | undefined = $state();
+	let deleteIsLoading = $state(false);
 
 	async function fetchDeleteInfo() {
 		deleteModalLoading = true;
@@ -37,7 +37,8 @@
 		deleteModalLoading = false;
 	}
 
-	async function openDeleteModal() {
+	async function openDeleteModal(e) {
+		e.preventDefault();
 		deleteModalOpen = true;
 		deleteIsLoading = false;
 		success = undefined;
@@ -48,13 +49,19 @@
 		await fetchDeleteInfo();
 	}
 
+	function onCloseDeleteModal(e) {
+		e.preventDefault();
+		closeDeleteModal();
+	}
+
 	function closeDeleteModal() {
 		deleteModalOpen = false;
 		if (deleteModalInput !== undefined)
 			deleteModalInput.value = "";
 	}
 
-	async function deleteLager() {
+	async function deleteLager(e) {
+		e.preventDefault();
 		if (deleteModalInput.value !== "Zeltlager") {
 			alert("Bitte im Textfeld ‚Zeltlager‘ eingeben, um die Daten zu löschen.");
 			return;
@@ -88,7 +95,7 @@
   }
 </script>
 
-<svelte:document on:keydown={documentKeyDown} />
+<svelte:document onkeydown={documentKeyDown} />
 
 <svelte:head>
 	<title>Verwaltung – Zeltlager – FT München Gern e.V.</title>
@@ -115,7 +122,7 @@
 <p class="buttons">
 	<button
 		class="button is-danger"
-		on:click|preventDefault={openDeleteModal}>
+		onclick={openDeleteModal}>
     <span class="icon">
 			<Icon name={mdiDeleteOutline} />
 		</span>
@@ -168,11 +175,11 @@
 </div>
 
 <div class="modal" class:is-active={deleteModalOpen}>
-  <div class="modal-background" on:click={closeDeleteModal}></div>
-  <form class="modal-card" on:submit|preventDefault={deleteLager}>
+  <div class="modal-background" onclick={closeDeleteModal}></div>
+  <form class="modal-card" onsubmit={deleteLager}>
     <header class="modal-card-head">
       <p class="modal-card-title">Lager löschen</p>
-      <button type="button" class="delete" aria-label="close" on:click={closeDeleteModal}></button>
+      <button type="button" class="delete" aria-label="close" onclick={closeDeleteModal}></button>
     </header>
     <section class="modal-card-body">
     	<div class="content">
@@ -189,7 +196,7 @@
     <footer class="modal-card-foot">
       <div class="buttons">
         <button class="button is-danger" type="submit" class:is-loading={deleteIsLoading}>Daten löschen</button>
-        <button class="button" on:click|preventDefault={closeDeleteModal}>Abbrechen</button>
+        <button class="button" onclick={closeDeleteModal}>Abbrechen</button>
       </div>
     </footer>
   </form>

@@ -4,12 +4,12 @@
 	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
 
-	let subName = "";
-	let imageList: string[] = [];
-	let error: string | undefined;
-	let isLoading = true;
-	let gallery: HTMLDivElement | undefined;
-	let lightbox: GLightbox | undefined;
+	let subName = $state("");
+	let imageList: string[] = $state([]);
+	let error: string | undefined = $state();
+	let isLoading = $state(true);
+	let gallery: HTMLDivElement | undefined = $state();
+	let lightbox: GLightbox | undefined = $state();
 
 	const lightboxHTML = `
 		<div id="glightbox-body" class="glightbox-container" tabindex="-1" role="dialog" aria-hidden="false">
@@ -108,7 +108,7 @@
 				.endsWith(".png")}
 			<a href={`static/${image}`} class="glightbox box">
 				<!-- Set some preliminary width and height to support lazy loading -->
-				<!-- svelte-ignore a11y-missing-attribute -->
+				<!-- svelte-ignore a11y_missing_attribute -->
 				<img src={`static/thumbs/${image}`} width="auto" height="100%" loading="lazy" />
 			</a>
 		{:else}

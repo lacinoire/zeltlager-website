@@ -1,11 +1,17 @@
 <script lang="ts">
 	import { onMount, tick } from "svelte";
+	import type { Snippet } from "svelte";
 	// glightbox from https://github.com/biati-digital/glightbox under MIT
 	import { GlightboxInit } from "./glightbox/glightbox";
 
-	export let settings: any;
-	let lightbox: GlightboxInit;
-	let showLightbox = false;
+	interface Props {
+		settings: any;
+		children?: Snippet;
+	}
+
+	let { settings, children }: Props = $props();
+	let lightbox: GlightboxInit = $state();
+	let showLightbox = $state(false);
 
 	export function reload() {
 		lightbox.reload();
@@ -49,8 +55,8 @@
 </script>
 
 {#if showLightbox && lightbox}
-	{#if $$slots.default}
-		<slot />
+	{#if children}
+		{@render children?.()}
 	{:else}
 		<div
 			id="glightbox-body"
@@ -58,13 +64,13 @@
 			tabindex="-1"
 			role="dialog"
 			aria-hidden="false">
-			<div class="gloader visible" />
-			<div class="goverlay" />
+			<div class="gloader visible"></div>
+			<div class="goverlay"></div>
 			<div class="gcontainer">
-				<div id="glightbox-slider" class="gslider" />
+				<div id="glightbox-slider" class="gslider"></div>
 				<button
 					class="gbutton gdownload gbtn"
-					on:click={download}
+					onclick={download}
 					aria-label="Donwload"
 					data-taborder="4">
 					{@html lightbox.settings.svg.download}

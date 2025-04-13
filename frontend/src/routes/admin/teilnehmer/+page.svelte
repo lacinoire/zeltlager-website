@@ -48,21 +48,21 @@
 
 	type SortType = "alphabetisch" | "region" | "anwesend" | "bezahlt";
 
-	let all: Member[];
-	let filtered: Member[];
+	let all: Member[] = $state();
+	let filtered: Member[] = $state();
 	// For sorting by region, insert empty rows
-	let displayFiltered: (Member | string)[];
-	let birthdays: Member[];
-	let filter = "";
-	let sortBy = "Vorname-asc";
-	let sortType: SortType = "alphabetisch";
-	let error: string | undefined;
-	let isLoading = true;
+	let displayFiltered: (Member | string)[] = $state();
+	let birthdays: Member[] = $state();
+	let filter = $state("");
+	let sortBy = $state("Vorname-asc");
+	let sortType: SortType = $state("alphabetisch");
+	let error: string | undefined = $state();
+	let isLoading = $state(true);
 
-	let mailModalOpen = false;
-	let mailModalLoading = false;
-	let mailModalInput: HTMLInputElement | undefined;
-	let mailModalButton: HTMLButtonElement | undefined;
+	let mailModalOpen = $state(false);
+	let mailModalLoading = $state(false);
+	let mailModalInput: HTMLInputElement | undefined = $state();
+	let mailModalButton: HTMLButtonElement | undefined = $state();
 
 	// &shy;
 	const S = "\u00AD";
@@ -105,13 +105,11 @@
 		{ name: "PLZ" },
 	];
 
-	function updateSortType(sortType: SortType) {
+	$effect(() => {
 		if (sortType !== "alphabetisch" && sortType !== "region") sortBy = "Name-asc";
-	}
+	});
 
-	$: updateSortType(sortType);
-
-	function applyFilter(all: Member[], filter: string, sortBy: string, sortType: SortType) {
+	$effect(() => {
 		if (all === undefined) return;
 		if (filter === "") {
 			filtered = all;
@@ -172,9 +170,7 @@
 			filtered.sort(sortFn);
 			displayFiltered = filtered;
 		}
-	}
-
-	$: applyFilter(all, filter, sortBy, sortType);
+	});
 
 	function isTrue(sortType: SortType) {
 		return (e: Member) => (sortType === "anwesend" ? e.anwesend : e.bezahlt);
@@ -329,7 +325,8 @@
 		await loadData();
 	}
 
-	async function openMailModal() {
+	async function openMailModal(e) {
+		e.preventDefault();
 		mailModalButton.innerHTML = "Kopieren";
 		mailModalLoading = true;
 		mailModalOpen = true;
@@ -373,7 +370,7 @@
 	onMount(loadData);
 </script>
 
-<svelte:document on:keydown={documentKeyDown} />
+<svelte:document onkeydown={documentKeyDown} />
 
 <svelte:head>
 	<title>Teilnehmer – Zeltlager – FT München Gern e.V.</title>
@@ -394,26 +391,26 @@
 <div class="tabs">
   <ul>
     <li class:is-active={sortType === "alphabetisch"}>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-      <a on:click={() => sortType = "alphabetisch"} href="#">
+			<!-- svelte-ignore a11y_invalid_attribute -->
+      <a onclick={() => sortType = "alphabetisch"} href="#">
         <span>Alphabetisch</span>
       </a>
     </li>
     <li class:is-active={sortType === "region"}>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-      <a on:click={() => sortType = "region"} href="#">
+			<!-- svelte-ignore a11y_invalid_attribute -->
+      <a onclick={() => sortType = "region"} href="#">
         <span>München/Landkreis</span>
       </a>
     </li>
     <li class:is-active={sortType === "bezahlt"}>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-      <a on:click={() => sortType = "bezahlt"} href="#">
+			<!-- svelte-ignore a11y_invalid_attribute -->
+      <a onclick={() => sortType = "bezahlt"} href="#">
         <span>Bezahlt</span>
       </a>
     </li>
     <li class:is-active={sortType === "anwesend"}>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-      <a on:click={() => sortType = "anwesend"} href="#">
+			<!-- svelte-ignore a11y_invalid_attribute -->
+      <a onclick={() => sortType = "anwesend"} href="#">
         <span>Anwesend</span>
       </a>
     </li>
@@ -422,7 +419,7 @@
 
 <div class="header-flex">
 	<div class="control">
-		<!-- svelte-ignore a11y-autofocus -->
+		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			class="input"
 			type="text"
@@ -434,16 +431,16 @@
 		{#if all !== undefined}
 			{all.length} Anmeldungen
 		{/if}
-		<!-- svelte-ignore a11y-invalid-attribute -->
-		<a on:click={() => createCsv(createData(), true)} href="#">.csv</a>
-		<!-- svelte-ignore a11y-invalid-attribute -->
-		<a on:click={() => createXlsx(createData(true), true)} href="#">.xlsx</a>
+		<!-- svelte-ignore a11y_invalid_attribute -->
+		<a onclick={() => createCsv(createData(), true)} href="#">.csv</a>
+		<!-- svelte-ignore a11y_invalid_attribute -->
+		<a onclick={() => createXlsx(createData(true), true)} href="#">.xlsx</a>
 	</div>
 
 	<p class="buttons">
 		<button
 			class="button is-info"
-			on:click|preventDefault={openMailModal}>
+			onclick={openMailModal}>
 	    <span class="icon">
 				✉️
 			</span>
@@ -493,8 +490,8 @@
 							<td>{e.medikamente}</td>
 							<td>{e.kommentar}</td>
 							<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
-							<!-- svelte-ignore a11y-invalid-attribute -->
-							<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>
+							<!-- svelte-ignore a11y_invalid_attribute -->
+							<td><a onclick={() => removeEntry(e)} href="#">löschen</a></td>
 						{:else}
 							<td colspan="23" class="special"><h4>{e}</h4></td>
 						{/if}
@@ -579,7 +576,7 @@
 </table>
 
 <div class="modal" class:is-active={mailModalOpen}>
-  <div class="modal-background" on:click={() => mailModalOpen = false}></div>
+  <div class="modal-background" onclick={() => mailModalOpen = false}></div>
   <div class="modal-content">
   	<div class="box">
   		<div class="field has-addons">
@@ -587,14 +584,14 @@
 			    <input class="input" class:is-skeleton={mailModalLoading} type="text" bind:this={mailModalInput} />
 			  </div>
 			  <div class="control">
-			    <button class="button is-info" class:is-skeleton={mailModalLoading} on:click={copyMails} bind:this={mailModalButton}>
+			    <button class="button is-info" class:is-skeleton={mailModalLoading} onclick={copyMails} bind:this={mailModalButton}>
 			    	Kopieren
 			    </button>
 			  </div>
 			</div>
 	  </div>
   </div>
-  <button class="modal-close is-large" aria-label="close" on:click={() => mailModalOpen = false}></button>
+  <button class="modal-close is-large" aria-label="close" onclick={() => mailModalOpen = false}></button>
 </div>
 
 <style lang="scss">

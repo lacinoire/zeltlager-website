@@ -36,12 +36,12 @@
 		anmeldedatum: Moment;
 	}
 
-	let all: Supervisor[];
-	let filtered: (Supervisor | string)[];
-	let filter = "";
-	let sortBy = "Name-asc";
-	let error: string | undefined;
-	let isLoading = true;
+	let all: Supervisor[] = $state();
+	let filtered: (Supervisor | string)[] = $state();
+	let filter = $state("");
+	let sortBy = $state("Name-asc");
+	let error: string | undefined = $state();
+	let isLoading = $state(true);
 
 	// &shy;
 	const S = "\u00AD";
@@ -109,7 +109,7 @@
 		return list;
 	}
 
-	function applyFilter(all: Supervisor[], filter: string, sortBy: string) {
+	$effect(() => {
 		if (all === undefined) return;
 
 		filtered = [];
@@ -138,9 +138,7 @@
 				filtered = filtered.concat(yearFiltered);
 			}
 		}
-	}
-
-	$: applyFilter(all, filter, sortBy);
+	});
 
 	function createData(asDate = false) {
 		const entries = [...all];
@@ -305,7 +303,7 @@
 
 <div class="header-flex">
 	<div class="control">
-		<!-- svelte-ignore a11y-autofocus -->
+		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			class="input"
 			type="text"
@@ -317,10 +315,10 @@
 		{#if all !== undefined}
 			{all.length} Anmeldungen
 		{/if}
-		<!-- svelte-ignore a11y-invalid-attribute -->
-		<a on:click={() => createCsv(createData(), false)} href="#">.csv</a>
-		<!-- svelte-ignore a11y-invalid-attribute -->
-		<a on:click={() => createXlsx(createData(true), false)} href="#">.xlsx</a>
+		<!-- svelte-ignore a11y_invalid_attribute -->
+		<a onclick={() => createCsv(createData(), false)} href="#">.csv</a>
+		<!-- svelte-ignore a11y_invalid_attribute -->
+		<a onclick={() => createXlsx(createData(true), false)} href="#">.xlsx</a>
 	</div>
 </div>
 
@@ -367,8 +365,8 @@
 						<td>{e.medikamente ?? ""}</td>
 						<td>{e.kommentar ?? ""}</td>
 						<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
-						<!-- svelte-ignore a11y-invalid-attribute -->
-						<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>
+						<!-- svelte-ignore a11y_invalid_attribute -->
+						<td><a onclick={() => removeEntry(e)} href="#">löschen</a></td>
 					{:else}
 						<td colspan={allColumns.length} class="special"><h4>{e}</h4></td>
 					{/if}

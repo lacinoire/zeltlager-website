@@ -1,9 +1,15 @@
 <script lang="ts">
+	import type { Snippet } from "svelte";
 	import SortIcon from "./SortIcon.svelte";
 	import type { Column } from "./utils";
 
-	export let columns: Column[];
-	export let sortBy = "";
+	interface Props {
+		columns: Column[];
+		sortBy?: string;
+		children?: Snippet;
+	}
+
+	let { columns, sortBy = $bindable(""), children }: Props = $props();
 </script>
 
 <table class="table is-striped is-hoverable">
@@ -19,6 +25,6 @@
 		</tr>
 	</thead>
 	<tbody>
-		<slot />
+		{@render children?.()}
 	</tbody>
 </table>

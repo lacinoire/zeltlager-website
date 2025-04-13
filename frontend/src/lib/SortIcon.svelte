@@ -2,9 +2,13 @@
 	import { mdiSort, mdiSortAscending, mdiSortDescending } from "@mdi/js";
 	import Icon from "./Icon.svelte";
 
-	export let name: string;
-	export let displayName: string | undefined = undefined;
-	export let sortBy: string;
+	interface Props {
+		name: string;
+		displayName?: string | undefined;
+		sortBy: string;
+	}
+
+	let { name, displayName = undefined, sortBy = $bindable() }: Props = $props();
 
 	function flipSort() {
 		if (sortBy === name + "-asc") sortBy = name + "-desc";
@@ -12,7 +16,7 @@
 	}
 </script>
 
-<button class="sortIcon" on:click={flipSort}>
+<button class="sortIcon" onclick={flipSort}>
 	{displayName === undefined ? name : displayName}
 	<span>
 		{#if sortBy === name + "-asc"}
