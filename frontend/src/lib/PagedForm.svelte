@@ -187,7 +187,7 @@
 					class:active={i == curCategory}
 					class:finished={i <= curCategory && isCategoryFinishedUpTo(i, somethingChanged)}>
 					{#if i > 0}
-						<div class="bar" />
+						<div class="bar"></div>
 					{/if}
 					<div
 						class="knob label-container"
@@ -285,7 +285,7 @@
 										class="textarea"
 										aria-describedby={field.help !== undefined
 											? (field.id ?? field.name.toLowerCase()) + "HelpBlock"
-											: undefined} />
+											: undefined}></textarea>
 								{:else if field.type === "checkbox"}
 									<label class="checkbox">
 										<input
@@ -306,7 +306,7 @@
 									class="help">
 									{@html field.help ?? ""}
 									{#if field.required === false}
-										<p class="optional">Optional</p>
+										<span class="optional">Optional</span>
 									{/if}
 								</p>
 							{/if}
@@ -319,14 +319,14 @@
 
 	<br />
 	<div class="field is-horizontal required">
-		<div class="field-label" />
+		<div class="field-label"></div>
 		<div class="field-body">
-			<div class="required"><span class="label" style="display: inline;" />Pflichtfeld</div>
+			<div class="required"><span class="label" style="display: inline;"></span>Pflichtfeld</div>
 		</div>
 	</div>
 
 	<div class="field is-horizontal">
-		<div class="field-label" />
+		<div class="field-label"></div>
 		<div class="field-body">
 			<div class="field">
 				<div class="control">

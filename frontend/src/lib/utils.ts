@@ -2,7 +2,7 @@ import { utils, writeFile } from "xlsx";
 import moment from "moment";
 
 import lagerStartString from "../../lager-start.txt?raw";
-export const LAGER_START = moment(lagerStartString);
+export const LAGER_START = moment(lagerStartString, "YYYY-MM-DD");
 export const YEAR = LAGER_START.year();
 
 export interface Column {

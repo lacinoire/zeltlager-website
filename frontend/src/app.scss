@@ -24,7 +24,7 @@
 @use "bulma/sass/layout/footer";
 @use "bulma/sass/utilities/initial-variables" as iv;
 
-@import "./lib/glightbox/glightbox.scss";
+@use "./lib/glightbox/glightbox.scss";
 
 html {
 	height: 100%;
