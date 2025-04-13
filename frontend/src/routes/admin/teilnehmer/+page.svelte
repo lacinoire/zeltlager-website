@@ -68,6 +68,7 @@
 	const S = "\u00AD";
 
 	const allColumns: Column[] = [
+		{ name: undefined },
 		{ name: "Anwesend", displayName: `Anwe${S}send` },
 		{ name: "Bezahlt", displayName: `Be${S}zahlt` },
 		{ name: "Vorname" },
@@ -457,9 +458,10 @@
 	<TableContainer>
 		<SortableTable columns={allColumns} bind:sortBy>
 			{#if displayFiltered !== undefined}
-				{#each displayFiltered as e}
+				{#each displayFiltered as e, i}
 					<tr>
 						{#if typeof e !== "string"}
+							<td>{i+1}</td>
 							<td>
 								<EditableProperty
 									bind:value={e.anwesend}

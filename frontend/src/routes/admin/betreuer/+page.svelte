@@ -47,6 +47,7 @@
 	const S = "\u00AD";
 
 	const allColumns: Column[] = [
+		{ name: undefined },
 		{ name: "Vorname" },
 		{ name: "Nachname" },
 		{ name: "Geschlecht", displayName: "" },
@@ -103,6 +104,8 @@
 		} else {
 			list.sort(getSortByKeyFn(sortBy));
 		}
+		for (const [i, e] of list.entries())
+			e.index = i;
 		return list;
 	}
 
@@ -327,6 +330,7 @@
 			{#each filtered as e}
 				<tr>
 					{#if typeof e !== "string"}
+						<td>{e.index + 1}</td>
 						<td>{e.vorname}</td>
 						<td>{e.nachname}</td>
 						<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
@@ -366,7 +370,7 @@
 						<!-- svelte-ignore a11y-invalid-attribute -->
 						<td><a on:click={() => removeEntry(e)} href="#">löschen</a></td>
 					{:else}
-						<td colspan="23" class="special"><h4>{e}</h4></td>
+						<td colspan={allColumns.length} class="special"><h4>{e}</h4></td>
 					{/if}
 				</tr>
 			{/each}
