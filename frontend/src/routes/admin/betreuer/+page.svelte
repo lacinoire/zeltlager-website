@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { goto } from "$app/navigation";
 	import moment from "moment";
 	import type { Moment } from "moment";
 	import { addressSortFn, getSortByKeyFn, nameSortFn, createCsv, createXlsx } from "$lib/utils";
@@ -196,7 +197,18 @@
 	}
 
 	async function loadData() {
-		const data = await (await fetch("/api/admin/betreuer")).json();
+		const resp = await fetch("/api/admin/betreuer");
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+			}
+			return;
+		}
+		const data = await resp.json();
 		// Convert dates
 		for (const e of data) {
 			e.geburtsdatum = moment.utc(e.geburtsdatum).local();

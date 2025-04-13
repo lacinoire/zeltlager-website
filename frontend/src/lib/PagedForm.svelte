@@ -178,29 +178,31 @@
 	</div>
 {/if}
 
-<div class="progress-indicator-container">
-	<div class="progress-indicator">
-		{#each categories as category, i}
-			<div
-				class="category"
-				class:active={i == curCategory}
-				class:finished={i <= curCategory && isCategoryFinishedUpTo(i, somethingChanged)}>
-				{#if i > 0}
-					<div class="bar" />
-				{/if}
+{#if categories.length > 1}
+	<div class="progress-indicator-container">
+		<div class="progress-indicator">
+			{#each categories as category, i}
 				<div
-					class="knob label-container"
-					class:finished={i <= curCategory && isCategoryFinished(i, somethingChanged)}>
-					<div class="progress-label">
-						<a
-							href={`#${category.id ?? category.name.toLowerCase()}`}
-							on:click={() => (curCategory = i)}>{category.name}</a>
+					class="category"
+					class:active={i == curCategory}
+					class:finished={i <= curCategory && isCategoryFinishedUpTo(i, somethingChanged)}>
+					{#if i > 0}
+						<div class="bar" />
+					{/if}
+					<div
+						class="knob label-container"
+						class:finished={i <= curCategory && isCategoryFinished(i, somethingChanged)}>
+						<div class="progress-label">
+							<a
+								href={`#${category.id ?? category.name.toLowerCase()}`}
+								on:click={() => (curCategory = i)}>{category.name}</a>
+						</div>
 					</div>
 				</div>
-			</div>
-		{/each}
+			{/each}
+		</div>
 	</div>
-</div>
+{/if}
 
 <form
 	class="form"

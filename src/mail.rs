@@ -8,8 +8,10 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{SmtpTransport, Transport};
 use t4rust_derive::Template;
 
-use crate::config::Config;
-use crate::db::models::{FullSupervisor, FullTeilnehmer, Gender, Teilnehmer};
+use crate::config::{Config, MailAddress};
+use crate::db::models::{
+	FullSupervisor, FullTeilnehmer, Gender, Supervisor, Teilnehmer, years_old,
+};
 use crate::{GERMAN_DATE_FORMAT, LAGER_START};
 
 pub struct MailExecutor {
@@ -34,6 +36,16 @@ pub struct ResignupMessage {
 
 pub struct PayedMessage {
 	pub member: FullTeilnehmer,
+}
+
+pub struct PresignupMessage {
+	pub supervisor: Supervisor,
+	pub grund: String,
+	pub kommentar: String,
+}
+
+pub struct PresignupFailedMessage {
+	pub supervisor: Supervisor,
 }
 
 #[derive(Template)]
@@ -64,6 +76,23 @@ struct PayedBody<'a> {
 	member: &'a FullTeilnehmer,
 }
 
+#[derive(Template)]
+#[TemplatePath = "templates/mail-presignup-body.tt"]
+#[derive(Debug)]
+pub struct PresignupBody<'a> {
+	receiver: MailAddress,
+	supervisor: &'a Supervisor,
+	grund: &'a str,
+	kommentar: &'a str,
+}
+
+#[derive(Template)]
+#[TemplatePath = "templates/mail-presignup-failed-body.tt"]
+#[derive(Debug)]
+pub struct PresignupFailedBody<'a> {
+	supervisor: &'a Supervisor,
+}
+
 impl Message for SignupMessage {
 	type Result = Result<()>;
 }
@@ -76,8 +105,29 @@ impl Message for PayedMessage {
 	type Result = Result<()>;
 }
 
+impl Message for PresignupMessage {
+	type Result = Result<()>;
+}
+
+impl Message for PresignupFailedMessage {
+	type Result = Result<()>;
+}
+
 impl MailExecutor {
 	pub fn new(config: Config) -> Self { Self { config } }
+
+	fn mailer(&self) -> Result<SmtpTransport> {
+		Ok(SmtpTransport::starttls_relay(self.config.sender_mail_account.host.as_str())?
+			.credentials(Credentials::new(
+				self.config
+					.sender_mail_account
+					.name
+					.clone()
+					.unwrap_or_else(|| self.config.sender_mail.address.clone()),
+				self.config.sender_mail_account.password.clone(),
+			))
+			.build())
+	}
 
 	fn send_eltern_mail(
 		&self, eltern_name: String, eltern_mail: String, subject: String, body: String,
@@ -97,19 +147,8 @@ impl MailExecutor {
 
 		let email = email_builder.body(body)?;
 
-		let mailer = SmtpTransport::starttls_relay(self.config.sender_mail_account.host.as_str())?
-			.credentials(Credentials::new(
-				self.config
-					.sender_mail_account
-					.name
-					.clone()
-					.unwrap_or_else(|| self.config.sender_mail.address.clone()),
-				self.config.sender_mail_account.password.clone(),
-			))
-			.build();
-
 		// Send the email
-		mailer.send(&email)?;
+		self.mailer()?.send(&email)?;
 
 		Ok(())
 	}
@@ -142,19 +181,8 @@ impl Handler<ResignupMessage> for MailExecutor {
 			.subject(subject)
 			.body(body)?;
 
-		let mailer = SmtpTransport::starttls_relay(self.config.sender_mail_account.host.as_str())?
-			.credentials(Credentials::new(
-				self.config
-					.sender_mail_account
-					.name
-					.clone()
-					.unwrap_or_else(|| self.config.sender_mail.address.clone()),
-				self.config.sender_mail_account.password.clone(),
-			))
-			.build();
-
 		// Send the email
-		mailer.send(&email)?;
+		self.mailer()?.send(&email)?;
 		Ok(())
 	}
 }
@@ -167,6 +195,65 @@ impl Handler<PayedMessage> for MailExecutor {
 		let body = format!("{}", PayedBody { member: &msg.member }).trim().to_string();
 
 		self.send_eltern_mail(msg.member.eltern_name.clone(), msg.member.eltern_mail, subject, body)
+	}
+}
+
+impl Handler<PresignupMessage> for MailExecutor {
+	type Result = Result<()>;
+
+	fn handle(&mut self, msg: PresignupMessage, _: &mut Self::Context) -> Self::Result {
+		let subject = format!(
+			"Zeltlager Betreueranmeldung {} {}",
+			msg.supervisor.vorname, msg.supervisor.nachname
+		);
+		let mailer = self.mailer()?;
+
+		for receiver in &self.config.supervisor_mail_receivers {
+			let body = format!("{}", PresignupBody {
+				receiver: receiver.clone(),
+				supervisor: &msg.supervisor,
+				grund: &msg.grund,
+				kommentar: &msg.kommentar,
+			})
+			.trim()
+			.to_string();
+
+			let email = lettre::Message::builder()
+				.to(receiver.clone().try_into()?)
+				.header(header::ContentType::TEXT_PLAIN)
+				.from(self.config.sender_mail.clone().try_into()?)
+				.subject(subject.clone())
+				.body(body)?;
+
+			// Send the email
+			mailer.send(&email)?;
+		}
+
+		Ok(())
+	}
+}
+
+impl Handler<PresignupFailedMessage> for MailExecutor {
+	type Result = Result<()>;
+
+	fn handle(&mut self, msg: PresignupFailedMessage, _: &mut Self::Context) -> Self::Result {
+		let subject = "Zeltlager Betreueranmeldung fehlgeschlagen";
+
+		let body =
+			format!("{}", PresignupFailedBody { supervisor: &msg.supervisor }).trim().to_string();
+
+		let name = format!("{} {}", msg.supervisor.vorname, msg.supervisor.nachname);
+		let email = lettre::Message::builder()
+			.to((name, msg.supervisor.mail).try_into()?)
+			.header(header::ContentType::TEXT_PLAIN)
+			.from(self.config.sender_mail.clone().try_into()?)
+			.subject(subject)
+			.body(body)?;
+
+		// Send the email
+		self.mailer()?.send(&email)?;
+
+		Ok(())
 	}
 }
 

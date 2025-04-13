@@ -19,12 +19,6 @@ Es werden zwei Konfigurationsdateien benötigt:
 `config.toml`:
 
 ```toml
-# Von dieser E-Mail Addresse aus werden die Bestätigungsmails verschickt
-email_username = "mein.name@email.addresse"
-email_userdescription = "Mein Name"
-email_password = "Password für die E-Mail Addresse"
-email_host = "smtp.email.addresse"
-
 # Die maximale Anzahl an Teilnehmern
 max_members = 70
 
@@ -35,8 +29,21 @@ error_message = "Bitte informieren Sie uns über webmaster@meine.seite."
 # Standardwert: 127.0.0.1:8080
 bind_address = "127.0.0.1:8080"
 
+# Ob login-Cookies nur über https verwendbar sind
+# Standardwert: true
+secure = true
+
 # Wird auf allen Seiten angezeigt, die mit dem basic-Template angezeigt werden.
 global_message = "<h1>Ich bin ein globaler Header</h1>"
+
+# Von dieser E-Mail Addresse aus werden die Bestätigungsmails verschickt
+[sender_mail]
+name = "Mein Name"
+address = "mein.name@email.addresse"
+[sender_mail_account]
+host = "smtp.email.addresse"
+name = "username"
+password = "Password für die E-Mail Addresse"
 ```
 
 `.env`:

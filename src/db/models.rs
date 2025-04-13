@@ -46,7 +46,7 @@ macro_rules! get_bool {
 }
 
 macro_rules! check_empty {
-	($obj:ident, $(,)?) => {};
+	($obj:ident $(,)?) => {};
 	($obj:ident, $field:ident? $($rest:tt)*) => {
 		if $obj.$field.as_ref().unwrap().is_empty() {
 			return Err(FormError {
@@ -200,8 +200,10 @@ pub struct FullSupervisor {
 	#[serde(with = "opt_date")]
 	pub juleica_gueltig_bis: Option<Date>,
 	#[serde(skip)]
+	#[allow(dead_code)]
 	pub signup_token: Option<String>,
 	#[serde(skip)]
+	#[allow(dead_code)]
 	pub signup_token_time: Option<PrimitiveDateTime>,
 }
 
@@ -224,12 +226,14 @@ pub struct User {
 #[derive(Clone, Debug, Queryable)]
 pub struct UserQueryResult {
 	pub id: i32,
+	#[allow(dead_code)]
 	pub username: String,
 	pub password: String,
 }
 
 #[derive(Clone, Debug, Queryable)]
 pub struct Role {
+	#[allow(dead_code)]
 	pub user_id: i32,
 	pub role: String,
 }
@@ -719,12 +723,6 @@ impl Supervisor {
 			agb: get_bool!(map, "agb")?,
 		};
 
-		if !res.agb {
-			return Err(FormError {
-				field: Some("agb".into()),
-				message: "Die AGB müssen akzeptiert werden".into(),
-			});
-		}
 		if !res.selbsterklaerung {
 			return Err(FormError {
 				field: Some("selbsterklaerung".into()),
@@ -732,22 +730,10 @@ impl Supervisor {
 			});
 		}
 
-		check_empty!(
-			res,
-			vorname,
-			nachname,
-			mail,
-			handynummer,
-			land?,
-			strasse?,
-			hausnummer?,
-			ort?,
-			plz?,
-		);
+		check_empty!(res, land?, strasse?, hausnummer?, ort?, plz?);
 
 		check_plz(res.plz.as_ref().unwrap(), res.land.as_ref().unwrap())?;
 		check_krankenversicherung(res.krankenversicherung.as_ref().unwrap())?;
-		check_email(&res.mail, "mail")?;
 		check_house_number(res.hausnummer.as_ref().unwrap())?;
 
 		// Check Juleica Number
@@ -762,16 +748,85 @@ impl Supervisor {
 				});
 			}
 		}
+
+		res.validate_common()?;
+
+		map.remove("submit");
+		if !map.is_empty() {
+			warn!("Supervisor::from_hashmap: Map is not yet empty ({:?})", map);
+		}
+
+		Ok(res)
+	}
+
+	pub fn from_pre_hashmap(mut map: HashMap<String, String>) -> Result<Self, FormError> {
+		let date = get_str!(map, "geburtsdatum")?;
+		let geburtsdatum = try_parse_date(&date, "geburtsdatum")?;
+		let geschlecht = try_parse_gender(&get_str!(map, "geschlecht")?)?;
+
+		let res = Self {
+			vorname: get_str!(map, "vorname")?,
+			nachname: get_str!(map, "nachname")?,
+			geburtsdatum,
+			geschlecht,
+
+			vegetarier: None,
+			tetanus_impfung: None,
+			juleica_nummer: None,
+			juleica_gueltig_bis: None,
+			mail: get_str!(map, "mail")?,
+			handynummer: get_str!(map, "handynummer")?,
+			land: None,
+			strasse: None,
+			hausnummer: None,
+			ort: None,
+			plz: None,
+
+			krankenversicherung: None,
+			krankheiten: None,
+			allergien: None,
+			unvertraeglichkeiten: None,
+			medikamente: None,
+			kommentar: None,
+			fuehrungszeugnis_ausstellung: None,
+			fuehrungszeugnis_eingesehen: None,
+
+			selbsterklaerung: false,
+			agb: get_bool!(map, "agb")?,
+		};
+
+		res.validate_common()?;
+
+		map.remove("submit");
+		if !map.is_empty() {
+			warn!("Supervisor::from_pre_hashmap: Map is not yet empty ({:?})", map);
+		}
+
+		Ok(res)
+	}
+
+	fn validate_common(&self) -> Result<(), FormError> {
+		if !self.agb {
+			return Err(FormError {
+				field: Some("agb".into()),
+				message: "Die AGB müssen akzeptiert werden".into(),
+			});
+		}
+
+		check_empty!(self, vorname, nachname, mail, handynummer);
+
+		check_email(&self.mail, "mail")?;
+
 		// Check birth date
 		let now = OffsetDateTime::now_utc().date();
-		let years = years_old(res.geburtsdatum, &LAGER_START);
-		if now <= res.geburtsdatum || years >= 100 {
+		let years = years_old(self.geburtsdatum, &LAGER_START);
+		if now <= self.geburtsdatum || years >= 100 {
 			return Err(FormError {
 				field: Some("geburtsdatum".into()),
 				message: format!(
 					"Sind Sie sicher, dass {} ihr Geburtsdatum ist?\nBitte geben Sie das \
 					 Geburtsdatum im Format TT.MM.JJJJ an.",
-					res.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
+					self.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
 				),
 			});
 		}
@@ -782,17 +837,12 @@ impl Supervisor {
 				message: format!(
 					"Mit deinem Geburtsdatum {} bist du leider zu jung, um als Betreuer mit aufs \
 					 Zeltlager zu fahren 🙂, bitte melde dich als Teilnehmer an.",
-					res.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
+					self.geburtsdatum.format(GERMAN_DATE_FORMAT).unwrap()
 				),
 			});
 		}
 
-		map.remove("submit");
-		if !map.is_empty() {
-			warn!("Supervisor::from_hashmap: Map is not yet empty ({:?})", map);
-		}
-
-		Ok(res)
+		Ok(())
 	}
 }
 

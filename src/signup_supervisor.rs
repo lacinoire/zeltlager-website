@@ -93,7 +93,10 @@ async fn signup_internal(
 		}
 	}
 
-	match db_addr.send(db::SignupSupervisorMessage { supervisor: supervisor.clone() }).await {
+	match db_addr
+		.send(db::SignupSupervisorMessage { supervisor: supervisor.clone(), is_pre_signup: false })
+		.await
+	{
 		Ok(Err(error)) => {
 			warn!("Error inserting into database: {}", error);
 		}
@@ -285,4 +288,162 @@ pub async fn get_data(state: web::Data<State>, request: web::Json<GetDataRequest
 		krankheiten: supervisor.krankheiten,
 		juleica_gueltig_bis: supervisor.juleica_gueltig_bis,
 	})
+}
+
+async fn presignup_internal(
+	state: &State, mut body: HashMap<String, String>,
+) -> (StatusCode, SignupResult) {
+	let db_addr = state.db_addr.clone();
+	let error_message = state.config.error_message.clone();
+	let log_file = state.config.log_file.clone();
+	let log_mutex = state.log_mutex.clone();
+
+	let err = |msg| (StatusCode::BAD_REQUEST, SignupResult { error: Some(msg) });
+	let internal_err =
+		|msg: String| (StatusCode::INTERNAL_SERVER_ERROR, SignupResult { error: Some(msg.into()) });
+
+	// Get the body of the request
+	let grund = match db::get_freetext_str!(body, "grund") {
+		Ok(res) => res,
+		Err(error) => {
+			warn!("Error handling form content: {:?}", error);
+			return err(error);
+		}
+	};
+	let kommentar = match db::get_freetext_str!(body, "kommentar") {
+		Ok(res) => res,
+		Err(error) => {
+			warn!("Error handling form content: {:?}", error);
+			return err(error);
+		}
+	};
+	let supervisor = match db::models::Supervisor::from_pre_hashmap(body) {
+		Ok(supervisor) => supervisor,
+		Err(error) => {
+			warn!("Error handling form content: {:?}", error);
+			return err(error);
+		}
+	};
+	if let Some(log_file) = log_file {
+		let res: Result<_, Error> = (|| {
+			let _lock = log_mutex.lock().unwrap();
+			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
+			writeln!(
+				file,
+				"{}: Pre-Betreuer: {}",
+				time::OffsetDateTime::now_utc()
+					.format(&time::format_description::well_known::Rfc3339)
+					.unwrap(),
+				serde_json::to_string(&supervisor)?
+			)?;
+
+			Ok(())
+		})();
+
+		if let Err(error) = res {
+			warn!("Failed to log new supervisor: {:?}", error);
+		}
+	}
+
+	// If a mail address is already signed up, do not store in database but send a mail
+	let supervisor_mail = supervisor.mail.clone();
+	match db_addr
+		.send(db::RunOnDbMsg(move |db| {
+			use db::schema::betreuer;
+			use db::schema::betreuer::columns::*;
+
+			// Check if the e-mail already exists
+			match betreuer::table
+				.filter(mail.eq(&supervisor_mail))
+				.select(id)
+				.first::<i32>(&mut db.connection)
+			{
+				Err(diesel::result::Error::NotFound) => Ok(false),
+				Err(e) => Err(e.into()),
+				Ok(_) => Ok(true),
+			}
+		}))
+		.await
+		.map_err(|e| e.into())
+	{
+		Ok(Err(e)) | Err(e) => {
+			error!("Failed to get supervisor by mail: {}", e);
+			return err("Es ist leider ein Fehler suchen der E-Mailadresse aufgetreten".into());
+		}
+		Ok(Ok(true)) => {
+			// Already exists, send mail
+			warn!("Supervisor tried to pre-signup but already exists ({})", supervisor.mail);
+			match state.mail_addr.send(mail::PresignupFailedMessage { supervisor }).await {
+				Err(error) => {
+					error!("Error sending presignup failed e-mail: {:?}", error);
+				}
+				Ok(Err(error)) => {
+					error!("Error sending presignup failed e-mail: {:?}", error);
+				}
+				Ok(Ok(())) => {}
+			}
+			return (StatusCode::OK, SignupResult { error: None });
+		}
+		Ok(Ok(false)) => {}
+	};
+
+	match db_addr
+		.send(db::SignupSupervisorMessage { supervisor: supervisor.clone(), is_pre_signup: true })
+		.await
+	{
+		Ok(Err(error)) => {
+			warn!("Error inserting into database: {}", error);
+			return internal_err(format!(
+				"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+				error_message
+			));
+		}
+		Err(error) => {
+			warn!("Error inserting into database: {}", error);
+			return internal_err(format!(
+				"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+				error_message
+			));
+		}
+		Ok(Ok(())) => {}
+	}
+
+	// Send mail to specified users
+	match state.mail_addr.send(mail::PresignupMessage { supervisor, grund, kommentar }).await {
+		Err(error) => {
+			error!("Error sending presignup e-mail: {:?}", error);
+		}
+		Ok(Err(error)) => {
+			error!("Error sending presignup e-mail: {:?}", error);
+		}
+		Ok(Ok(())) => {
+			// Successful
+			return (StatusCode::OK, SignupResult { error: None });
+		}
+	}
+
+	internal_err(format!("Es ist ein Fehler aufgetreten.\n{}", error_message))
+}
+
+#[post("/presignup-supervisor")]
+pub async fn presignup(
+	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
+) -> HttpResponse {
+	let (status, result) = presignup_internal(&state, body.into_inner()).await;
+	HttpResponse::build(status).json(result)
+}
+
+#[post("/presignup-supervisor-nojs")]
+pub async fn presignup_nojs(
+	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
+) -> HttpResponse {
+	let (status, result) = presignup_internal(&state, body.into_inner()).await;
+	if let Some(error) = result.error {
+		HttpResponse::build(status).body(error.message)
+	} else {
+		debug_assert_eq!(status, StatusCode::OK);
+		HttpResponse::Found()
+			.append_header(("location", "/betreuer-anmeldung-erfolgreich"))
+			.finish()
+	}
 }

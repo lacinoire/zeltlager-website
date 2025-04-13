@@ -1,0 +1,9 @@
+<#@ template cleanws="true" #>
+Hallo <#= self.supervisor.vorname #>,
+
+jemand hat versucht sich mit Deiner E-Mail-Adresse als neuer Betreuer anzumelden.
+Die Daten wurden nicht gespeichert, weil Du schon einmal zum Zeltlager angemeldet warst.
+Wenn Du dich für dieses Jahr anmelden willst oder deine Daten ändern willst, trage dich auf dieser Seite ein: https://meinzeltlager.com/intern/betreuer-anmeldung/
+
+Schöne Grüße
+Das Zeltlager

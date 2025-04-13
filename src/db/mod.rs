@@ -17,7 +17,6 @@ use diesel::prelude::*;
 use diesel::result::Error;
 use diesel_migrations::MigrationHarness;
 use dotenv::dotenv;
-use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
 use log::info;
 use scrypt::Scrypt;
@@ -28,23 +27,30 @@ use time::PrimitiveDateTime;
 
 use crate::auth;
 
+#[macro_export]
 macro_rules! get_str {
 	($map:ident, $key:expr) => {
-		$map.remove($key).ok_or_else(|| FormError {
+		$map.remove($key).ok_or_else(|| crate::db::FormError {
 			field: Some($key.into()),
-			message: format!("{} fehlt", $key.to_title_case()),
+			message: format!("{} fehlt", heck::ToTitleCase::to_title_case($key)),
 		})
 	};
 }
 
+#[macro_export]
 macro_rules! get_freetext_str {
 	($map:ident, $key:expr) => {
-		$map.remove($key).map(cleanup_freetext).ok_or_else(|| FormError {
-			field: Some($key.into()),
-			message: format!("{} fehlt", $key.to_title_case()),
+		$map.remove($key).map(crate::db::models::cleanup_freetext).ok_or_else(|| {
+			crate::db::FormError {
+				field: Some($key.into()),
+				message: format!("{} fehlt", heck::ToTitleCase::to_title_case($key)),
+			}
 		})
 	};
 }
+
+pub use get_freetext_str;
+pub use get_str;
 
 pub mod models;
 // Generate with `diesel print-schema > src/db/schema.rs`
@@ -104,6 +110,7 @@ impl Message for DownloadBetreuerMessage {
 
 pub struct SignupSupervisorMessage {
 	pub supervisor: models::Supervisor,
+	pub is_pre_signup: bool,
 }
 impl Message for SignupSupervisorMessage {
 	type Result = Result<()>;
@@ -401,6 +408,11 @@ impl Handler<SignupSupervisorMessage> for DbExecutor {
 			Err(e) => return Err(e.into()),
 			Ok(supervisor) => Some(supervisor),
 		};
+
+		if msg.is_pre_signup && supervisor.is_some() {
+			// Disable updating for pre-signups
+			bail!("E-mail address is already registered");
+		}
 
 		if let Some(supervisor) = supervisor {
 			// Update

@@ -56,8 +56,12 @@ pub struct Config {
 	pub sender_mail: MailAddress,
 	pub sender_mail_account: MailAccount,
 
+	/// E-Mail addresses that receive mails for supervisor pre-signups.
+	#[serde(default)]
+	pub supervisor_mail_receivers: Vec<MailAddress>,
 	/// E-Mail addresses which should also receive all signup-confirmation
 	/// mails.
+	#[serde(default)]
 	pub additional_mail_receivers: Vec<MailAddress>,
 	/// If a member signs up with this mail address, the signup mail will only
 	/// be sent to this address, but not to additional receivers. The member

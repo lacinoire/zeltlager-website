@@ -6,4 +6,4 @@ Mit diesem Link kannst du dich für das Zeltlager <#= LAGER_START.year() #> als 
 } #> anmelden: https://meinzeltlager.com/intern/betreuer-anmeldung-neu?token=<#= self.token #>
 Der Link ist für 24 Stunden gültig.
 
-Bis bald!
+Schön, dass du dabei bist!

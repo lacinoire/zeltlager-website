@@ -1,0 +1,26 @@
+<#@ template cleanws="true" #>
+Hallo<# if let Some(name) = &self.receiver.name { #> <#= name #><# } #>,
+
+<#= self.supervisor.vorname #> <#= self.supervisor.nachname #> hat sich als neue<# if self.supervisor.geschlecht == Gender::Male { #>r<# }
+#> Zeltlager-Betreuer<# if self.supervisor.geschlecht == Gender::Female { #>in<# }
+#> angemeldet.
+
+<#
+let years = years_old(self.supervisor.geburtsdatum, &LAGER_START);
+if years < 16 { #>
+<#= self.supervisor.vorname #> ist zu Beginn des Zeltlagers <#= LAGER_START.year() #> erst <#= years #> Jahre alt!
+
+<# } #>
+E-Mail: <#= self.supervisor.mail #>
+Handynummer: <#= self.supervisor.handynummer #>
+
+Deshalb will ich ins Zeltlager fahren:
+<#= self.grund #>
+
+<# if !self.kommentar.is_empty() { #>
+Sonstige Kommentare:
+<#= self.kommentar #>
+
+<# } #>
+Schöne Grüße
+Dein Zeltlager

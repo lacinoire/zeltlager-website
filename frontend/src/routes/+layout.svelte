@@ -99,7 +99,7 @@
 					<a
 						class="navbar-item is-tab"
 						href="/intern/betreuer-anmeldung"
-						class:is-active={$page.route.id === "/intern/betreuer-anmeldung"}>
+						class:is-active={$page.route.id.startsWith("/intern/betreuer-anmeldung")}>
 						Betreuer-Anmeldung
 					</a>
 					<a
