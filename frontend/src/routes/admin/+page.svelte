@@ -125,11 +125,11 @@
 	</button>
 </p>
 
-<div style="display: none;"> <!-- TODO Not yet ready -->
+<div>
 <h2 class="title is-2">Tabellen</h2>
 
 <div class="is-flex galleryContainer">
-	<a href="./" class="box"> <!-- TODO -->
+	<a href="./" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
 	    <span class="icon emojiIcon">
 				🤐
@@ -138,7 +138,7 @@
 		</div>
 	</a>
 
-	<a href="./" class="box"> <!-- TODO -->
+	<a href="./" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
 	    <span class="icon emojiIcon">
 				💊
@@ -147,7 +147,7 @@
 		</div>
 	</a>
 
-	<a href="./" class="box"> <!-- TODO -->
+	<a href="./" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
 	    <span class="icon emojiIcon">
 				💸
