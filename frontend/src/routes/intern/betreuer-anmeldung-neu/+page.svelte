@@ -279,7 +279,7 @@
 		f.ort.value = data.ort;
 		f.plz.value = data.plz;
 		f.kommentar.value = data.kommentar;
-		f.fuehrungszeugnis_ausstellung.value = data.fuehrungszeugnis_ausstellung ? moment.utc(data.fuehrungszeugnis_ausstellung).format("DD.MM.YYYY") : undefined;
+		f.fuehrungszeugnis_ausstellung.value = data.fuehrungszeugnis_ausstellung ? moment.utc(data.fuehrungszeugnis_ausstellung).format("DD.MM.YYYY") : "";
 		f.allergien.value = data.allergien;
 		f.unvertraeglichkeiten.value = data.unvertraeglichkeiten;
 		f.medikamente.value = data.medikamente;
@@ -287,7 +287,7 @@
 		f.tetanus_impfung.value = data.tetanus_impfung;
 		f.land.value = data.land;
 		f.krankheiten.value = data.krankheiten;
-		f.juleica_gueltig_bis.value = data.juleica_gueltig_bis ? moment.utc(data.juleica_gueltig_bis).format("DD.MM.YYYY") : undefined;
+		f.juleica_gueltig_bis.value = data.juleica_gueltig_bis ? moment.utc(data.juleica_gueltig_bis).format("DD.MM.YYYY") : "";
 
 		loading = false;
 	}
