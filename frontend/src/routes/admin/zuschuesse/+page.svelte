@@ -229,27 +229,47 @@
 	<progress class="progress is-small is-primary">Loading</progress>
 {/if}
 
-<TableContainer>
-	<SortableTable columns={regionColumns} bind:sortBy>
-		{#if displayFiltered !== undefined}
-			{#each displayFiltered as e}
-				<tr>
-					{#if typeof e !== "string"}
-						<td>{e.vorname}</td>
-						<td>{e.nachname}</td>
-						<td>{e.strasse} {e.hausnummer}</td>
-						<td>{e.ort}</td>
-						<td>{e.plz}</td>
-						<td>{e.alter}</td>
-						<td></td>
-						<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-					{:else}
-						<td colspan="21" class="special"><h4>{e}</h4></td>
-					{/if}
-				</tr>
-			{/each}
+{#if regions !== undefined}
+	{#each [...regions] as [region, members]}
+		{#if region !== "Außerhalb"}
+			<h1 class="title">{region}</h1>
+			<TableContainer>
+				<SortableTable columns={regionColumns} bind:sortBy>
+					{#each members as e, i}
+						<tr>
+							<td>{i+1}</td>
+							<td>{e.vorname}</td>
+							<td>{e.nachname}</td>
+							<td>{e.strasse} {e.hausnummer}</td>
+							<td>{e.plz}</td>
+							<td>{e.ort}</td>
+							<td>{e.alter}</td>
+							<td></td>
+							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
+						</tr>
+					{/each}
+				</SortableTable>
+			</TableContainer>
 		{/if}
-	</SortableTable>
+	{/each}
+{/if}
+<h1 class="title">Betreuer</h1>
+<TableContainer>
+  <SortableTable columns={betreuerColumns} bind:sortBy>
+  	{#each betreuer as e, i}
+			<tr>
+				<td>{i+1}</td>
+				<td>{e.vorname}</td>
+				<td>{e.nachname}</td>
+				<td>{e.strasse} {e.hausnummer}</td>
+				<td>{e.plz}</td>
+				<td>{e.ort}</td>
+				<td>{e.alter}</td>
+				<td></td>
+				<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
+			</tr>
+  	{/each}
+  </SortableTable>
 </TableContainer>
 
 <style lang="scss">
