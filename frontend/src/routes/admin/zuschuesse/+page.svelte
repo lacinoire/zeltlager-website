@@ -36,17 +36,32 @@
 	let invalidAge: Member[];
 	let isLoading = true;
 	let regions: Map<string, Member[]>;
+	let betreuer: Supervisor[];
 
 	// &shy;
 	const S = "\u00AD";
 
 	const regionColumns: Column[] = [
+		{ name: "Nr." },
 		{ name: "Vorname" },
 		{ name: "Nachname" },
 		{ name: "Adresse" },
-		{ name: "Ort" },
 		{ name: "PLZ" },
+		{ name: "Ort" },
 		{ name: "Alter"},
+		{ name: "Unterschrift"},
+		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
+	];
+
+	const betreuerColumns: Column[] = [
+		{ name: "Nr." },
+		{ name: "Vorname" },
+		{ name: "Nachname" },
+		{ name: "Adresse" },
+		{ name: "PLZ" },
+		{ name: "Ort" },
+		{ name: "Alter"},
+		{ name: "Juleica-Nummer"},
 		{ name: "Unterschrift"},
 		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
 	];
