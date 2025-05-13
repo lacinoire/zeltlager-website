@@ -1,26 +1,23 @@
 <script lang="ts">
 	import moment from "moment";
-	import { createEventDispatcher } from "svelte";
 	import { mdiPencil, mdiContentSave } from "@mdi/js";
 	import Icon from "./Icon.svelte";
+	import type { EnumValue } from "./utils.ts";
 
 	interface Props {
 		value: any;
-		isMoment?: boolean;
-		momentFormat?: string;
+		isMoment: boolean;
+		momentFormat: string;
+		enumValues?: EnumValue[];
+		onedit?: (setEnabled: (enabled: boolean) => void) => void;
 	}
 
-	let { value = $bindable(), isMoment = false, momentFormat = "DD.MM.YYYY" }: Props = $props();
-
-	interface EditEvent {
-		setEnabled: (enabled: boolean) => void;
-	}
-
-	const dispatch = createEventDispatcher<{ edit: EditEvent }>();
+	let { value = $bindable(), isMoment = false, momentFormat = "DD.MM.YYYY", enumValues, onedit }: Props = $props();
 
 	let editing = $state(false);
 	let editValue: string = $state("");
 	let enabled = $state(true);
+	let select;
 
 	function edit() {
 		if (isMoment)
@@ -51,13 +48,15 @@
 		if (isMoment) {
 			if (editValue === "") newValue = undefined;
 			else newValue = moment(editValue, momentFormat);
+		} else if (select !== undefined) {
+			newValue = select.value;
 		} else if (typeof value !== "boolean") {
 			newValue = editValue;
 		}
 		editing = false;
 		if (newValue !== value) {
 			if (typeof value !== "boolean") value = newValue;
-			dispatch("edit", { setEnabled });
+			onedit?.(setEnabled);
 		}
 	}
 </script>
@@ -69,6 +68,17 @@
 		{#if !editing}
 			{value.format(momentFormat)}
 		{/if}
+	{:else if enumValues !== undefined}
+		<select bind:this={select} name="value" id="value" onchange={edited}>
+			{#each enumValues as val}
+				{@const name = typeof val === "string" ? val : val.name}
+				{@const displayName = typeof val === "string" ? val : (val.displayName ?? val.name)}
+			  <option value={name} selected={name === value}>{displayName}</option>
+			{/each}
+		</select>
+		{#if !enabled}
+			<button class="button is-loading"></button>
+		{/if}
 	{:else if typeof value === "string"}
 		{#if !editing}
 			{value}
@@ -79,7 +89,7 @@
 			<button class="button is-loading"></button>
 		{/if}
 	{/if}
-	{#if typeof value !== "boolean"}
+	{#if typeof value !== "boolean" && enumValues === undefined}
 		{#if !editing}
 			<button class="button" onclick={edit} class:is-loading={!enabled}>
 				<Icon name={mdiPencil} />
@@ -88,7 +98,7 @@
 			<!-- svelte-ignore a11y_autofocus -->
 			<input
 				id="value"
-				class="form-control here"
+				class="input"
 				name="value"
 				type="text"
 				autofocus={true}
@@ -104,5 +114,9 @@
 <style>
 	button {
 		font-size: 0.7em;
+	}
+	form {
+		display: flex;
+		gap: 0.2em;
 	}
 </style>

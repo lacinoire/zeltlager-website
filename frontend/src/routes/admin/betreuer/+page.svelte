@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import { goto } from "$app/navigation";
 	import moment from "moment";
 	import type { Moment } from "moment";
@@ -37,31 +37,61 @@
 	}
 
 	let all: Supervisor[] = $state();
-	let filtered: (Supervisor | string)[] = $state();
 	let filter = $state("");
 	let sortBy = $state("Name-asc");
 	let error: string | undefined = $state();
 	let isLoading = $state(true);
+	let filtered: (Supervisor | string)[] = $derived.by(() => {
+		if (all === undefined) return [];
+
+		let filtered = [];
+
+		function groupBy(list, callback) {
+			return list.reduce((res, x) => {
+				const k = callback(x);
+				(res[k] = res[k] || []).push(x);
+				return res;
+			}, {});
+		}
+
+		// Sort and group by descending year
+		const grouped = groupBy(all, (e) => {
+			// Everything after xxxx-08-15 counts as next year
+			const month = e.anmeldedatum.month() + 1 + (e.anmeldedatum.day() >= 15 ? 0.5 : 0);
+			return e.anmeldedatum.year() + (month >= 8.5 ? 1 : 0);
+		});
+
+		const years = Object.keys(grouped);
+		years.sort((a, b) => (a == b ? 0 : a > b ? -1 : 1));
+		for (const year of years) {
+			const yearFiltered = filterList(grouped[year], filter, sortBy);
+			if (yearFiltered.length > 0) {
+				filtered.push("Zeltlager " + year + " (" + grouped[year].length + " Betreuer)");
+				filtered = filtered.concat(yearFiltered);
+			}
+		}
+		return filtered;
+	});
 
 	// &shy;
 	const S = "\u00AD";
 
 	const allColumns: Column[] = [
-		{ name: undefined },
+		{ editable: false, render: cellId },
 		{ name: "Vorname" },
 		{ name: "Nachname" },
-		{ name: "Geschlecht", displayName: "" },
-		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
-		{ name: "Juleica" },
-		{ name: "Juleica gültig bis" },
+		{ name: "Geschlecht", displayName: "", enumValues: [{name: "Male", displayName: "m"}, {name: "Female", displayName: "w"}] },
+		{ name: "Geburtsdatum", displayName: `Geburts${S}datum`, isMoment: true },
+		{ name: "Juleica Nummer", displayName: "Juleica" },
+		{ name: "Juleica gültig bis", isMoment: true },
 		{ name: "Mail", displayName: "E-Mail" },
 		{ name: "Handynummer", displayName: "Handy" },
-		{ name: "Adresse" },
+		{ name: "Adresse", render: cellAdresse },
 		{ name: "Ort" },
 		{ name: "PLZ" },
-		{ name: "Führungszeugnis Ausstellung", displayName: `Führungs${S}zeugnis Ausstellung` },
-		{ name: "Führungszeugnis Eingesehen", displayName: `Führungs${S}zeugnis Eingesehen` },
-		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung` },
+		{ name: "Führungszeugnis Ausstellung", displayName: `Führungs${S}zeugnis Ausstellung`, isMoment: true },
+		{ name: "Führungszeugnis Eingesehen", displayName: `Führungs${S}zeugnis Eingesehen`, isMoment: true },
+		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung`, enumValues: ["gesetzlich", "privat", "anderes"] },
 		{ name: "Tetanus-Impfung" },
 		{ name: "Vegetarier" },
 		{ name: "Unverträglichkeiten" },
@@ -69,8 +99,8 @@
 		{ name: "Krankheiten" },
 		{ name: "Medikamente" },
 		{ name: "Kommentar" },
-		{ name: "Anmeldedatum" },
-		{},
+		{ name: "Anmeldedatum", isMoment: true, momentFormat: "DD.MM.YY HH:mm" },
+		{ render: cellRemove },
 	];
 
 	function filterList(list: Supervisor[], filter: string, sortBy: string): Supervisor[] {
@@ -104,41 +134,12 @@
 		} else {
 			list.sort(getSortByKeyFn(sortBy));
 		}
-		for (const [i, e] of list.entries())
-			e.index = i;
+		untrack(() => {
+			for (const [i, e] of list.entries())
+				e.index = i;
+		});
 		return list;
 	}
-
-	$effect(() => {
-		if (all === undefined) return;
-
-		filtered = [];
-
-		function groupBy(list, callback) {
-			return list.reduce((res, x) => {
-				const k = callback(x);
-				(res[k] = res[k] || []).push(x);
-				return res;
-			}, {});
-		}
-
-		// Sort and group by descending year
-		const grouped = groupBy(all, (e) => {
-			// Everything after xxxx-08-15 counts as next year
-			const month = e.anmeldedatum.month() + 1 + (e.anmeldedatum.day() >= 15 ? 0.5 : 0);
-			return e.anmeldedatum.year() + (month >= 8.5 ? 1 : 0);
-		});
-
-		const years = Object.keys(grouped);
-		years.sort((a, b) => (a == b ? 0 : a > b ? -1 : 1));
-		for (const year of years) {
-			const yearFiltered = filterList(grouped[year], filter, sortBy);
-			if (yearFiltered.length > 0) {
-				filtered.push("Zeltlager " + year + " (" + grouped[year].length + " Betreuer)");
-				filtered = filtered.concat(yearFiltered);
-			}
-		}
-	});
 
 	function createData(asDate = false) {
 		const entries = [...all];
@@ -227,21 +228,29 @@
 		isLoading = false;
 	}
 
-	async function editEntry(
+	async function onedit(
 		entry: Supervisor,
-		event: CustomEvent<{ setEnabled: (enabled: boolean) => void }>
+		setEnabled: (enabled: boolean) => void,
 	) {
-		event.detail.setEnabled(false);
-		const data = {
-			supervisor: entry.id,
-			juleica_nummer: entry.juleica_nummer,
-			fuehrungszeugnis_ausstellung: entry.fuehrungszeugnis_ausstellung
-				? entry.fuehrungszeugnis_ausstellung.format("YYYY-MM-DD")
-				: entry.fuehrungszeugnis_ausstellung,
-			fuehrungszeugnis_eingesehen: entry.fuehrungszeugnis_eingesehen
-				? entry.fuehrungszeugnis_eingesehen.format("YYYY-MM-DD")
-				: entry.fuehrungszeugnis_eingesehen,
-		};
+		setEnabled(false);
+		const data = {...entry};
+
+		// Convert dates
+		data.geburtsdatum = data.geburtsdatum.format("YYYY-MM-DD");
+		data.anmeldedatum = data.anmeldedatum.format("YYYY-MM-DD HH:mm:ss");
+		if (data.fuehrungszeugnis_ausstellung)
+			data.fuehrungszeugnis_ausstellung = data.fuehrungszeugnis_ausstellung.format("YYYY-MM-DD");
+		else
+			data.fuehrungszeugnis_ausstellung = null;
+		if (data.fuehrungszeugnis_eingesehen)
+			data.fuehrungszeugnis_eingesehen = data.fuehrungszeugnis_eingesehen.format("YYYY-MM-DD");
+		else
+			data.fuehrungszeugnis_eingesehen = null;
+		if (data.juleica_gueltig_bis)
+			data.juleica_gueltig_bis = data.juleica_gueltig_bis.format("YYYY-MM-DD");
+		else
+			data.juleica_gueltig_bis = null;
+
 		try {
 			const response = await fetch("/api/admin/betreuer/edit", {
 				method: "POST",
@@ -256,7 +265,7 @@
 			error = "Betreuer konnte nicht bearbeitet werden";
 		}
 		await loadData();
-		event.detail.setEnabled(true);
+		setEnabled(true);
 	}
 
 	async function removeEntry(entry: Supervisor) {
@@ -322,58 +331,28 @@
 	</div>
 </div>
 
+{#snippet cellId(row)}
+	{row.index + 1}
+{/snippet}
+
+{#snippet cellAdresse(row, rowI, colI)}
+	<span class="address">
+		<EditableProperty
+			bind:value={row.strasse}
+			onedit={(ev) => onedit?.(row, ev, rowI, colI)} />
+		<EditableProperty
+			bind:value={row.hausnummer}
+			onedit={(ev) => onedit?.(row, ev, rowI, colI)} />
+	</span>
+{/snippet}
+
+{#snippet cellRemove(row)}
+	<!-- svelte-ignore a11y_invalid_attribute -->
+	<a onclick={() => removeEntry(row)} href="#">löschen</a>
+{/snippet}
+
 <TableContainer>
-	<SortableTable columns={allColumns} bind:sortBy>
-		{#if filtered !== undefined}
-			{#each filtered as e}
-				<tr>
-					{#if typeof e !== "string"}
-						<td>{e.index + 1}</td>
-						<td>{e.vorname}</td>
-						<td>{e.nachname}</td>
-						<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
-						<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-						<td>{e.juleica_nummer ?? ""}</td>
-						<td>
-							{#if e.juleica_gueltig_bis !== null}
-								{e.juleica_gueltig_bis.format("DD.MM.YYYY")}
-							{/if}
-						</td>
-						<td>{e.mail}</td>
-						<td>{e.handynummer}</td>
-						<td>{e.strasse ?? ""} {e.hausnummer ?? ""}</td>
-						<td>{e.ort ?? ""}</td>
-						<td>{e.plz ?? ""}</td>
-						<td>
-							<EditableProperty
-								bind:value={e.fuehrungszeugnis_ausstellung}
-								isMoment={true}
-								on:edit={(ev) => editEntry(e, ev)} />
-						</td>
-						<td>
-							<EditableProperty
-								bind:value={e.fuehrungszeugnis_eingesehen}
-								isMoment={true}
-								on:edit={(ev) => editEntry(e, ev)} />
-						</td>
-						<td>{e.krankenversicherung ?? ""}</td>
-						<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
-						<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
-						<td>{e.unvertraeglichkeiten ?? ""}</td>
-						<td>{e.allergien ?? ""}</td>
-						<td>{e.krankheiten ?? ""}</td>
-						<td>{e.medikamente ?? ""}</td>
-						<td>{e.kommentar ?? ""}</td>
-						<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
-						<!-- svelte-ignore a11y_invalid_attribute -->
-						<td><a onclick={() => removeEntry(e)} href="#">löschen</a></td>
-					{:else}
-						<td colspan={allColumns.length} class="special"><h4>{e}</h4></td>
-					{/if}
-				</tr>
-			{/each}
-		{/if}
-	</SortableTable>
+	<SortableTable columns={allColumns} rows={filtered} editable={true} bind:sortBy {onedit} />
 </TableContainer>
 
 <style>
@@ -382,5 +361,10 @@
 		align-items: center;
 		gap: 1em;
 		margin-bottom: 1em;
+	}
+
+	.address {
+		display: flex;
+		gap: 0.5em;
 	}
 </style>

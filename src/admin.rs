@@ -5,8 +5,15 @@ use diesel::prelude::*;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::{State, db, mail};
-use time::{Date, OffsetDateTime};
+use crate::{
+	State,
+	db::{
+		self,
+		models::{FullSupervisor, FullTeilnehmer},
+	},
+	mail,
+};
+use time::OffsetDateTime;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct RemoveMemberData {
@@ -16,23 +23,6 @@ pub struct RemoveMemberData {
 #[derive(Clone, Debug, Deserialize)]
 pub struct RemoveSupervisorData {
 	supervisor: i32,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct EditMemberData {
-	member: i32,
-	bezahlt: bool,
-	anwesend: bool,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct EditSupervisorData {
-	supervisor: i32,
-	juleica_nummer: Option<String>,
-	#[serde(with = "crate::db::models::opt_date")]
-	fuehrungszeugnis_ausstellung: Option<Date>,
-	#[serde(with = "crate::db::models::opt_date")]
-	fuehrungszeugnis_eingesehen: Option<Date>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -109,7 +99,7 @@ async fn payed_mail(
 
 #[post("/teilnehmer/edit")]
 pub(crate) async fn edit_member(
-	state: web::Data<State>, data: web::Json<EditMemberData>,
+	state: web::Data<State>, data: web::Json<FullTeilnehmer>,
 ) -> HttpResponse {
 	match state
 		.db_addr
@@ -118,13 +108,11 @@ pub(crate) async fn edit_member(
 			use db::schema::teilnehmer::columns::*;
 
 			let member = teilnehmer::table
-				.filter(id.eq(data.member))
+				.filter(id.eq(data.id))
 				.get_result::<db::models::FullTeilnehmer>(&mut db.connection)?;
 			let new_payed = data.bezahlt && !member.bezahlt;
 
-			diesel::update(teilnehmer::table.filter(id.eq(data.member)))
-				.set((bezahlt.eq(data.bezahlt), anwesend.eq(data.anwesend)))
-				.execute(&mut db.connection)?;
+			diesel::update(&*data).set(&*data).execute(&mut db.connection)?;
 			Ok((new_payed, member))
 		}))
 		.await
@@ -178,21 +166,12 @@ pub(crate) async fn remove_supervisor(
 
 #[post("/betreuer/edit")]
 pub(crate) async fn edit_supervisor(
-	state: web::Data<State>, data: web::Json<EditSupervisorData>,
+	state: web::Data<State>, data: web::Json<FullSupervisor>,
 ) -> HttpResponse {
 	match state
 		.db_addr
 		.send(db::RunOnDbMsg(move |db| {
-			use db::schema::betreuer;
-			use db::schema::betreuer::columns::*;
-
-			diesel::update(betreuer::table.filter(id.eq(data.supervisor)))
-				.set((
-					juleica_nummer.eq(&data.juleica_nummer),
-					fuehrungszeugnis_ausstellung.eq(&data.fuehrungszeugnis_ausstellung),
-					fuehrungszeugnis_eingesehen.eq(&data.fuehrungszeugnis_eingesehen),
-				))
-				.execute(&mut db.connection)?;
+			diesel::update(&*data).set(&*data).execute(&mut db.connection)?;
 			Ok(())
 		}))
 		.await

@@ -1,7 +1,7 @@
 <script lang="ts">
 	// This is a horizontally scrollable container that adds an extra scrollbar that is fixed at
 	// the bottom of the screen.
-	import { onMount } from "svelte";
+	import { onMount, tick } from "svelte";
 	import type { Snippet } from "svelte";
 
 	interface Props {
@@ -36,13 +36,23 @@
 		showScrollbar = container.offsetWidth < container.scrollWidth;
 	}
 
+	let resizeObserver;
+	$effect(async () => {
+		if (children === undefined || resizeObserver === undefined || container === undefined)
+			return;
+		await tick();
+		resizeObserver.disconnect();
+		for (const child of container.children)
+			resizeObserver.observe(child);
+	});
+
 	onMount(() => {
-		const resizeObserver = new ResizeObserver(() => {
-			setup();
-		});
-		resizeObserver.observe(container);
+		resizeObserver = new ResizeObserver(setup);
+		for (const child of container.children)
+			resizeObserver.observe(child);
+
 		setup();
-		return () => resizeObserver.unobserve(container);
+		return () => resizeObserver.disconnect();
 	});
 </script>
 

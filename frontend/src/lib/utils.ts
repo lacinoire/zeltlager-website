@@ -2,12 +2,20 @@ import { utils, writeFile } from "xlsx";
 import moment from "moment";
 
 import lagerStartString from "../../lager-start.txt?raw";
+import type { Snippet } from "svelte";
 export const LAGER_START = moment(lagerStartString, "YYYY-MM-DD");
 export const YEAR = LAGER_START.year();
+
+export type EnumValue = string | { name: string; displayName?: string; };
 
 export interface Column {
 	name?: string;
 	displayName?: string;
+	editable?: boolean;
+	render?: Snippet<[any, number, number]>; // row, rowI, colI
+	isMoment?: boolean;
+	momentFormat?: string;
+	enumValues?: EnumValue[];
 }
 
 export interface FormError {
@@ -151,16 +159,20 @@ export function boolToStr(b: boolean): string {
 	return b === true ? "ja" : "nein";
 }
 
-export function getSortByKeyFn(sortBy: string) {
-	const asc = sortBy.endsWith("asc");
-	const sortName = sortBy.slice(0, sortBy.lastIndexOf("-"));
-	const sortKey = sortName
+export function normalizeName(name: string): string {
+	return name
 		.toLowerCase()
 		.replaceAll(" ", "_")
 		.replaceAll("-", "_")
 		.replaceAll("ä", "ae")
 		.replaceAll("ö", "oe")
 		.replaceAll("ü", "ue");
+}
+
+export function getSortByKeyFn(sortBy: string) {
+	const asc = sortBy.endsWith("asc");
+	const sortName = sortBy.slice(0, sortBy.lastIndexOf("-"));
+	const sortKey = normalizeName(sortName);
 	console.log("Sorting by key " + sortKey);
 	return (aRow: any, bRow: any) => {
 		const a = aRow[sortKey];

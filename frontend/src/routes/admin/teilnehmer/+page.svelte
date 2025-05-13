@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import { goto } from "$app/navigation";
 	import moment from "moment";
 	import type { Moment } from "moment";
@@ -49,9 +49,6 @@
 	type SortType = "alphabetisch" | "region" | "anwesend" | "bezahlt";
 
 	let all: Member[] = $state();
-	let filtered: Member[] = $state();
-	// For sorting by region, insert empty rows
-	let displayFiltered: (Member | string)[] = $state();
 	let birthdays: Member[] = $state();
 	let filter = $state("");
 	let sortBy = $state("Vorname-asc");
@@ -64,58 +61,15 @@
 	let mailModalInput: HTMLInputElement | undefined = $state();
 	let mailModalButton: HTMLButtonElement | undefined = $state();
 
-	// &shy;
-	const S = "\u00AD";
-
-	const allColumns: Column[] = [
-		{ name: undefined },
-		{ name: "Anwesend", displayName: `Anwe${S}send` },
-		{ name: "Bezahlt", displayName: `Be${S}zahlt` },
-		{ name: "Vorname" },
-		{ name: "Nachname" },
-		{ name: "Geschlecht", displayName: "" },
-		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
-		{ name: "Eltern-Name", displayName: "Eltern" },
-		{ name: "Eltern-Mail", displayName: "E-Mail" },
-		{ name: "Eltern-Handynummer", displayName: "Handy" },
-		{ name: "Adresse" },
-		{ name: "Ort" },
-		{ name: "PLZ" },
-		{ name: "Eigenanreise", displayName: `Eigen${S}an${S}reise` },
-		{ name: "Schwimmer", displayName: `Schwim${S}mer` },
-		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung` },
-		{ name: "Tetanus-Impfung" },
-		{ name: "Vegetarier" },
-		{ name: "Unverträglichkeiten" },
-		{ name: "Allergien" },
-		{ name: "Krankheiten" },
-		{ name: "Medikamente" },
-		{ name: "Kommentar" },
-		{ name: "Anmeldedatum" },
-		{},
-	];
-
-	const regionColumns: Column[] = [
-		{ name: "Vorname" },
-		{ name: "Nachname" },
-		{ name: "Geschlecht", displayName: "" },
-		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
-		{ name: "Adresse" },
-		{ name: "Ort" },
-		{ name: "PLZ" },
-	];
-
-	$effect(() => {
-		if (sortType !== "alphabetisch" && sortType !== "region") sortBy = "Name-asc";
-	});
-
-	$effect(() => {
-		if (all === undefined) return;
+	// For sorting by region, insert empty rows
+	let filterResult: [Member[], (Member | string)[]] = $derived.by(() => {
+		let filtered = [];
+		let displayFiltered = [];
+		if (all === undefined) return [[], []];
 		if (filter === "") {
-			filtered = all;
+			filtered = [...all];
 		} else {
 			filter = filter.toLowerCase();
-			filtered = [];
 			for (const m of all) {
 				if (
 					filter.length === 0 ||
@@ -155,7 +109,6 @@
 				countPerRegion[curRegion] = (countPerRegion[curRegion] ?? 0) + 1;
 			}
 
-			displayFiltered = [];
 			let lastRegion = undefined;
 			for (const e of filtered) {
 				const curRegion = getRegion(parseInt(e.plz), e.ort);
@@ -170,6 +123,54 @@
 			filtered.sort(sortFn);
 			displayFiltered = filtered;
 		}
+		return [filtered, displayFiltered];
+	});
+	let filtered: Member[] = $derived(filterResult[0]);
+	let displayFiltered: (Member | string)[] = $derived(filterResult[1]);
+
+	// &shy;
+	const S = "\u00AD";
+
+	const allColumns: Column[] = [
+		{ editable: false, render: cellId },
+		{ name: "Anwesend", displayName: `Anwe${S}send` },
+		{ name: "Bezahlt", displayName: `Be${S}zahlt` },
+		{ name: "Vorname" },
+		{ name: "Nachname" },
+		{ name: "Geschlecht", displayName: "", enumValues: [{name: "Male", displayName: "m"}, {name: "Female", displayName: "w"}] },
+		{ name: "Geburtsdatum", displayName: `Geburts${S}datum`, isMoment: true },
+		{ name: "Eltern-Name", displayName: "Eltern" },
+		{ name: "Eltern-Mail", displayName: "E-Mail" },
+		{ name: "Eltern-Handynummer", displayName: "Handy" },
+		{ name: "Adresse", render: cellAdresseEditable },
+		{ name: "Ort" },
+		{ name: "PLZ" },
+		{ name: "Eigenanreise", displayName: `Eigen${S}an${S}reise` },
+		{ name: "Schwimmer", displayName: `Schwim${S}mer` },
+		{ name: "Krankenversicherung", displayName: `Kranken${S}ver${S}sicherung`, enumValues: ["gesetzlich", "privat", "anderes"] },
+		{ name: "Tetanus-Impfung" },
+		{ name: "Vegetarier" },
+		{ name: "Unverträglichkeiten" },
+		{ name: "Allergien" },
+		{ name: "Krankheiten" },
+		{ name: "Medikamente" },
+		{ name: "Kommentar" },
+		{ name: "Anmeldedatum", isMoment: true, momentFormat: "DD.MM.YY HH:mm" },
+		{ render: cellRemove },
+	];
+
+	const regionColumns: Column[] = [
+		{ name: "Vorname" },
+		{ name: "Nachname" },
+		{ name: "Geschlecht", displayName: "", enumValues: [{name: "Male", displayName: "m"}, {name: "Female", displayName: "w"}] },
+		{ name: "Geburtsdatum", displayName: `Geburts${S}datum`, isMoment: true },
+		{ name: "Adresse", render: cellAdresse },
+		{ name: "Ort" },
+		{ name: "PLZ" },
+	];
+
+	$effect(() => {
+		if (sortType !== "alphabetisch" && sortType !== "region") sortBy = "Name-asc";
 	});
 
 	function isTrue(sortType: SortType) {
@@ -275,16 +276,17 @@
 		isLoading = false;
 	}
 
-	async function editEntry(
+	async function onedit(
 		entry: Member,
-		event: CustomEvent<{ setEnabled: (enabled: boolean) => void }>
+		setEnabled: (enabled: boolean) => void,
 	) {
-		event.detail.setEnabled(false);
-		const data = {
-			member: entry.id,
-			bezahlt: entry.bezahlt,
-			anwesend: entry.anwesend,
-		};
+		setEnabled(false);
+		const data = {...entry};
+
+		// Convert dates
+		data.geburtsdatum = data.geburtsdatum.format("YYYY-MM-DD");
+		data.anmeldedatum = data.anmeldedatum.format("YYYY-MM-DD HH:mm:ss");
+
 		try {
 			const response = await fetch("/api/admin/teilnehmer/edit", {
 				method: "POST",
@@ -299,7 +301,7 @@
 			error = "Teilnehmer konnte nicht bearbeitet werden";
 		}
 		await loadData();
-		event.detail.setEnabled(true);
+		setEnabled(true);
 	}
 
 	async function removeEntry(entry: Member) {
@@ -451,76 +453,37 @@
 	</p>
 </div>
 
+{#snippet cellId(row, i)}
+	{i + 1}
+{/snippet}
+
+{#snippet cellAdresseEditable(row, rowI, colI)}
+	<span class="address">
+		<EditableProperty
+			bind:value={row.strasse}
+			onedit={(ev) => onedit?.(row, ev, rowI, colI)} />
+		<EditableProperty
+			bind:value={row.hausnummer}
+			onedit={(ev) => onedit?.(row, ev, rowI, colI)} />
+	</span>
+{/snippet}
+
+{#snippet cellAdresse(row)}
+	{row.strasse} {row.hausnummer}
+{/snippet}
+
+{#snippet cellRemove(row)}
+	<!-- svelte-ignore a11y_invalid_attribute -->
+	<a onclick={() => removeEntry(row)} href="#">löschen</a>
+{/snippet}
+
 {#if sortType === "alphabetisch"}
 	<TableContainer>
-		<SortableTable columns={allColumns} bind:sortBy>
-			{#if displayFiltered !== undefined}
-				{#each displayFiltered as e, i}
-					<tr>
-						{#if typeof e !== "string"}
-							<td>{i+1}</td>
-							<td>
-								<EditableProperty
-									bind:value={e.anwesend}
-									on:edit={(ev) => editEntry(e, ev)} />
-							</td>
-							<td>
-								<EditableProperty
-									bind:value={e.bezahlt}
-									on:edit={(ev) => editEntry(e, ev)} />
-							</td>
-							<td>{e.vorname}</td>
-							<td>{e.nachname}</td>
-							<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
-							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-							<td>{e.eltern_name}</td>
-							<td>{e.eltern_mail}</td>
-							<td>{e.eltern_handynummer}</td>
-							<td>{e.strasse} {e.hausnummer}</td>
-							<td>{e.ort}</td>
-							<td>{e.plz}</td>
-							<td><input type="checkbox" checked={e.eigenanreise} disabled /></td>
-							<td><input type="checkbox" checked={e.schwimmer} disabled /></td>
-							<td>{e.krankenversicherung}</td>
-							<td><input type="checkbox" checked={e.tetanus_impfung} disabled /></td>
-							<td><input type="checkbox" checked={e.vegetarier} disabled /></td>
-							<td>{e.unvertraeglichkeiten}</td>
-							<td>{e.allergien}</td>
-							<td>{e.krankheiten}</td>
-							<td>{e.medikamente}</td>
-							<td>{e.kommentar}</td>
-							<td>{e.anmeldedatum.format("DD.MM.YY HH:mm")}</td>
-							<!-- svelte-ignore a11y_invalid_attribute -->
-							<td><a onclick={() => removeEntry(e)} href="#">löschen</a></td>
-						{:else}
-							<td colspan="23" class="special"><h4>{e}</h4></td>
-						{/if}
-					</tr>
-				{/each}
-			{/if}
-		</SortableTable>
+		<SortableTable columns={allColumns} rows={displayFiltered} editable={true} bind:sortBy {onedit} />
 	</TableContainer>
 {:else if sortType === "region"}
 	<TableContainer>
-		<SortableTable columns={regionColumns} bind:sortBy>
-			{#if displayFiltered !== undefined}
-				{#each displayFiltered as e}
-					<tr>
-						{#if typeof e !== "string"}
-							<td>{e.vorname}</td>
-							<td>{e.nachname}</td>
-							<td>{e.geschlecht === "Male" ? "m" : "w"}</td>
-							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-							<td>{e.strasse} {e.hausnummer}</td>
-							<td>{e.ort}</td>
-							<td>{e.plz}</td>
-						{:else}
-							<td colspan="21" class="special"><h4>{e}</h4></td>
-						{/if}
-					</tr>
-				{/each}
-			{/if}
-		</SortableTable>
+		<SortableTable columns={regionColumns} rows={displayFiltered} bind:sortBy />
 	</TableContainer>
 {:else}
 	<div class="multiTables">
@@ -612,5 +575,10 @@
 		flex-flow: row wrap;
 		align-items: start;
 		gap: 3em;
+	}
+
+	.address {
+		display: flex;
+		gap: 0.5em;
 	}
 </style>

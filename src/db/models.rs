@@ -9,8 +9,8 @@ use diesel::sql_types::Text;
 use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
 use log::warn;
-use serde::Serialize;
 use serde::ser::Error;
+use serde::{Deserialize, Serialize};
 use time::macros::format_description;
 use time::{Date, OffsetDateTime, PrimitiveDateTime};
 
@@ -97,7 +97,8 @@ pub struct Teilnehmer {
 	pub eigenanreise: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Queryable)]
+#[derive(AsChangeset, Clone, Debug, Deserialize, Identifiable, Serialize, Queryable)]
+#[diesel(treat_none_as_null = true, table_name = teilnehmer)]
 pub struct FullTeilnehmer {
 	pub id: i32,
 	pub vorname: String,
@@ -165,7 +166,8 @@ pub struct Supervisor {
 	pub juleica_gueltig_bis: Option<Date>,
 }
 
-#[derive(Clone, Debug, Serialize, Queryable)]
+#[derive(AsChangeset, Clone, Debug, Deserialize, Identifiable, Serialize, Queryable)]
+#[diesel(treat_none_as_null = true, table_name = betreuer)]
 pub struct FullSupervisor {
 	pub id: i32,
 	pub vorname: String,
@@ -413,7 +415,7 @@ pub fn cleanup_freetext(text: String) -> String {
 	text
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromSqlRow, AsExpression, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Serialize)]
 #[diesel(sql_type = Text)]
 pub enum Gender {
 	Male,
@@ -485,10 +487,25 @@ impl<'a> serde::de::Visitor<'a> for TimeVisitor<Option<Date>> {
 	fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> { Ok(None) }
 }
 
+impl serde::de::Visitor<'_> for TimeVisitor<PrimitiveDateTime> {
+	type Value = PrimitiveDateTime;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		formatter.write_str("a `PrimitiveDateTime`")
+	}
+
+	fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<PrimitiveDateTime, E> {
+		PrimitiveDateTime::parse(value, PRIMITIVE_DATE_TIME_FORMAT).map_err(E::custom)
+	}
+}
+
 pub mod date {
 	use super::*;
 	pub fn serialize<S: serde::Serializer>(date: &Date, serializer: S) -> Result<S::Ok, S::Error> {
 		date.format(ISO_DATE_FORMAT).map_err(S::Error::custom)?.serialize(serializer)
+	}
+	pub fn deserialize<'a, D: serde::Deserializer<'a>>(deserializer: D) -> Result<Date, D::Error> {
+		deserializer.deserialize_str(TimeVisitor::<Date>(PhantomData))
 	}
 }
 
@@ -516,6 +533,11 @@ pub mod primitive_datetime {
 		datetime: &PrimitiveDateTime, serializer: S,
 	) -> Result<S::Ok, S::Error> {
 		datetime.format(PRIMITIVE_DATE_TIME_FORMAT).map_err(S::Error::custom)?.serialize(serializer)
+	}
+	pub fn deserialize<'a, D: serde::Deserializer<'a>>(
+		deserializer: D,
+	) -> Result<PrimitiveDateTime, D::Error> {
+		deserializer.deserialize_str(TimeVisitor::<PrimitiveDateTime>(PhantomData))
 	}
 }
 
