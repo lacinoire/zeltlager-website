@@ -47,7 +47,6 @@
 
 <div class="d-flex flex-wrap align-items-start image-list">
 	<img src="/img/team/TeamIndien.jpg" alt="Ü-Abend Indien" width="auto" height="100%" loading="lazy">
-	<img src="/img/team/TeamKellner.jpg" alt="ü-Abend England" width="auto" height="100%" loading="lazy">
 </div>
 
 Das Zeltlager Team besteht aus der Lagerleitung, dem Betreuerteam und der Küchencrew.

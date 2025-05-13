@@ -136,7 +136,7 @@
 <h2 class="title is-2">Tabellen</h2>
 
 <div class="is-flex galleryContainer">
-	<a href="./" class="box" style="display: none;"> <!-- TODO -->
+	<a href="/admin/" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
 	    <span class="icon emojiIcon">
 				🤐
@@ -145,7 +145,7 @@
 		</div>
 	</a>
 
-	<a href="./" class="box" style="display: none;"> <!-- TODO -->
+	<a href="/admin/" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
 	    <span class="icon emojiIcon">
 				💊
@@ -154,7 +154,7 @@
 		</div>
 	</a>
 
-	<a href="./" class="box" style="display: none;"> <!-- TODO -->
+	<a href="/admin/" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
 	    <span class="icon emojiIcon">
 				💸
@@ -163,7 +163,7 @@
 		</div>
 	</a>
 
-	<a href="./lagerkasse" class="box">
+	<a href="/admin/lagerkasse" class="box">
 		<div class="document">
 	    <span class="icon emojiIcon">
 				🪙
