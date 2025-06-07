@@ -27,14 +27,11 @@
 		alter: number;
 	}
 
-	type SortType = "alphabetisch" | "region";
-
 	let all: Member[];
 	let filtered: Member[];
 	// For sorting by region, insert empty rows
 	let displayFiltered: (Member | string)[];
 	let sortBy = "Vorname-asc";
-	let sortType: SortType = "alphabetisch";
 	let error: string | undefined;
 	let invalidAge: Member[];
 	let isLoading = true;
@@ -42,17 +39,6 @@
 
 	// &shy;
 	const S = "\u00AD";
-
-	const allColumns: Column[] = [
-		{ name: "Vorname" },
-		{ name: "Nachname" },
-		{ name: "Adresse" },
-		{ name: "Ort" },
-		{ name: "PLZ" },
-		{ name: "Alter"},
-		{ name: "Unterschrift"},
-		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
-	];
 
 	const regionColumns: Column[] = [
 		{ name: "Vorname" },
@@ -65,13 +51,7 @@
 		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
 	];
 
-	function updateSortType(sortType: SortType) {
-		if (sortType !== "alphabetisch" && sortType !== "region") sortBy = "Name-asc";
-	}
-
-	$: updateSortType(sortType);
-
-	function applyFilter(all: Member[], sortBy: string, sortType: SortType) {
+	function applyFilter(all: Member[], sortBy: string) {
 		if (all === undefined) return;
 
 		invalidAge = [];
@@ -99,42 +79,37 @@
 			sortFn = getSortByKeyFn(sortBy);
 		}
 
-		if (sortType === "region") {
-			filtered.sort((a, b) => {
-				const cmp = regionSortFn(a, b);
-				if (cmp !== 0) return cmp;
-				return sortFn(a, b);
-			});
+		filtered.sort((a, b) => {
+			const cmp = regionSortFn(a, b);
+			if (cmp !== 0) return cmp;
+			return sortFn(a, b);
+		});
 
-			regions = new Map<string, Member[]>();
-			for (const e of filtered) {
-				const curRegion = getRegion(parseInt(e.plz), e.ort);
+		regions = new Map<string, Member[]>();
+		for (const e of filtered) {
+			const curRegion = getRegion(parseInt(e.plz), e.ort);
 
-				if (!regions.has(curRegion)) {
-					regions.set(curRegion, [ e ]);
-				} else {
-					regions.get(curRegion).push(e);
-				}
+			if (!regions.has(curRegion)) {
+				regions.set(curRegion, [ e ]);
+			} else {
+				regions.get(curRegion).push(e);
 			}
+		}
 
-			displayFiltered = [];
-			let lastRegion = undefined;
-			for (const e of filtered) {
-				const curRegion = getRegion(parseInt(e.plz), e.ort);
-				if (curRegion !== lastRegion) {
-					const count = regions.get(curRegion).length;
-					displayFiltered.push(`${curRegion} (${count} Teilnehmer)`);
-				}
-				displayFiltered.push(e);
-				lastRegion = curRegion;
+		displayFiltered = [];
+		let lastRegion = undefined;
+		for (const e of filtered) {
+			const curRegion = getRegion(parseInt(e.plz), e.ort);
+			if (curRegion !== lastRegion) {
+				const count = regions.get(curRegion).length;
+				displayFiltered.push(`${curRegion} (${count} Teilnehmer)`);
 			}
-		} else {
-			filtered.sort(sortFn);
-			displayFiltered = filtered;
+			displayFiltered.push(e);
+			lastRegion = curRegion;
 		}
 	}
 
-	$: applyFilter(all, sortBy, sortType);
+	$: applyFilter(all, sortBy);
 
 	type SortTypeFn = (t: SortType) => (m: Member) => boolean;
 
@@ -221,7 +196,7 @@
 	</article>
 {/if}
 
-{#if sortType === "region" && regions.get("Außerhalb").length > 0}
+{#if regions && regions.get("Außerhalb").length > 0}
 	{@const teilnehmer = regions.get("Außerhalb")}
 	<article class="message is-warn">
 		<div class="content message-body">
@@ -239,70 +214,28 @@
 	<progress class="progress is-small is-primary">Loading</progress>
 {/if}
 
-<div class="tabs">
-  <ul>
-    <li class:is-active={sortType === "alphabetisch"}>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-      <a on:click={() => sortType = "alphabetisch"} href="#">
-        <span>Alphabetisch</span>
-      </a>
-    </li>
-    <li class:is-active={sortType === "region"}>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-      <a on:click={() => sortType = "region"} href="#">
-        <span>München/Landkreis</span>
-      </a>
-    </li>
-  </ul>
-</div>
-
-{#if sortType === "alphabetisch"}
-	<TableContainer>
-		<SortableTable columns={allColumns} bind:sortBy>
-			{#if displayFiltered !== undefined}
-				{#each displayFiltered as e}
-					<tr>
-						{#if typeof e !== "string"}
-							<td>{e.vorname}</td>
-							<td>{e.nachname}</td>
-							<td>{e.strasse} {e.hausnummer}</td>
-							<td>{e.ort}</td>
-							<td>{e.plz}</td>
-							<td>{e.alter}</td>
-							<td></td>
-							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-						{:else}
-							<td colspan="23" class="special"><h4>{e}</h4></td>
-						{/if}
-					</tr>
-				{/each}
-			{/if}
-		</SortableTable>
-	</TableContainer>
-{:else if sortType === "region"}
-	<TableContainer>
-		<SortableTable columns={regionColumns} bind:sortBy>
-			{#if displayFiltered !== undefined}
-				{#each displayFiltered as e}
-					<tr>
-						{#if typeof e !== "string"}
-							<td>{e.vorname}</td>
-							<td>{e.nachname}</td>
-							<td>{e.strasse} {e.hausnummer}</td>
-							<td>{e.ort}</td>
-							<td>{e.plz}</td>
-							<td>{e.alter}</td>
-							<td></td>
-							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
-						{:else}
-							<td colspan="21" class="special"><h4>{e}</h4></td>
-						{/if}
-					</tr>
-				{/each}
-			{/if}
-		</SortableTable>
-	</TableContainer>
-{/if}
+<TableContainer>
+	<SortableTable columns={regionColumns} bind:sortBy>
+		{#if displayFiltered !== undefined}
+			{#each displayFiltered as e}
+				<tr>
+					{#if typeof e !== "string"}
+						<td>{e.vorname}</td>
+						<td>{e.nachname}</td>
+						<td>{e.strasse} {e.hausnummer}</td>
+						<td>{e.ort}</td>
+						<td>{e.plz}</td>
+						<td>{e.alter}</td>
+						<td></td>
+						<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
+					{:else}
+						<td colspan="21" class="special"><h4>{e}</h4></td>
+					{/if}
+				</tr>
+			{/each}
+		{/if}
+	</SortableTable>
+</TableContainer>
 
 <style lang="scss">
 </style>
