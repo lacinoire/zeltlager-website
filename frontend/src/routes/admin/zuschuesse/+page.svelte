@@ -253,6 +253,7 @@
 	{#each [...regions] as [region, members]}
 		{#if region !== "Außerhalb"}
 			<h1 class="title">{region}</h1>
+			<div class="nobackground">
 			<TableContainer>
 				<SortableTable columns={regionColumns} bind:sortBy>
 					{#each members as e, i}
@@ -264,16 +265,19 @@
 							<td>{e.plz}</td>
 							<td>{e.ort}</td>
 							<td>{e.alter}</td>
-							<td></td>
+							<td class="unterschrift"></td>
 							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
 						</tr>
 					{/each}
 				</SortableTable>
 			</TableContainer>
+			</div>
+			<div class="page-break"></div>
 		{/if}
 	{/each}
 {/if}
 <h1 class="title">Betreuer</h1>
+<div class="nobackground">
 <TableContainer>
   <SortableTable columns={betreuerColumns} bind:sortBy>
   	{#each betreuer as e, i}
@@ -292,6 +296,68 @@
   	{/each}
   </SortableTable>
 </TableContainer>
+</div>
 
 <style lang="scss">
+	:global(.table) {
+		width: 100%;
+	}
+
+	:global(.table td, .table th) {
+		white-space: nowrap;
+	}
+
+	:global(.table td.unterschrift) {
+		width: 99%;
+	}
+
+	@media print {
+
+		@page {
+			size: landscape
+		}
+		
+		:global(.message) {
+			display: none;
+		}
+
+		:global(.sortIcon span) {
+			display: none;
+		}
+
+		:global(.page-break) {
+			break-after: page;
+		}
+
+		:global(div.nobackground .table thead) {
+			background: none;
+		}
+
+		:global(.table thead th button) {
+			font-weight: bold;
+		}
+
+		:global(h1.title:not(:last-child)) {
+			color: black;
+			font-size: 1.2em;
+			margin-bottom: 0.7em;
+		}
+
+		:global(.table thead) {
+			background: none;
+		}
+
+		:global(.table thead th button) {
+			font-weight: bold;
+			font-size: 0.8em;
+		}
+
+		:global(.table td, .table thead tr th, .table tbody, .table tbody td, div.nobackground .table tbody tr:last-child td) {
+			padding: 0em 0.75em;
+			border-width: 2px;
+			border-color: black;
+			color: black;
+		}
+
+	}
 </style>
