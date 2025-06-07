@@ -188,9 +188,19 @@
 			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
 		}
 
-		for (const e of dataBetreuer) {
+		for (const e of dataBetreuer.slice().sort(regionSortFn)) {
 			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
 			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
+
+			if (dataTeilnehmer + 1 <= 15 * (dataBetreuer.length - 1)) {
+				continue;
+			}
+
+			if (e.alter <= 23 && getRegion(parseInt(e.plz), e.ort) !== "Außerhalb") {
+				let i = dataBetreuer.indexOf(e);
+				dataTeilnehmer.push(e);
+				dataBetreuer.splice(i, 1);
+			}
 		}
 
 		all = dataTeilnehmer;
