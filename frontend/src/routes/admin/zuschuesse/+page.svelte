@@ -153,10 +153,10 @@
 	}
 
 	async function loadData() {
-		const resp = await fetch("/api/admin/teilnehmer");
-		if (!resp.ok) {
+		const respTeilnehmer = await fetch("/api/admin/teilnehmer");
+		if (!respTeilnehmer.ok) {
 			// Unauthorized
-			if (resp.status == 401) {
+			if (respTeilnehmer.status == 401) {
 				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
 			} else {
 				console.error("Failed to load data", resp);
@@ -164,14 +164,34 @@
 			}
 			return;
 		}
-		const data = await resp.json();
 
+		const respBetreuer = await fetch("/api/admin/betreuer");
+		if (!respBetreuer.ok) {
+			if (respBetreuer.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", respBetreuer);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+			}
+			return;
+		}
+
+		const dataTeilnehmer = await respTeilnehmer.json();
+		const dataBetreuer = await respBetreuer.json();
+		
 		// Convert dates
-		for (const e of data) {
+		for (const e of dataTeilnehmer) {
 			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
 			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
 		}
-		all = data;
+
+		for (const e of dataBetreuer) {
+			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
+			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
+		}
+
+		all = dataTeilnehmer;
+		betreuer = dataBetreuer;
 		isLoading = false;
 	}
 
@@ -265,6 +285,7 @@
 				<td>{e.plz}</td>
 				<td>{e.ort}</td>
 				<td>{e.alter}</td>
+				<td>{e.juleica_nummer}</td>
 				<td></td>
 				<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
 			</tr>
