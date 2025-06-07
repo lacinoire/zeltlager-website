@@ -50,7 +50,6 @@
 		{ name: "Ort" },
 		{ name: "Alter"},
 		{ name: "Unterschrift"},
-		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
 	];
 
 	const betreuerColumns: Column[] = [
@@ -63,7 +62,6 @@
 		{ name: "Alter"},
 		{ name: "Juleica-Nummer"},
 		{ name: "Unterschrift"},
-		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
 	];
 
 	function applyFilter(all: Member[], sortBy: string) {
@@ -279,7 +277,6 @@
 							<td>{e.ort}</td>
 							<td>{e.alter}</td>
 							<td class="unterschrift"></td>
-							<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
 						</tr>
 					{/each}
 				</SortableTable>
@@ -304,7 +301,6 @@
 				<td>{e.alter}</td>
 				<td>{e.juleica_nummer}</td>
 				<td></td>
-				<td>{e.geburtsdatum.format("DD.MM.YYYY")}</td>
 			</tr>
   	{/each}
   </SortableTable>
