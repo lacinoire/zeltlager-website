@@ -177,8 +177,11 @@
 		}
 
 		const dataTeilnehmer = await respTeilnehmer.json();
-		const dataBetreuer = await respBetreuer.json();
-		
+		const dataBetreuer = (await respBetreuer.json()).filter((betreuer) => {
+			let startOfYear = moment().year(LAGER_START.clone().local().year() - 1).month(7).date(15);
+			return startOfYear.local().diff(betreuer.anmeldedatum, 'years') < 1;
+		});
+
 		// Convert dates
 		for (const e of dataTeilnehmer) {
 			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
