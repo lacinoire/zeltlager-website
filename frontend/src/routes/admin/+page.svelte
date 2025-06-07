@@ -154,7 +154,7 @@
 		</div>
 	</a>
 
-	<a href="/admin/" class="box" style="display: none;"> <!-- TODO -->
+	<a href="/admin/zuschuesse" class="box">
 		<div class="document">
 	    <span class="icon emojiIcon">
 				💸
