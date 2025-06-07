@@ -64,7 +64,6 @@
 		{ name: "Geburtsdatum", displayName: `Geburts${S}datum` },
 	];
 
-	invalidAge = [];
 	function updateSortType(sortType: SortType) {
 		if (sortType !== "alphabetisch" && sortType !== "region") sortBy = "Name-asc";
 	}
@@ -74,8 +73,9 @@
 	function applyFilter(all: Member[], sortBy: string, sortType: SortType) {
 		if (all === undefined) return;
 
+		invalidAge = [];
 		filtered = all.filter((m) => {
-			if (m.alter < 6) {
+			if (m.alter < 6 || m.alter > 23) {
 				invalidAge.push(m);
 				return false;
 			}
@@ -202,13 +202,15 @@
 	</article>
 {/if}
 
-{#if invalidAge.length > 0}
+{#if invalidAge && invalidAge.length > 0}
 	<article class="message is-warn">
-		<div class="message-body">
-			Teilnehmer haben ein ungueltiges Alter (muss zwischen 6-23 sein):
+		<div class="content message-body">
+			Folgende Teilnehmer haben ein ungültiges Alter (muss zwischen 6-23 sein):
+			<ul>
 			{#each invalidAge as i}
-				<p style="text-indent:2em">- {i.vorname} {i.nachname} ({i.alter} Jahre alt)</p>
+				<li>{i.vorname} {i.nachname} ({i.alter} Jahre alt)</li>
 			{/each}
+			</ul>
 		</div>
 	</article>
 {/if}
