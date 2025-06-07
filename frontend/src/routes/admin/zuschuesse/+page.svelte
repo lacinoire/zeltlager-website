@@ -38,6 +38,7 @@
 	let error: string | undefined;
 	let invalidAge: Member[];
 	let isLoading = true;
+	let regions: Map<string, Member[]>;
 
 	// &shy;
 	const S = "\u00AD";
@@ -105,10 +106,15 @@
 				return sortFn(a, b);
 			});
 
-			const countPerRegion: Record<string, number> = {};
+			regions = new Map<string, Member[]>();
 			for (const e of filtered) {
 				const curRegion = getRegion(parseInt(e.plz), e.ort);
-				countPerRegion[curRegion] = (countPerRegion[curRegion] ?? 0) + 1;
+
+				if (!regions.has(curRegion)) {
+					regions.set(curRegion, [ e ]);
+				} else {
+					regions.get(curRegion).push(e);
+				}
 			}
 
 			displayFiltered = [];
@@ -116,7 +122,7 @@
 			for (const e of filtered) {
 				const curRegion = getRegion(parseInt(e.plz), e.ort);
 				if (curRegion !== lastRegion) {
-					const count = countPerRegion[curRegion];
+					const count = regions.get(curRegion).length;
 					displayFiltered.push(`${curRegion} (${count} Teilnehmer)`);
 				}
 				displayFiltered.push(e);
@@ -209,6 +215,20 @@
 			<ul>
 			{#each invalidAge as i}
 				<li>{i.vorname} {i.nachname} ({i.alter} Jahre alt)</li>
+			{/each}
+			</ul>
+		</div>
+	</article>
+{/if}
+
+{#if sortType === "region" && regions.get("Außerhalb").length > 0}
+	{@const teilnehmer = regions.get("Außerhalb")}
+	<article class="message is-warn">
+		<div class="content message-body">
+			Folgende Teilnehmer sind nicht aus München und Umgebung:
+			<ul>
+			{#each teilnehmer as t}
+				<li>{t.vorname} {t.nachname} ({t.ort})</li>
 			{/each}
 			</ul>
 		</div>
