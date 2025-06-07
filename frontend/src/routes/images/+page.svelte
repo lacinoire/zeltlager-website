@@ -4,8 +4,14 @@
 	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
 
+	interface File {
+		name: string;
+		width?: number;
+		height?: number;
+	}
+
 	let subName = $state("");
-	let imageList: string[] = $state([]);
+	let imageList: File[] = $state([]);
 	let error: string | undefined = $state();
 	let isLoading = $state(true);
 	let gallery: HTMLDivElement | undefined = $state();
@@ -103,19 +109,22 @@
 
 <div bind:this={gallery} class="is-flex galleryContainer">
 	{#each imageList as image}
-		{#if image.toLowerCase().endsWith(".jpg") || image.toLowerCase().endsWith(".jpeg") || image
-				.toLowerCase()
-				.endsWith(".png")}
-			<a href={`static/${image}`} class="glightbox box">
-				<!-- Set some preliminary width and height to support lazy loading -->
-				<!-- svelte-ignore a11y_missing_attribute -->
-				<img src={`static/thumbs/${image}`} width="auto" height="100%" loading="lazy" />
+		{@const lowerName = image.name.toLowerCase()}
+		{#if lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")}
+			<a href={`static/${image.name}`} class="glightbox box">
+				{#if "width" in image && "height" in image}
+					<!-- svelte-ignore a11y_missing_attribute -->
+					<img src={`static/thumbs/${image.name}`} width={image.width} height={image.height} loading="lazy" />
+				{:else}
+					<!-- svelte-ignore a11y_missing_attribute -->
+					<img src={`static/thumbs/${image.name}`} width="auto" height="100%" loading="lazy" />
+				{/if}
 			</a>
 		{:else}
-			<a href={`static/${image}`} target="_blank" class="box">
+			<a href={`static/${image.name}`} target="_blank" class="box">
 				<div class="document">
 					<img src="/img/file.svg" alt="Document" />
-					{image}
+					{image.name}
 				</div>
 			</a>
 		{/if}

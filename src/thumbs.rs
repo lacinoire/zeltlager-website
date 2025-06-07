@@ -3,21 +3,24 @@
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
 use anyhow::{Result, bail, format_err};
-use log::{debug, error, warn};
+use log::{debug, error, trace, warn};
 use notify::RecursiveMode;
 use notify_debouncer_mini::new_debouncer;
+use rayon::prelude::*;
 
-pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
+use crate::State;
+
+pub fn watch_thumbs(state: State, path: PathBuf) {
 	// Create a channel to receive the events.
 	let (tx, rx) = channel();
 
-	if let Err(e) = scan_files(&path) {
+	if let Err(e) = scan_files(&state, &path, true) {
 		error!("Error when scanning files: {:?}", e);
 	}
 
@@ -32,7 +35,7 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 	loop {
 		match rx.recv() {
 			Ok(_) => {
-				if let Err(e) = scan_files(&path) {
+				if let Err(e) = scan_files(&state, &path, false) {
 					error!("Error when scanning files: {:?}", e);
 				}
 			}
@@ -44,8 +47,9 @@ pub fn watch_thumbs<P: AsRef<Path>>(path: P) {
 	}
 }
 
-fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
-	let path = path.as_ref();
+fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
+	let mut thumbs_for_size = Vec::new();
+	let mut thumbs_to_generate = Vec::new();
 	// Search for files where we need a thumbnail
 	let files = fs::read_dir(path)?.map(|e| e.map_err(|e| e.into())).collect::<Result<Vec<_>>>()?;
 	for file in &files {
@@ -61,10 +65,26 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 					None => warn!("Filename {:?} is not valid unicode", file_path),
 					Some(name) => {
 						let lower_name = name.to_lowercase();
-						if lower_name.ends_with(".jpg") || lower_name.ends_with(".png") {
+						if lower_name.ends_with(".jpg")
+							|| lower_name.ends_with(".jpeg")
+							|| lower_name.ends_with(".png")
+						{
 							// Check if there is a thumbnail for it
-							if let Err(e) = create_thumb(path, name) {
-								warn!("Failed to create thumbnail for {}: {:?}", name, e);
+							match thumb_up_to_date(path, name) {
+								Err(e) => {
+									warn!("Failed to check thumbnail for {name}: {e:?}");
+								}
+								Ok(None) => {
+									// up to date
+									if first_run {
+										// On the first run, get thumbnail size
+										if let Some(orig) = path.join(name).to_str() {
+											let thumb = path.join("thumbs").join(name);
+											thumbs_for_size.push((orig.to_string(), thumb))
+										}
+									}
+								}
+								Ok(Some(p)) => thumbs_to_generate.push(p),
 							}
 						}
 					}
@@ -87,12 +107,52 @@ fn scan_files<P: AsRef<Path>>(path: P) -> Result<()> {
 		}
 	}
 
+	// Get thumbnail sizes
+	thumbs_for_size.into_par_iter().for_each(|(orig, thumb)| match get_thumb_size(&thumb) {
+		Ok(size) => {
+			trace!("Got thumbnail size {orig:?} {size:?}");
+			let mut thumb_sizes = state.thumb_sizes.write().unwrap();
+			thumb_sizes.insert(orig, size);
+		}
+		Err(e) => {
+			warn!("Failed to get thumbnail size for {thumb:?}: {e:?}",);
+		}
+	});
+
+	// Generate new thumbnails
+	thumbs_to_generate.into_par_iter().for_each(|(orig, thumb)| {
+		if let Err(e) = create_thumb(&orig, &thumb) {
+			warn!("Failed to create thumbnail for {:?}: {:?}", orig.file_name().unwrap(), e);
+		} else {
+			// Add size
+			let Some(name) = orig.to_str() else {
+				return;
+			};
+			let size = match get_thumb_size(&thumb) {
+				Ok(r) => r,
+				Err(e) => {
+					warn!(
+						"Failed to get thumbnail size for {:?}: {:?}",
+						orig.file_name().unwrap(),
+						e
+					);
+					return;
+				}
+			};
+			trace!("Got thumbnail size {name:?} {size:?}");
+			let mut thumb_sizes = state.thumb_sizes.write().unwrap();
+			thumb_sizes.insert(name.to_string(), size);
+		}
+	});
+
 	Ok(())
 }
 
-fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
+/// Checks if the thumbnail is up-to-date.
+///
+/// If a thumbnail needs to be generated, returns source path and thumbnail path.
+fn thumb_up_to_date(path: &Path, file: &str) -> Result<Option<(PathBuf, PathBuf)>> {
 	// Check if thumbnails directory exists
-	let path = path.as_ref();
 	let thumbs_path = path.join("thumbs");
 	if !thumbs_path.exists() {
 		fs::create_dir(&thumbs_path)?;
@@ -126,15 +186,21 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 		// Thumbnail exists and is newer in modification and
 		// creation time.
 		if thumb_is_new {
-			return Ok(());
+			return Ok(None);
 		}
 	}
 
-	// Check if we can scale it down
-	debug!("Create thumbnail for {:?}", file);
+	// Needs to be generated
+	Ok(Some((orig_file, thumb_file)))
+}
+
+fn create_thumb(orig_file: &Path, thumb_file: &Path) -> Result<()> {
+	// Scale it down
+	debug!("Create thumbnail for {:?}", orig_file.file_name().unwrap());
 	let proc = Command::new("magick")
 		.args([
 			orig_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
+			"-auto-orient", // Rotate, so we can strip metadata with jpegoptim
 			"-resize",
 			"300x300",
 			thumb_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
@@ -145,5 +211,47 @@ fn create_thumb<P: AsRef<Path>>(path: P, file: &str) -> Result<()> {
 		bail!("magick exited with exit code {}", proc);
 	}
 
+	if let Some(ext) = orig_file.extension().and_then(|s| s.to_str()) {
+		let ext = ext.to_ascii_lowercase();
+		if ["jpg", "jpeg"].contains(&ext.as_str()) {
+			// Compress with jpegoptim
+			let proc = Command::new("jpegoptim")
+				.args([
+					"-s",
+					"--size=20",
+					thumb_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
+				])
+				.status()?;
+
+			if !proc.success() {
+				bail!("jpegoptim exited with exit code {}", proc);
+			}
+		}
+	}
+
 	Ok(())
+}
+
+fn get_thumb_size(thumb_file: &Path) -> Result<(u32, u32)> {
+	let proc = Command::new("identify")
+		.args([
+			"-ping",
+			"-format",
+			"%w %h",
+			thumb_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?,
+		])
+		.output()?;
+
+	if !proc.status.success() {
+		bail!("identify exited with exit code {:?}", proc);
+	}
+
+	match std::str::from_utf8(&proc.stdout)?
+		.split(' ')
+		.map(|s| s.parse())
+		.collect::<Result<Vec<_>, _>>()?[..]
+	{
+		[w, h] => Ok((w, h)),
+		_ => bail!("identify did not return width and height {:?}", proc),
+	}
 }

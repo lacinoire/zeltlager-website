@@ -8,7 +8,7 @@ use std::fs;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::rc::Rc;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex, RwLock};
 
 use actix_files::Files;
 use actix_identity::{Identity, IdentityExt, IdentityMiddleware};
@@ -68,6 +68,9 @@ pub struct State {
 	config: Config,
 	db_addr: actix::Addr<db::DbExecutor>,
 	mail_addr: actix::Addr<mail::MailExecutor>,
+	/// Sizes of thumbnails.
+	/// Map path to width, height.
+	thumb_sizes: Arc<RwLock<HashMap<String, (u32, u32)>>>,
 	/// Used to lock access to the log file.
 	log_mutex: Arc<Mutex<()>>,
 }
@@ -461,7 +464,14 @@ async fn main() -> Result<()> {
 	let mail_addr = actix::SyncArbiter::start(4, move || mail::MailExecutor::new(config2.clone()));
 
 	let address = config.bind_address.clone();
-	let state = State { sites, config, db_addr, mail_addr, log_mutex: Arc::new(Mutex::new(())) };
+	let state = State {
+		sites,
+		config,
+		db_addr,
+		mail_addr,
+		thumb_sizes: Default::default(),
+		log_mutex: Arc::new(Mutex::new(())),
+	};
 
 	// Start thumbnail creator
 	let mut image_dirs = Vec::new();
@@ -471,7 +481,8 @@ async fn main() -> Result<()> {
 			d.path().file_name().and_then(|n| n.to_str()).and_then(|n| n.strip_prefix("Bilder"))
 		{
 			image_dirs.push(path.to_string());
-			std::thread::spawn(move || thumbs::watch_thumbs(d.path()));
+			let state2 = state.clone();
+			std::thread::spawn(move || thumbs::watch_thumbs(state2, d.file_name().into()));
 		}
 	}
 
@@ -557,11 +568,16 @@ async fn main() -> Result<()> {
 		// Do not use last-modified, because it goes wrong when building with nix and the timestamp is 0
 		for name in &image_dirs {
 			let name2 = name.clone();
+			let state2 = state.clone();
 			app = app
 				.service(
 					web::scope(&format!("/Bilder{}/list", name))
 						.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone()), true))
-						.route("", web::get().to(move || images::list_images(name2.clone()))),
+						.route(
+							"",
+							web::get()
+								.to(move || images::list_images(state2.clone(), name2.clone())),
+						),
 				)
 				.service(
 					web::scope(&format!("/Bilder{}/static", name))
