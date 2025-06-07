@@ -257,11 +257,16 @@ pub async fn lager_info(state: web::Data<State>) -> HttpResponse {
 		.db_addr
 		.send(db::RunOnDbMsg(move |db| {
 			use crate::db::schema::{betreuer, erwischt_game, teilnehmer};
+			use diesel::dsl;
 			use diesel::prelude::*;
 
 			let teilnehmer_count = teilnehmer::table.count().get_result(&mut db.connection)?;
 			let old_betreuer_count = betreuer::table
-				.filter(betreuer::anmeldedatum.lt(betreuer_signup_date_last_year()))
+				.filter(
+					betreuer::anmeldedatum
+						.lt(betreuer_signup_date_last_year())
+						.or(dsl::not(betreuer::selbsterklaerung)),
+				)
 				.count()
 				.get_result(&mut db.connection)?;
 			let erwischt_game_count =
@@ -296,13 +301,18 @@ pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
 		.db_addr
 		.send(db::RunOnDbMsg(move |db| {
 			use crate::db::schema::{betreuer, erwischt_game, erwischt_member, teilnehmer};
+			use diesel::dsl;
 			use diesel::prelude::*;
 
 			diesel::delete(teilnehmer::table).execute(&mut db.connection)?;
 			diesel::delete(erwischt_member::table).execute(&mut db.connection)?;
 			diesel::delete(erwischt_game::table).execute(&mut db.connection)?;
 			diesel::delete(
-				betreuer::table.filter(betreuer::anmeldedatum.lt(betreuer_signup_date_last_year())),
+				betreuer::table.filter(
+					betreuer::anmeldedatum
+						.lt(betreuer_signup_date_last_year())
+						.or(dsl::not(betreuer::selbsterklaerung)),
+				),
 			)
 			.execute(&mut db.connection)?;
 

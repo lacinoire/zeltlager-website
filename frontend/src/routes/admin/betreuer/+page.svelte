@@ -34,43 +34,22 @@
 		medikamente: string | null;
 		kommentar: string | null;
 		anmeldedatum: Moment;
+		selbsterklaerung: bool; // false if pre-signed-up
 	}
 
 	let all: Supervisor[] = $state();
 	let filter = $state("");
 	let sortBy = $state("Name-asc");
+	let sortByPre = $state("Name-asc");
 	let error: string | undefined = $state();
 	let isLoading = $state(true);
-	let filtered: (Supervisor | string)[] = $derived.by(() => {
+	let filtered: (Supervisor | string)[][2] = $derived.by(() => {
 		if (all === undefined) return [];
 
-		let filtered = [];
+		let filtered = all.filter((s) => s.selbsterklaerung);
+		let filteredPre = all.filter((s) => !s.selbsterklaerung);
 
-		function groupBy(list, callback) {
-			return list.reduce((res, x) => {
-				const k = callback(x);
-				(res[k] = res[k] || []).push(x);
-				return res;
-			}, {});
-		}
-
-		// Sort and group by descending year
-		const grouped = groupBy(all, (e) => {
-			// Everything after xxxx-08-15 counts as next year
-			const month = e.anmeldedatum.month() + 1 + (e.anmeldedatum.day() >= 15 ? 0.5 : 0);
-			return e.anmeldedatum.year() + (month >= 8.5 ? 1 : 0);
-		});
-
-		const years = Object.keys(grouped);
-		years.sort((a, b) => (a == b ? 0 : a > b ? -1 : 1));
-		for (const year of years) {
-			const yearFiltered = filterList(grouped[year], filter, sortBy);
-			if (yearFiltered.length > 0) {
-				filtered.push("Zeltlager " + year + " (" + grouped[year].length + " Betreuer)");
-				filtered = filtered.concat(yearFiltered);
-			}
-		}
-		return filtered;
+		return [sortList(filtered, filter, sortBy), sortList(filteredPre, filter, sortBy)];
 	});
 
 	// &shy;
@@ -102,6 +81,35 @@
 		{ name: "Anmeldedatum", isMoment: true, momentFormat: "DD.MM.YY HH:mm" },
 		{ render: cellRemove },
 	];
+
+	function sortList(all: Supervisor[], filter: string, sortBy: string): (Supervisor | string)[] {
+		let filtered = [];
+		function groupBy(list, callback) {
+			return list.reduce((res, x) => {
+				const k = callback(x);
+				(res[k] = res[k] || []).push(x);
+				return res;
+			}, {});
+		}
+
+		// Sort and group by descending year
+		const grouped = groupBy(all, (e) => {
+			// Everything after xxxx-08-15 counts as next year
+			const month = e.anmeldedatum.month() + 1 + (e.anmeldedatum.day() >= 15 ? 0.5 : 0);
+			return e.anmeldedatum.year() + (month >= 8.5 ? 1 : 0);
+		});
+
+		const years = Object.keys(grouped);
+		years.sort((a, b) => (a == b ? 0 : a > b ? -1 : 1));
+		for (const year of years) {
+			const yearFiltered = filterList(grouped[year], filter, sortBy);
+			if (yearFiltered.length > 0) {
+				filtered.push("Zeltlager " + year + " (" + grouped[year].length + " Betreuer)");
+				filtered = filtered.concat(yearFiltered);
+			}
+		}
+		return filtered;
+	}
 
 	function filterList(list: Supervisor[], filter: string, sortBy: string): Supervisor[] {
 		if (filter === "") {
@@ -352,7 +360,12 @@
 {/snippet}
 
 <TableContainer>
-	<SortableTable columns={allColumns} rows={filtered} editable={true} bind:sortBy {onedit} />
+	<SortableTable columns={allColumns} rows={filtered[0]} editable={true} bind:sortBy {onedit} />
+</TableContainer>
+
+<h4 class="title is-4">Neue Betreuer (noch nicht angemeldet)</h4>
+<TableContainer>
+	<SortableTable columns={allColumns} rows={filtered[1]} editable={true} bind:sortByPre {onedit} />
 </TableContainer>
 
 <style>

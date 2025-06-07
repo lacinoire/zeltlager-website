@@ -41,8 +41,9 @@ Mögliche Erste-Hilfe-Kurse über die Münchner Sportjugend findest du unter [ww
 
 ### Erweitertes Führungszeugnis
 
-Wenn du das erste Mal als Betreuer:in ins Zeltlager mitfährst, benötigst du außerdem ein erweitertes Führungszeugnis.
-Das erweiterte Führungszeugnis musst du beantragen, wohnst du in München, geht das [auf der Seite des KVR](https://stadt.muenchen.de/service/info/hauptabteilung-ii-buergerangelegenheiten/10104268/).
+Wenn du als Betreuer:in ins Zeltlager mitfährst, benötigst du außerdem ein erweitertes Führungszeugnis, das nicht älter ist als 2 Jahre.
+Das erweiterte Führungszeugnis kannst du kostenlos online oder persönlich beantragen.
+[Auf der Seite des KVR München](https://stadt.muenchen.de/service/info/hauptabteilung-ii-buergerangelegenheiten/10104268/) findest du den Link zum online beantragen (das geht hier auch für nicht-Münchner) und weitere Informationen.
 
 Zum Beantragen musst du den <a href="/files/Nachweis-ueber-ehrenamtliche-Taetigkeit.pdf" rel="external">Nachweis über ehrenamtliche Tätigkeit</a> ausfüllen.
 

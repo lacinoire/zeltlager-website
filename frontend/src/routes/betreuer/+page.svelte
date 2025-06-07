@@ -128,12 +128,12 @@
 
 <div class="content">
 <p>
-Vor dem Lager muss jede:r Neu-Betreuer:in einen Juleica-Kurs gemacht haben. Informationen zu Terminen, der Anmeldung etc. findest du auf <a target="_blank" href="https://www.msj.de/bildung/juleica/">www.msj.de/bildung/juleica/</a>.
+Vor dem Lager muss jede:r Neu-Betreuer:in einen Juleica-Kurs gemacht haben. Informationen zu Terminen, der Anmeldung etc. findest du auf <a target="_blank" href="https://www.msj.de/bildung/juleica/">www.msj.de/bildung/juleica/</a>.<br />
+Egal ob du den Kurs schon gemacht hast oder nicht, wenn du als Betreuer im Zeltlager mitfahren willst, melde dich hier an, wir schreiben dich dann an.
 </p>
 
 <p>
-Egal ob du den Kurs schon gemacht hast oder nicht, wenn du als Betreuer im Zeltlager mitfahren willst, melde dich hier an, wir schreiben dich dann an.<br />
-Wenn du schon einmal mitgefahren bist, musst du dich hier nicht anmelden.
+<strong>Wenn du schon in der Betreuer-Gruppe bist, musst du dich hier nicht anmelden, melde dich stattdessen mit dem Link in der Gruppe an.</strong>
 </p>
 </div>
 
