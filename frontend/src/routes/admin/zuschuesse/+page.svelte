@@ -37,6 +37,7 @@
 	let isLoading = true;
 	let regions: Map<string, Member[]>;
 	let betreuer: Supervisor[];
+	let missingJuleica: Supervisor[];
 
 	// &shy;
 	const S = "\u00AD";
@@ -175,8 +176,15 @@
 		}
 
 		const dataTeilnehmer = await respTeilnehmer.json();
+
+		missingJuleica = [];
 		const dataBetreuer = (await respBetreuer.json()).filter((betreuer) => {
 			let startOfYear = moment().year(LAGER_START.clone().local().year() - 1).month(7).date(15);
+			// sometimes, 0 is the placeholder
+			if (betreuer.juleica_nummer === "0" || betreuer.juleica_nummer === null) {
+				missingJuleica.push(betreuer);
+				return false;
+			}
 			return startOfYear.local().diff(betreuer.anmeldedatum, 'years') < 1;
 		});
 
@@ -199,6 +207,22 @@
 				dataTeilnehmer.push(e);
 				dataBetreuer.splice(i, 1);
 			}
+		}
+
+		for (const e of missingJuleica.slice()) {
+			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
+			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
+
+			if (dataTeilnehmer + 1 <= 15 * (dataBetreuer.length - 1)) {
+				continue;
+			}
+
+			if (e.alter <= 23 && getRegion(parseInt(e.plz), e.ort) !== "Außerhalb") {
+				let i = missingJuleica.indexOf(e);
+				dataTeilnehmer.push(e);
+				missingJuleica.splice(i, 1);
+			}
+			missingJuleica = missingJuleica;
 		}
 
 		all = dataTeilnehmer;
@@ -250,6 +274,19 @@
 			<ul>
 			{#each teilnehmer as t}
 				<li>{t.vorname} {t.nachname} ({t.ort})</li>
+			{/each}
+			</ul>
+		</div>
+	</article>
+{/if}
+
+{#if missingJuleica && missingJuleica.length > 0}
+	<article class="message is-warn">
+		<div class="content message-body">
+			Folgende Betreuer haben keine Juleica Nummer und werden nicht angezeigt:
+			<ul>
+			{#each missingJuleica as m}
+				<li>{m.vorname} {m.nachname}</li>
 			{/each}
 			</ul>
 		</div>
