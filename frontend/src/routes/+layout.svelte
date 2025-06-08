@@ -183,7 +183,7 @@
 
 		<div>
 			<a href="https://github.com/lacinoire/zeltlager-website" class="has-text-grey">
-				Programmiert von Caro und Sebastian
+				Programmiert von Caro, Sebastian und Jessica
 			</a>
 		</div>
 	</div>
