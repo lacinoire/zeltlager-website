@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack } from "svelte";
+	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import moment from "moment";
 	import type { Moment } from "moment";
@@ -48,8 +48,8 @@
 
 	type SortType = "alphabetisch" | "region" | "anwesend" | "bezahlt";
 
-	let all: Member[] = $state();
-	let birthdays: Member[] = $state();
+	let all: Member[] = $state([]);
+	let birthdays: Member[] = $state([]);
 	let filter = $state("");
 	let sortBy = $state("Vorname-asc");
 	let sortType: SortType = $state("alphabetisch");
@@ -259,7 +259,7 @@
 		// Find birthdays
 		birthdays = [];
 		for (const e of data) {
-			const start = LAGER_START.year(1970).local();
+			const start = LAGER_START.clone().year(1970).local();
 			const end = LAGER_START.clone().add(12, "days").year(1970).local();
 			const birthday = moment(e.geburtsdatum);
 			birthday.year(1970);
