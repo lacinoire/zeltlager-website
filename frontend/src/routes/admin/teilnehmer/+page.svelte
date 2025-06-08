@@ -259,7 +259,7 @@
 		// Find birthdays
 		birthdays = [];
 		for (const e of data) {
-			const start = LAGER_START.year(1970).local();
+			const start = LAGER_START.clone().year(1970).local();
 			const end = LAGER_START.clone().add(12, "days").year(1970).local();
 			const birthday = moment(e.geburtsdatum);
 			birthday.year(1970);
