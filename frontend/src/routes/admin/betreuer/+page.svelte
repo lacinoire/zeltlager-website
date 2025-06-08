@@ -7,6 +7,7 @@
 	import EditableProperty from "$lib/EditableProperty.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
 	import SortableTable from "$lib/SortableTable.svelte";
+	import { groupBy } from "$lib/utils";
 	import type { Column } from "$lib/utils";
 
 	interface Supervisor {
@@ -84,13 +85,6 @@
 
 	function sortList(all: Supervisor[], filter: string, sortBy: string): (Supervisor | string)[] {
 		let filtered = [];
-		function groupBy(list, callback) {
-			return list.reduce((res, x) => {
-				const k = callback(x);
-				(res[k] = res[k] || []).push(x);
-				return res;
-			}, {});
-		}
 
 		// Sort and group by descending year
 		const grouped = groupBy(all, (e) => {

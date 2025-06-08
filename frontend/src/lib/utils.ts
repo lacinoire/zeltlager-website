@@ -254,6 +254,14 @@ export function presentSortFn(a: HasProp & HasName, b: HasProp & HasName) {
 	return nameSortFn(a, b);
 }
 
+export function groupBy(list: any[], callback: (element: any) => any) {
+	return list.reduce((res, x) => {
+		const k = callback(x);
+		(res[k] = res[k] || []).push(x);
+		return res;
+	}, {});
+}
+
 export function splitImageName(s: string): string {
 	enum CharType {
 		Letter,

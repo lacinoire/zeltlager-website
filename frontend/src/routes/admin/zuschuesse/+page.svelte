@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import { goto } from "$app/navigation";
 	import moment from "moment";
 	import type { Moment } from "moment";
@@ -9,10 +9,9 @@
 		getRegion,
 		regionSortFn,
 	} from "$lib/utils";
-	import EditableProperty from "$lib/EditableProperty.svelte";
 	import TableContainer from "$lib/TableContainer.svelte";
 	import SortableTable from "$lib/SortableTable.svelte";
-	import { LAGER_START } from "$lib/utils";
+	import { LAGER_START, groupBy } from "$lib/utils";
 	import type { Column } from "$lib/utils";
 
 	interface Member {
@@ -27,56 +26,207 @@
 		alter: number;
 	}
 
-	let all: Member[];
-	let filtered: Member[];
-	// For sorting by region, insert empty rows
-	let displayFiltered: (Member | string)[];
-	let sortBy = "Vorname-asc";
-	let error: string | undefined;
-	let invalidAge: Member[];
-	let isLoading = true;
-	let regions: Map<string, Member[]>;
-	let betreuer: Supervisor[];
-	let missingJuleica: Supervisor[];
+	type Supervisor = Member & { juleica: string; };
 
-	// &shy;
-	const S = "\u00AD";
-
-	const regionColumns: Column[] = [
-		{ name: "Nr." },
-		{ name: "Vorname" },
-		{ name: "Nachname" },
-		{ name: "Adresse" },
-		{ name: "PLZ" },
-		{ name: "Ort" },
-		{ name: "Alter"},
-		{ name: "Unterschrift"},
+	// Categories of notes that are displayed at the top
+	const NoteDescriptions = [
+		{
+			name: "Age",
+			desc: "Diese Teilnehmer haben ein ungültiges Alter (muss zwischen 6-23 sein)",
+			getNote: (m) => `${m.alter} Jahre alt`,
+		},
+		{
+			name: "PreSignup",
+			desc: "Diese Betreuer sind nicht vollständig angemeldet",
+		},
+		{
+			name: "MissingJuleica",
+			desc: "Diese Betreuer haben keine Juleica Nummer",
+		},
+		{
+			name: "OutdatedJuleica",
+			desc: "Diese Betreuer haben eine abgelaufene Juleica",
+			getNote: (m) => `gültig bis ${moment.utc(m.juleica_gueltig_bis).local().format("DD.MM.YYYY")}`,
+		},
+		{
+			name: "FuehrungszeugnisEingesehen",
+			desc: "Diese Betreuer haben kein eingesehenes Führungszeugnis",
+		},
 	];
 
-	const betreuerColumns: Column[] = [
-		{ name: "Nr." },
+	const Notes = Object.freeze(Object.fromEntries(NoteDescriptions.map((n, i) => [n.name, i])));
+
+	interface Lists {
+		members: Member[];
+		supervisors: Supervisor[];
+
+		notes: Member[][];
+	}
+
+	let sortBy = $state("Vorname-asc");
+	let error: string | undefined = $state();
+	let isLoading = $state(true);
+
+	let mixedLists: Lists = $state(emptyLists());
+	let sortedLists: Lists = $derived(sortLists(mixedLists));
+
+	let regions = $derived.by(() => {
+		const groups = groupBy(sortedLists.members, (e) => getRegion(parseInt(e.plz), e.ort));
+		return ["München", "Landkreis München", "Außerhalb"].map((name) => [name, groups[name]]);
+	});
+
+	const memberColumns: Column[] = [
+		{ name: "Nr.", render: cellId },
 		{ name: "Vorname" },
 		{ name: "Nachname" },
-		{ name: "Adresse" },
+		{ name: "Adresse", render: cellAdresse },
 		{ name: "PLZ" },
 		{ name: "Ort" },
-		{ name: "Alter"},
-		{ name: "Juleica-Nummer"},
-		{ name: "Unterschrift"},
+		{ name: "Alter" },
+		{ name: "Unterschrift" },
 	];
 
-	function applyFilter(all: Member[], sortBy: string) {
-		if (all === undefined) return;
+	const supervisorColumns: Column[] = [
+		{ name: "Nr.", render: cellId },
+		{ name: "Vorname" },
+		{ name: "Nachname" },
+		{ name: "Adresse", render: cellAdresse },
+		{ name: "PLZ" },
+		{ name: "Ort" },
+		{ name: "Alter" },
+		{ name: "Juleica-Nummer" },
+		{ name: "Unterschrift" },
+	];
 
-		invalidAge = [];
-		filtered = all.filter((m) => {
-			if (m.alter < 6 || m.alter > 23) {
-				invalidAge.push(m);
+	function emptyLists(): Lists {
+		return {
+			members: [],
+			supervisors: [],
+
+			notes: Object.keys(NoteDescriptions).map(() => []),
+		};
+	}
+
+	// 1. Fetch and convert dates
+	async function loadData(): [Member[], Supervisor[]] {
+		const respTeilnehmer = await fetch("/api/admin/teilnehmer");
+		if (!respTeilnehmer.ok) {
+			// Unauthorized
+			if (respTeilnehmer.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+			}
+			return [[], []];
+		}
+		const members = await respTeilnehmer.json();
+
+		// Convert dates
+		for (const e of members) {
+			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
+			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
+		}
+
+		const respSupervisors = await fetch("/api/admin/betreuer");
+		if (!respSupervisors.ok) {
+			if (respSupervisors.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", respSupervisors);
+				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+			}
+			return [[], []];
+		}
+		const supervisors = await respSupervisors.json();
+
+		// Convert dates
+		for (const e of supervisors) {
+			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
+			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
+		}
+
+		isLoading = false;
+		return [members, supervisors];
+	}
+
+	// 2. Mix into various lists (mixedLists)
+	function mixData(members: Member[], supervisors: Supervisor[]): Lists {
+		const lists = emptyLists();
+
+		// Supervisors that should be converted first
+		const firstSupervisors = [];
+
+		let startOfYear = LAGER_START.clone().local().subtract(1, "years").add(15, "days");
+		lists.supervisors = supervisors.filter((e) => {
+			// Skip old signups
+			if (!startOfYear.isBefore(moment.utc(e.anmeldedatum).local()))
+				return false;
+
+			// Skip pre-signups
+			if (e.selbsterklaerung !== true) {
+				lists.notes[Notes.PreSignup].push(e);
+				return false;
+			}
+			if (e.fuehrungszeugnis_eingesehen === null)
+				lists.notes[Notes.FuehrungszeugnisEingesehen].push(e);
+			// Empty Juleicas
+			if (["", "0", null].includes(e.juleica_nummer)) {
+				firstSupervisors.push(e);
+				lists.notes[Notes.MissingJuleica].push(e);
+				return false;
+			}
+			// Outdated Juleicas
+			if (e.juleica_gueltig_bis === null ||
+			  moment.utc(e.juleica_gueltig_bis).local().isBefore(LAGER_START.clone().local())) {
+				firstSupervisors.push(e);
+				lists.notes[Notes.OutdatedJuleica].push(e);
 				return false;
 			}
 			return true;
 		});
 
+		lists.members = members.filter((e) => {
+			if (e.alter < 6 || e.alter > 23) {
+				lists.notes[Notes.Age].push(e);
+				return false;
+			}
+			return true;
+		});
+
+		for (const e of firstSupervisors.slice()) {
+			// Not part of supervisors, so do not need to subtract one
+			if (lists.members.length + 1 > 15 * lists.supervisors.length)
+				break;
+
+			if (e.alter <= 23 && getRegion(parseInt(e.plz), e.ort) !== "Außerhalb") {
+				let i = firstSupervisors.indexOf(e);
+				lists.members.push(e);
+				firstSupervisors.splice(i, 1);
+			}
+		}
+
+		// Take supervisors to members, first munich, then region
+		for (const region of ["München", "Landkreis München"]) {
+			for (const e of lists.supervisors.slice()) {
+				if (lists.members.length + 1 > 15 * (lists.supervisors.length - 1))
+					break;
+				if (getRegion(parseInt(e.plz), e.ort) !== region)
+					continue;
+
+				if (e.alter <= 23) {
+					let i = lists.supervisors.indexOf(e);
+					lists.members.push(e);
+					lists.supervisors.splice(i, 1);
+				}
+			}
+		}
+
+		return lists;
+	}
+
+	// 3. Sort (sortedLists)
+	function sortLists(lists: Lists): Lists {
 		const asc = sortBy.endsWith("asc");
 		let sortFn: (a: Member, b: Member) => number;
 		if (sortBy.startsWith("Name-")) {
@@ -93,157 +243,31 @@
 			sortFn = getSortByKeyFn(sortBy);
 		}
 
-		filtered.sort((a, b) => {
-			const cmp = regionSortFn(a, b);
-			if (cmp !== 0) return cmp;
-			return sortFn(a, b);
+		untrack(() => {
+			lists.members.sort(getSortByKeyFn(sortBy));
+			lists.supervisors.sort(getSortByKeyFn(sortBy));
 		});
 
-		regions = new Map<string, Member[]>();
-		for (const e of filtered) {
-			const curRegion = getRegion(parseInt(e.plz), e.ort);
-
-			if (!regions.has(curRegion)) {
-				regions.set(curRegion, [ e ]);
-			} else {
-				regions.get(curRegion).push(e);
-			}
-		}
-
-		displayFiltered = [];
-		let lastRegion = undefined;
-		for (const e of filtered) {
-			const curRegion = getRegion(parseInt(e.plz), e.ort);
-			if (curRegion !== lastRegion) {
-				const count = regions.get(curRegion).length;
-				displayFiltered.push(`${curRegion} (${count} Teilnehmer)`);
-			}
-			displayFiltered.push(e);
-			lastRegion = curRegion;
-		}
+		return lists;
 	}
 
-	$: applyFilter(all, sortBy);
-
-	type SortTypeFn = (t: SortType) => (m: Member) => boolean;
-
-	function createData(asDate = false) {
-		const entries = [...all];
-
-		const headers: string[] = [];
-		for (const c of allColumns) {
-			if ("name" in c)
-				headers.push(c.name);
-		}
-
-		const data: any[] = [headers];
-		for (const m of entries) {
-			data.push([
-				m.vorname,
-				m.nachname,
-				asDate ? m.geburtsdatum.toDate() : m.geburtsdatum.format("DD.MM.YYYY"),
-				m.strasse + " " + m.hausnummer,
-				m.ort,
-				m.plz,
-			]);
-		}
-
-		return data;
-	}
-
-	async function loadData() {
-		const respTeilnehmer = await fetch("/api/admin/teilnehmer");
-		if (!respTeilnehmer.ok) {
-			// Unauthorized
-			if (respTeilnehmer.status == 401) {
-				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
-			} else {
-				console.error("Failed to load data", resp);
-				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
-			}
-			return;
-		}
-
-		const respBetreuer = await fetch("/api/admin/betreuer");
-		if (!respBetreuer.ok) {
-			if (respBetreuer.status == 401) {
-				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
-			} else {
-				console.error("Failed to load data", respBetreuer);
-				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
-			}
-			return;
-		}
-
-		const dataTeilnehmer = await respTeilnehmer.json();
-
-		missingJuleica = [];
-		const dataBetreuer = (await respBetreuer.json()).filter((betreuer) => {
-			let startOfYear = moment().year(LAGER_START.clone().local().year() - 1).month(7).date(15);
-			// sometimes, 0 is the placeholder
-			if (betreuer.juleica_nummer === "0" || betreuer.juleica_nummer === null) {
-				missingJuleica.push(betreuer);
-				return false;
-			}
-			return startOfYear.local().diff(betreuer.anmeldedatum, 'years') < 1;
-		});
-
-		// Convert dates
-		for (const e of dataTeilnehmer) {
-			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
-			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
-		}
-
-		for (const e of dataBetreuer.slice().sort(regionSortFn)) {
-			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
-			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
-
-			if (dataTeilnehmer + 1 <= 15 * (dataBetreuer.length - 1)) {
-				continue;
-			}
-
-			if (e.alter <= 23 && getRegion(parseInt(e.plz), e.ort) !== "Außerhalb") {
-				let i = dataBetreuer.indexOf(e);
-				dataTeilnehmer.push(e);
-				dataBetreuer.splice(i, 1);
-			}
-		}
-
-		for (const e of missingJuleica.slice()) {
-			e.geburtsdatum = moment.utc(e.geburtsdatum).local();
-			e.alter = LAGER_START.clone().local().diff(e.geburtsdatum, 'years');
-
-			if (dataTeilnehmer + 1 <= 15 * (dataBetreuer.length - 1)) {
-				continue;
-			}
-
-			if (e.alter <= 23 && getRegion(parseInt(e.plz), e.ort) !== "Außerhalb") {
-				let i = missingJuleica.indexOf(e);
-				dataTeilnehmer.push(e);
-				missingJuleica.splice(i, 1);
-			}
-			missingJuleica = missingJuleica;
-		}
-
-		all = dataTeilnehmer;
-		betreuer = dataBetreuer;
-		isLoading = false;
-	}
-
-  function documentKeyDown(event) {
-    if (event.key === "Escape") {
-      mailModalOpen = false;
-    }
-  }
-
-	onMount(loadData);
+	onMount(async () => {
+		const data = await loadData();
+		mixedLists = mixData(data[0], data[1]);
+	});
 </script>
-
-<svelte:document on:keydown={documentKeyDown} />
 
 <svelte:head>
 	<title>Zuschüsse – Zeltlager – FT München Gern e.V.</title>
 </svelte:head>
+
+{#snippet cellId(row, rowI)}
+	{rowI + 1}
+{/snippet}
+
+{#snippet cellAdresse(row)}
+	{row.strasse} {row.hausnummer}
+{/snippet}
 
 {#if error !== undefined}
 	<article class="message is-danger">
@@ -253,95 +277,48 @@
 	</article>
 {/if}
 
-{#if invalidAge && invalidAge.length > 0}
-	<article class="message is-warn">
-		<div class="content message-body">
-			Folgende Teilnehmer haben ein ungültiges Alter (muss zwischen 6-23 sein):
-			<ul>
-			{#each invalidAge as i}
-				<li>{i.vorname} {i.nachname} ({i.alter} Jahre alt)</li>
-			{/each}
-			</ul>
-		</div>
-	</article>
-{/if}
-
-{#if regions && regions.get("Außerhalb").length > 0}
-	{@const teilnehmer = regions.get("Außerhalb")}
-	<article class="message is-warn">
-		<div class="content message-body">
-			Folgende Teilnehmer sind nicht aus München und Umgebung:
-			<ul>
-			{#each teilnehmer as t}
-				<li>{t.vorname} {t.nachname} ({t.ort})</li>
-			{/each}
-			</ul>
-		</div>
-	</article>
-{/if}
-
-{#if missingJuleica && missingJuleica.length > 0}
-	<article class="message is-warn">
-		<div class="content message-body">
-			Folgende Betreuer haben keine Juleica Nummer und werden nicht angezeigt:
-			<ul>
-			{#each missingJuleica as m}
-				<li>{m.vorname} {m.nachname}</li>
-			{/each}
-			</ul>
-		</div>
-	</article>
-{/if}
-
 {#if error === undefined && isLoading}
 	<progress class="progress is-small is-primary">Loading</progress>
 {/if}
 
-{#if regions !== undefined}
-	{#each [...regions] as [region, members]}
-		{#if region !== "Außerhalb"}
-			<h1 class="title">{region}</h1>
-			<div class="nobackground">
-			<TableContainer>
-				<SortableTable columns={regionColumns} bind:sortBy>
-					{#each members as e, i}
-						<tr>
-							<td>{i+1}</td>
-							<td>{e.vorname}</td>
-							<td>{e.nachname}</td>
-							<td>{e.strasse} {e.hausnummer}</td>
-							<td>{e.plz}</td>
-							<td>{e.ort}</td>
-							<td>{e.alter}</td>
-							<td class="unterschrift"></td>
-						</tr>
-					{/each}
-				</SortableTable>
-			</TableContainer>
+{#each sortedLists.notes as note, i}
+	{#if note.length > 0}
+		{@const desc = NoteDescriptions[i]}
+		<article class="message is-warning">
+			<div class="message-header">
+				{desc.desc}
 			</div>
-			<div class="page-break"></div>
-		{/if}
-	{/each}
-{/if}
+			<div class="content message-body">
+				<ul>
+					{#each note as member}
+						<li>
+							{member.vorname} {member.nachname}
+							{#if "getNote" in desc}
+								({desc.getNote(member)})
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</div>
+		</article>
+	{/if}
+{/each}
+
+{#each regions as [region, members]}
+	<h1 class="title">{region}</h1>
+	<div class="nobackground">
+		<TableContainer>
+			<SortableTable columns={memberColumns} rows={members} bind:sortBy />
+		</TableContainer>
+	</div>
+	<div class="page-break"></div>
+{/each}
+
 <h1 class="title">Betreuer</h1>
 <div class="nobackground">
-<TableContainer>
-  <SortableTable columns={betreuerColumns} bind:sortBy>
-  	{#each betreuer as e, i}
-			<tr>
-				<td>{i+1}</td>
-				<td>{e.vorname}</td>
-				<td>{e.nachname}</td>
-				<td>{e.strasse} {e.hausnummer}</td>
-				<td>{e.plz}</td>
-				<td>{e.ort}</td>
-				<td>{e.alter}</td>
-				<td>{e.juleica_nummer}</td>
-				<td></td>
-			</tr>
-  	{/each}
-  </SortableTable>
-</TableContainer>
+	<TableContainer>
+		<SortableTable columns={supervisorColumns} rows={sortedLists.supervisors} bind:sortBy />
+	</TableContainer>
 </div>
 
 <style lang="scss">
@@ -353,12 +330,12 @@
 		white-space: nowrap;
 	}
 
-	:global(.table td.unterschrift) {
+	/* Unterschrift */
+	:global(.table td:last-child) {
 		width: 99%;
 	}
 
 	@media print {
-
 		@page {
 			size: landscape
 		}
@@ -404,6 +381,5 @@
 			border-color: black;
 			color: black;
 		}
-
 	}
 </style>

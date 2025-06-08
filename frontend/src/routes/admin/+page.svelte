@@ -88,11 +88,11 @@
 		success = "Lager erfolgreich gelöscht";
 	}
 
-  function documentKeyDown(event) {
-    if (event.key === "Escape") {
-      closeDeleteModal();
-    }
-  }
+	function documentKeyDown(event) {
+		if (event.key === "Escape") {
+			closeDeleteModal();
+		}
+	}
 </script>
 
 <svelte:document onkeydown={documentKeyDown} />
@@ -123,7 +123,7 @@
 	<button
 		class="button is-danger"
 		onclick={openDeleteModal}>
-    <span class="icon">
+		<span class="icon">
 			<Icon name={mdiDeleteOutline} />
 		</span>
 		<span>
@@ -138,7 +138,7 @@
 <div class="is-flex galleryContainer">
 	<a href="/admin/" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
-	    <span class="icon emojiIcon">
+			<span class="icon emojiIcon">
 				🤐
 			</span>
 			Unverträglichkeiten
@@ -147,7 +147,7 @@
 
 	<a href="/admin/" class="box" style="display: none;"> <!-- TODO -->
 		<div class="document">
-	    <span class="icon emojiIcon">
+			<span class="icon emojiIcon">
 				💊
 			</span>
 			Medikamente
@@ -156,7 +156,7 @@
 
 	<a href="/admin/zuschuesse" class="box">
 		<div class="document">
-	    <span class="icon emojiIcon">
+			<span class="icon emojiIcon">
 				💸
 			</span>
 			Zuschüsse
@@ -165,7 +165,7 @@
 
 	<a href="/admin/lagerkasse" class="box">
 		<div class="document">
-	    <span class="icon emojiIcon">
+			<span class="icon emojiIcon">
 				🪙
 			</span>
 			Lagerkasse

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack } from "svelte";
+	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import moment from "moment";
 	import type { Moment } from "moment";
@@ -48,8 +48,8 @@
 
 	type SortType = "alphabetisch" | "region" | "anwesend" | "bezahlt";
 
-	let all: Member[] = $state();
-	let birthdays: Member[] = $state();
+	let all: Member[] = $state([]);
+	let birthdays: Member[] = $state([]);
 	let filter = $state("");
 	let sortBy = $state("Vorname-asc");
 	let sortType: SortType = $state("alphabetisch");
