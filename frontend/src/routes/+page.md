@@ -9,61 +9,61 @@ import { LAGER_START, YEAR } from "$lib/utils";
 
 <div class="content">
 
-# Zeltlager {YEAR}
+# Zeltlager {YEAR} – Abenteuer, Gemeinschaft & jede Menge Spaß!
 
-Das alljährliche Zeltlager ist ein offenes Ferienbetreuungsprogramm für Kinder von 7 bis 15 Jahren und steht Nicht-Mitgliedern und Mitgliedern offen. Besonderen Wert legen wir auf eine schnelle und gute Integration von neuen Teilnehmern. Wir bereiten selber alle Essensgerichte zu auch für Kinder mit verschiedenen Lebensmittelunverträglichkeiten und haben Erfahrungen mit Behinderungen, Autismus, ADHS, etc.
+Du hast Lust auf Lagerfeuer, coole Spiele, neue Freundschaften und zwei unvergessliche Wochen in den Sommerferien? Dann bist du bei uns genau richtig! Unser Zeltlager ist ein offenes Ferienprogramm für Kinder und Jugendliche von **7 bis 15 Jahren** – ganz egal, ob Vereinsmitglied oder nicht.
 
-Das Zeltlager findet auf dem Gelände eines Sportvereins im Umland von München statt.
+## Wann und wo?
 
-**Abfahrt:** Montag den {LAGER_START.format("DD.MM.YYYY")} um 10:00 Uhr
+📅 **{LAGER_START.format("DD. MMMM")} – {LAGER_START.clone().add(11, "days").format("DD. MMMM YYYY")}**  
+📍 Auf dem Gelände eines Sportvereins im Münchner Umland  
+🚌 **Abfahrt:** Montag, {LAGER_START.format("DD.MM.")} um 10:00 Uhr  
+🚌 **Rückkehr:** Freitag, {LAGER_START.clone().add(11, "days").format("DD.MM.")} gegen 14:00 Uhr  
+📍 Treffpunkt: Parkplatz Westfriedhof, Baldurstraße (gegenüber der Altmühlstraße)  
+Die An- und Abreise erfolgt mit modernen, klimatisierten Reisebussen.
 
-**Rückkehr:** Freitag den {LAGER_START.clone().add(11, "days").format("DD.MM.YYYY")} um ca. 14:00 Uhr
+## Was kostet das?
 
-auf dem Parkplatz **Westfriedhof** in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
+💶 **Teilnahmegebühr: 250 €** – alles inklusive!  
+Darin enthalten sind Unterkunft, Verpflegung, Ausflüge, Eintritte und Material für Aktionen.  
+Ein kleines Taschengeld für persönliche Wünsche reicht völlig aus.
 
-Die Hin- und Rückreise erfolgt mit modernen Reisebussen.
+Die Teilnehmerzahl ist begrenzt – <a href="/anmeldung">**schnell anmelden lohnt sich!**</a> Die Anmeldung wird erst mit dem Zahlungseingang innerhalb von 14 Tagen verbindlich.
 
-Die Teilnehmergebühr beträgt **250 €** und beinhaltet alle Kosten. Außer einem kleinen Taschengeld für persönliche Mitbringsel entstehen keine weiteren Kosten. Die Anzahl der Teilnehmer ist begrenzt. Bitte melden Sie ihre Kinder rechtzeitig an und überweisen innerhalb von 14 Tagen den Teilnehmerbeitrag. Erst mit der Überweisung des Beitrags ist ihr Kind verbindlich angemeldet.
+## Was erwartet dich?
 
-<div class="image-list">
-	<!-- Set some preliminary width and height to support lazy loading -->
-	<img src="/img/programm/SpieleSonne.jpg" alt="Volleyball spielen" width="auto" height="100%" loading="lazy">
-	<img src="/img/programm/SpieleWellness.jpg" alt="Masken beim Wellness" width="auto" height="100%" loading="lazy">
-</div>
+🌟 **Zwei Wochen voller Action, Spaß und Erholung:**
 
-Die Betreuung und Verpflegung übernimmt das qualifizierte [Zeltlagerteam](/ausstattung#team), das die Zelte bereits im Vorfeld aufbaut. Übernachtet wird in Mannschaftszelten, daneben stehen Aufenthaltszelte, eine mobile Gastroküche, eine Sanitäranlage mit Warmwasserduschen, ein großes Sportgelände und viele, viele Spiele zur Verfügung
+- Lagerfeuer mit Nachtwache
+- Nachtwanderung & Gruselnacht
+- Wellness-Tag & Farbfest
+- Lagerdisco & Shows
+- Sportturniere (Fußball, Volleyball, Tischtennis…)
+- Wasserschlachten & Ausflüge ins Freibad
+- Gesellschafts- & Brettspiele
+- Kreativangebote und Zeltwettbewerbe
+- Tagesausflug in eine größere Stadt
+- Und viele Überraschungen mehr!
 
-Wir freuen uns schon auf das Zeltlager {YEAR}.
+Ob wild und sportlich oder ruhig und kreativ – bei uns ist für jede*n etwas dabei!
 
-Das Betreuerteam
+## Was macht unser Lager besonders?
 
-<a href="/anmeldung" class="button is-primary">Zur Anmeldung</a>
+❤️ **Gemeinschaft steht bei uns an erster Stelle.** Neue Kinder integrieren wir schnell und herzlich ins Lagerleben. Unser erfahrenes Betreuerteam kümmert sich liebevoll und verantwortungsvoll um alle Teilnehmenden.
 
-# Spiele, Spaß und Abenteuer…
+🍽️ **Essen, das allen schmeckt:** Wir kochen frisch vor Ort – auch für Kinder mit Unverträglichkeiten oder besonderen Ernährungsbedürfnissen.
 
-Jedes Jahr habt ihr die Möglichkeit mit uns auf Reisen 😎 zu gehen. Für euch Kinder und Jugendliche zwischen 7 und 15 Jahren bieten wir ein Jugendzeltlager an, bei dem Spaß, Spiel und Gemeinschaft im Vordergrund stehen.
+♿ **Inklusion ist uns wichtig:** Wir haben Erfahrung im Umgang mit Autismus, ADHS, körperlichen Einschränkungen u.v.m.
 
-<div class="image-list">
-	<!-- Set some preliminary width and height to support lazy loading -->
-	<img src="/img/programm/HoliFest.jpg" alt="Farbfest" width="auto" height="100%" loading="lazy">
-	<img src="/img/programm/SpieleSchatten.jpg" alt="Werwolf im Schatten" width="auto" height="100%" loading="lazy">
-</div>
+🏕️ **Ausstattung vor Ort:**
+Mannschaftszelte, Aufenthaltszelte, mobile Großküche, Sanitäranlagen mit Warmduschen, große Sportflächen, Spiel- und Bastelmaterial – alles ist vorbereitet für eine großartige Zeit!
 
-Freut euch auf Lagerfeuer mit Lagerwache, Nachtwanderung, Wellness-Tag, vielen Spielen auf dem Sportgelände, Lagerdisco, Gruselnacht und viele tolle Gesellschafts- und Brettspiele.
-Auch könnt ihr Euch austoben bei verschiedenen Aktivitäten wie Fußball, Volleyball, Tischtennis, weiteren Ballspielen und freier Zeit mit euren Freunden. Natürlich geht es in dieser Zeit auch mal besinnlich und ruhig zu. Schließlich wollen wir vor allem eine wundervolle Zeit zusammen verbringen und nebenbei allerlei Interessantes und Spannendes entdecken.
+## Lust bekommen?
 
-<div class="image-list">
-	<!-- Set some preliminary width and height to support lazy loading -->
-	<img src="/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag" width="auto" height="100%" loading="lazy">
-	<img src="/img/programm/SpieleFussballplatz.jpg" alt="Fußball" width="auto" height="100%" loading="lazy">
-</div>
+Dann **schnapp dir einen Platz**, klick dich durch unsere Infos und <a href="/anmeldung">**melde dich an!**</a>  
+Wir freuen uns schon riesig auf zwei Wochen voller Abenteuer mit euch!
 
-Abkühlung suchen wir in den naheliegenden Freibädern oder bei diversen Wasserschlachten am Lagerplatz. Selbstverständlich erkunden wir auch mit euch die nächstliegende größere Stadt. Abends könnt ihr bei Gruppenspielen wie „Das perfekte Zelt“ euren Teamgeist beweisen oder ihr kämpft gegen die Betreuer bei „Schlag den Betreuer“. Gemeinsam mit eurem Zelt bereitet ihr eine Vorführung für den großen Abschlussabend vor um den anderen zu zeigen, welches das beste Zelt am Zeltplatz ist 😉.
-
-Unser [Zeltlagerteam](/ausstattung#team) plant im Vorfeld eure Zeltlagertage, damit sie so abwechslungsreich, spannend, unterhaltsam und aufregend wie nur möglich werden.
-
-Klickt euch durch und meldet euch an!
-
-Eure Betreuer 😃
+🧡  
+**Euer Zeltlager-Team**
 
 </div>
