@@ -58,7 +58,7 @@ Du verpflichtest dich mit der Anmeldung zur Prävention von sexualisierter Gewal
 
 ### FT Gern Mitgliedschaft
 
-Wer neu im Zeltlager als Betreuer:in dabei ist, muss einen Mitgliedsantrag für FT Gern ausfüllen, unterschreiben und per Mail an [hoess.reinhard@mnet-mail.de](mailto:hoess.reinhard@mnet-mail.de) schicken.
+Wer neu im Zeltlager als Betreuer:in dabei ist, muss einen Mitgliedsantrag für FT Gern ausfüllen, unterschreiben und per Mail an [patrick.wagener@ftgern.de](mailto:patrick.wagener@ftgern.de) schicken.
 
 Beim Antrag bitte NICHTS zu Lastschrift, Konto etc. ausfüllen, du musst nichts zahlen. Einfach nur deine Daten, Abteilung „Zeltlager“ angeben und unterschreiben.
 

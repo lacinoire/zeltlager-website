@@ -66,4 +66,12 @@ Wir freuen uns schon riesig auf zwei Wochen voller Abenteuer mit euch!
 🧡  
 **Euer Zeltlager-Team**
 
+<div class="image-list">
+	<!-- Set some preliminary width and height to support lazy loading -->
+	<img src="/img/programm/SpieleSonne.jpg" alt="Volleyball spielen" width="600" height="400" loading="lazy">
+	<img src="/img/programm/HoliFest.jpg" alt="Farbfest" width="600" height="400" loading="lazy">
+	<img src="/img/programm/SpieleWasser.jpg" alt="Wasserspiele zur Abkühlung an einem heißen Tag" width="960" height="640" loading="lazy">
+	<img src="/img/programm/SpieleFussballplatz.jpg" alt="Fußball" width="960" height="720" loading="lazy">
+</div>
+
 </div>
