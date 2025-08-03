@@ -65,16 +65,16 @@
 	let filterResult: [Member[], (Member | string)[]] = $derived.by(() => {
 		let filtered = [];
 		let displayFiltered = [];
+		let filterS = filter.toLowerCase();
 		if (all === undefined) return [[], []];
-		if (filter === "") {
+		if (filterS === "") {
 			filtered = [...all];
 		} else {
-			filter = filter.toLowerCase();
 			for (const m of all) {
 				if (
-					filter.length === 0 ||
-					m.vorname.toLowerCase().includes(filter) ||
-					m.nachname.toLowerCase().includes(filter)
+					filterS.length === 0 ||
+					m.vorname.toLowerCase().includes(filterS) ||
+					m.nachname.toLowerCase().includes(filterS)
 				)
 					filtered.push(m);
 			}
