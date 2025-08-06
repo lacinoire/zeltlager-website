@@ -52,8 +52,23 @@
 	afterNavigate(() => (location = browser ? window.location.pathname : ""));
 </script>
 
-<nav class="navbar is-fixed-top is-light" aria-label="main navigation">
-	<div class="container" class:wide={isWide}>
+<svelte:head>
+	{#if isWide}
+		<!-- Enlarge the page to the size of the content -->
+		<style>
+			html {
+				min-width: min-content;
+			}
+
+			body {
+				min-width: min-content;
+			}
+		</style>
+	{/if}
+</svelte:head>
+
+<nav class="navbar is-light" aria-label="main navigation">
+	<div class="container">
 		<div class="navbar-brand">
 			<a class="navbar-brand" href="/">
 				<img src="/img/MeinZeltlager.svg" style="padding: 0; height: 60px;" alt="Logo" />
@@ -153,7 +168,7 @@
 	</div>
 </nav>
 
-<div class="container main" class:wide={isWide}>
+<div class="container main" class:is-fluid={isWide}>
 	{#if menuData.globalMessage !== null}
 		<div class="globalMessage">
 			{@html menuData.globalMessage}
@@ -189,7 +204,11 @@
 	</div>
 </footer>
 
-<style>
+<style lang="scss">
+	:global(html) {
+		overflow: auto;
+	}
+
 	@media screen and (max-width: 1023px) {
 		.container.main {
 			padding-left: 1em;
@@ -205,10 +224,8 @@
 		padding-top: 3em;
 	}
 
-	.container.main.wide {
-		max-width: 100%;
-		padding-left: 1em;
-		padding-right: 1em;
+	.container.main.is-fluid {
+		width: fit-content;
 	}
 
 	.emph-item {
@@ -227,10 +244,6 @@
 		}
 
 		.container.main {
-			padding-top: 0;
-		}
-
-		:global(html body.has-navbar-fixed-top) {
 			padding-top: 0;
 		}
 	}
