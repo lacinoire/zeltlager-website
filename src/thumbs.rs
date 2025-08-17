@@ -11,8 +11,8 @@ use std::time::Duration;
 
 use anyhow::{Result, bail, format_err};
 use log::{debug, error, trace, warn};
-use notify::RecursiveMode;
-use notify_debouncer_mini::new_debouncer;
+use notify_debouncer_full::new_debouncer;
+use notify_debouncer_full::notify::{EventKind, RecursiveMode};
 use rayon::prelude::*;
 
 use crate::{State, Thumb};
@@ -32,20 +32,34 @@ pub fn watch_thumbs(state: State, path: PathBuf) {
 		error!("Error when scanning files: {:?}", e);
 	}
 
-	let mut debouncer = new_debouncer(Duration::from_secs(10), tx).unwrap();
+	let mut debouncer =
+		new_debouncer(Duration::from_secs(10), Some(Duration::from_secs(10)), tx).unwrap();
 	// Add a path to be watched. All files and directories at that path and
 	// below will be monitored for changes.
-	debouncer
-		.watcher()
-		.watch(path.as_ref(), RecursiveMode::Recursive)
-		.expect("Cannot watch directory");
+	debouncer.watch(&path, RecursiveMode::NonRecursive).expect("Cannot watch directory");
 
 	loop {
 		match rx.recv() {
-			Ok(_) => {
-				if let Err(e) = scan_files(&state, &path, false) {
-					error!("Error when scanning files: {:?}", e);
+			Ok(Ok(v)) => {
+				// Check for any write events
+				if v.iter().any(|e| {
+					matches!(
+						e.kind,
+						EventKind::Any
+							| EventKind::Create(_)
+							| EventKind::Modify(_)
+							| EventKind::Remove(_)
+					)
+				}) {
+					debug!("Got notify events: {v:?}");
+					if let Err(e) = scan_files(&state, &path, false) {
+						error!("Error when scanning files: {:?}", e);
+					}
 				}
+			}
+			Ok(Err(e)) => {
+				error!("Watch error: {:?}", e);
+				break;
 			}
 			Err(e) => {
 				error!("Watch error: {:?}", e);
@@ -56,6 +70,7 @@ pub fn watch_thumbs(state: State, path: PathBuf) {
 }
 
 fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
+	log::info!("Scanning {path:?} for thumbnails");
 	// Search for files where we need a thumbnail
 	let mut create_thumbs = Vec::new();
 	let files = fs::read_dir(path)?.map(|e| e.map_err(|e| e.into())).collect::<Result<Vec<_>>>()?;
@@ -245,7 +260,6 @@ fn thumb_up_to_date(path: &Path, file: &str) -> Result<CreateThumb> {
 
 fn create_thumb(orig_file: &Path, thumb_file: &Path) -> Result<()> {
 	// Scale it down
-	debug!("Create thumbnail for {:?}", orig_file.file_name().unwrap());
 	let ext = orig_file
 		.extension()
 		.and_then(|s| s.to_str())
@@ -260,11 +274,12 @@ fn create_thumb(orig_file: &Path, thumb_file: &Path) -> Result<()> {
 	let orig_path = orig_file.to_str().ok_or_else(|| format_err!("Path is not valid unicode"))?;
 	let orig_path = if ["mp4"].contains(&ext.as_str()) {
 		// Extract frame 0
-		orig_path_buf = format!("{}[0]", orig_file.to_str().unwrap());
+		orig_path_buf = format!("{}[0]", orig_path);
 		&orig_path_buf
 	} else {
 		orig_path
 	};
+	debug!("Create thumbnail for {orig_path:?}");
 	let proc = Command::new("magick")
 		.args([
 			orig_path,
