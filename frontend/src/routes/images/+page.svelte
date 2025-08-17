@@ -6,6 +6,7 @@
 
 	interface File {
 		name: string;
+		thumb?: string;
 		width?: number;
 		height?: number;
 	}
@@ -110,24 +111,24 @@
 <div bind:this={gallery} class="is-flex galleryContainer">
 	{#each imageList as image}
 		{@const lowerName = image.name.toLowerCase()}
-		{#if lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")}
-			<a href={`static/${image.name}`} class="glightbox box">
+		{@const ext = lowerName.split('.').pop()}
+		{@const glightbox = ["jpg", "jpeg", "png"].includes(ext)}
+		<a href={`static/${image.name}`} target={glightbox ? "_self" : "_blank"} class:glightbox class="box">
+			{#if "thumb" in image}
 				{#if "width" in image && "height" in image}
 					<!-- svelte-ignore a11y_missing_attribute -->
-					<img src={`static/thumbs/${image.name}`} width={image.width} height={image.height} loading="lazy" />
+					<img src={`static/thumbs/${image.thumb}`} width={image.width} height={image.height} loading="lazy" />
 				{:else}
 					<!-- svelte-ignore a11y_missing_attribute -->
-					<img src={`static/thumbs/${image.name}`} width="auto" height="100%" loading="lazy" />
+					<img src={`static/thumbs/${image.thumb}`} width="auto" height="100%" loading="lazy" />
 				{/if}
-			</a>
-		{:else}
-			<a href={`static/${image.name}`} target="_blank" class="box">
+			{:else}
 				<div class="document">
 					<img src="/img/file.svg" alt="Document" />
 					{image.name}
 				</div>
-			</a>
-		{/if}
+			{/if}
+		</a>
 	{/each}
 </div>
 

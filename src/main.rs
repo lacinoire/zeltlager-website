@@ -70,7 +70,7 @@ pub struct State {
 	mail_addr: actix::Addr<mail::MailExecutor>,
 	/// Sizes of thumbnails.
 	/// Map path to width, height.
-	thumb_sizes: Arc<RwLock<HashMap<String, (u32, u32)>>>,
+	thumbs: Arc<RwLock<HashMap<String, Thumb>>>,
 	/// Used to lock access to the log file.
 	log_mutex: Arc<Mutex<()>>,
 }
@@ -79,6 +79,17 @@ pub struct State {
 struct MenuItem {
 	title: String,
 	link: String,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+struct Thumb {
+	name: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	thumb: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	width: Option<u32>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	height: Option<u32>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -318,6 +329,29 @@ where
 	}
 }
 
+fn fix_encoding_header<S, B>(
+	req: ServiceRequest, srv: &S,
+) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>>
+where
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+	S::Future: 'static,
+	B: MessageBody + 'static,
+{
+	srv.call(req).map(|response| {
+		response.map(|mut response| {
+			let headers = response.headers_mut();
+			if let Some(header) = headers.get_mut(actix_web::http::header::CONTENT_ENCODING) {
+				if let Ok(h) = header.to_str() {
+					if h == "identity" {
+						headers.remove(actix_web::http::header::CONTENT_ENCODING);
+					}
+				}
+			}
+			response
+		})
+	})
+}
+
 impl Config {
 	fn validate(&self) -> Result<()> {
 		mail::check_parsable(&self.sender_mail.address)?;
@@ -469,7 +503,7 @@ async fn main() -> Result<()> {
 		config,
 		db_addr,
 		mail_addr,
-		thumb_sizes: Default::default(),
+		thumbs: Default::default(),
 		log_mutex: Arc::new(Mutex::new(())),
 	};
 
@@ -582,6 +616,7 @@ async fn main() -> Result<()> {
 				.service(
 					web::scope(&format!("/Bilder{}/static", name))
 						.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone()), false))
+						.wrap_fn(fix_encoding_header)
 						.service(
 							Files::new("", format!("Bilder{}", name))
 								.use_last_modified(false)
@@ -593,6 +628,7 @@ async fn main() -> Result<()> {
 
 		// Serve frontend files
 		app.wrap(ImagesPathRewriter { image_dirs: image_dirs.clone() })
+			.wrap_fn(fix_encoding_header)
 			.service(
 				Files::new("", "frontend/build")
 					.use_last_modified(false)

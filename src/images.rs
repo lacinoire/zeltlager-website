@@ -4,18 +4,8 @@ use std::fs;
 
 use actix_web::*;
 use log::{error, warn};
-use serde::Serialize;
 
-use crate::State;
-
-#[derive(Serialize)]
-struct File {
-	name: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	width: Option<u32>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	height: Option<u32>,
-}
+use crate::{State, Thumb};
 
 pub fn split_image_name(s: &str) -> String {
 	#[derive(Debug, Eq, PartialEq)]
@@ -49,7 +39,7 @@ pub async fn list_images(state: State, name: String) -> HttpResponse {
 		}
 	};
 	let mut list = Vec::new();
-	let thumb_sizes = state.thumb_sizes.read().unwrap();
+	let thumbs = state.thumbs.read().unwrap();
 	for file in files {
 		let file = match file {
 			Ok(file) => file,
@@ -78,16 +68,13 @@ pub async fn list_images(state: State, name: String) -> HttpResponse {
 								std::time::SystemTime::now()
 							}
 						};
-						let mut file =
-							File { name: file_name.to_string(), width: None, height: None };
 						if let Some(name) = path.to_str() {
-							log::debug!("Try getting size for {name:?}");
-							if let Some(size) = thumb_sizes.get(name) {
-								file.width = Some(size.0);
-								file.height = Some(size.1);
-							}
+							let file = thumbs.get(name).cloned().unwrap_or_else(|| {
+								log::debug!("Failed to get thumb size for {name:?}");
+								Thumb { name: file_name.to_string(), ..Thumb::default() }
+							});
+							list.push((file, created));
 						}
-						list.push((file, created));
 					}
 				}
 			},
