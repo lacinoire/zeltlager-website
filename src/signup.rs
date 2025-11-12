@@ -4,6 +4,7 @@ use std::io::Write;
 use actix_web::http::StatusCode;
 use actix_web::*;
 use anyhow::Result;
+use diesel_async::RunQueryDsl;
 use serde::Serialize;
 use tracing::{error, warn};
 
@@ -46,12 +47,12 @@ async fn signup_mail(state: &State, member: db::models::Teilnehmer) -> (StatusCo
 
 #[get("/signup-state")]
 pub async fn signup_state(state: web::Data<State>) -> HttpResponse {
-	match state.db_addr.send(db::CountMemberMessage).await.map_err(|e| e.into()) {
-		Err(error) | Ok(Err(error)) => {
+	match state.db.count_members().await {
+		Err(error) => {
 			error!(%error, "Failed to get current member count");
 			crate::error_response(&state)
 		}
-		Ok(Ok(count)) => {
+		Ok(count) => {
 			HttpResponse::Ok().json(SignupState { is_full: count >= state.config.max_members })
 		}
 	}
@@ -72,7 +73,7 @@ async fn signup_internal(
 	// Remove spaces
 	member.trim();
 
-	let count = match state.db_addr.send(db::CountMemberMessage).await {
+	let count = match state.db.count_members().await {
 		Err(error) => {
 			warn!(%error, "Error inserting into database");
 			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
@@ -85,19 +86,7 @@ async fn signup_internal(
 				),
 			});
 		}
-		Ok(Err(error)) => {
-			warn!(%error, "Error inserting into database");
-			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-				error: Some(
-					format!(
-						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-						state.config.error_message
-					)
-					.into(),
-				),
-			});
-		}
-		Ok(Ok(count)) => count,
+		Ok(count) => count,
 	};
 
 	if state.config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
@@ -136,24 +125,41 @@ async fn signup_internal(
 		}
 	}
 
-	match state.db_addr.send(db::SignupMessage { member: member.clone() }).await {
+	let mut connection = match state.db.get().await {
+		Ok(c) => c,
+		Err(error) => {
+			warn!(%error, "Error getting database connection");
+			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+				error: Some(
+					format!(
+						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+						state.config.error_message
+					)
+					.into(),
+				),
+			});
+		}
+	};
+
+	match diesel::insert_into(db::schema::teilnehmer::table)
+		.values(&member)
+		.execute(&mut connection)
+		.await
+	{
 		Err(error) => {
 			warn!(%error, "Error inserting into database");
+			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+				error: Some(
+					format!(
+						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+						state.config.error_message
+					)
+					.into(),
+				),
+			})
 		}
-		Ok(Err(error)) => {
-			warn!(%error, "Error inserting into database");
-		}
-		Ok(Ok(())) => {
-			return signup_mail(state, member).await;
-		}
+		Ok(_) => signup_mail(state, member).await,
 	}
-
-	(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-		error: Some(
-			format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", state.config.error_message)
-				.into(),
-		),
-	})
 }
 
 #[post("/signup")]

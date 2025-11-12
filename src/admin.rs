@@ -2,6 +2,7 @@ use actix_web::http::StatusCode;
 use actix_web::*;
 use anyhow::bail;
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
@@ -14,6 +15,8 @@ use crate::{
 	mail,
 };
 use time::OffsetDateTime;
+
+type DbResult<T> = anyhow::Result<T>;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct RemoveMemberData {
@@ -41,27 +44,25 @@ pub struct LagerInfo {
 pub(crate) async fn remove_member(
 	state: web::Data<State>, data: web::Json<RemoveMemberData>,
 ) -> HttpResponse {
-	match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use db::schema::teilnehmer;
-			use db::schema::teilnehmer::columns::*;
+	match async {
+		use db::schema::teilnehmer;
+		use db::schema::teilnehmer::columns::*;
 
-			let r = diesel::delete(teilnehmer::table.filter(id.eq(data.member)))
-				.execute(&mut db.connection)?;
-			if r == 0 {
-				bail!("Member not found");
-			}
-			Ok(())
-		}))
-		.await
-		.map_err(|e| e.into())
+		let r = diesel::delete(teilnehmer::table.filter(id.eq(data.member)))
+			.execute(&mut state.db.get().await?)
+			.await?;
+		if r == 0 {
+			bail!("Member not found");
+		}
+		Ok(())
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			error!(%error, "Failed to remove member");
 			HttpResponse::InternalServerError().body("Failed to remove member")
 		}
-		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
 	}
 }
 
@@ -91,30 +92,30 @@ async fn payed_mail(
 pub(crate) async fn edit_member(
 	state: web::Data<State>, data: web::Json<FullTeilnehmer>,
 ) -> HttpResponse {
-	match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use db::schema::teilnehmer;
-			use db::schema::teilnehmer::columns::*;
+	match async {
+		use db::schema::teilnehmer;
+		use db::schema::teilnehmer::columns::*;
 
-			let member = teilnehmer::table
-				.filter(id.eq(data.id))
-				.get_result::<db::models::FullTeilnehmer>(&mut db.connection)?;
-			let new_payed = data.bezahlt && !member.bezahlt;
+		let mut connection = state.db.get().await?;
 
-			diesel::update(&*data).set(&*data).execute(&mut db.connection)?;
-			Ok((new_payed, member))
-		}))
-		.await
-		.map_err(|e| e.into())
+		let member = teilnehmer::table
+			.filter(id.eq(data.id))
+			.get_result::<db::models::FullTeilnehmer>(&mut connection)
+			.await?;
+		let new_payed = data.bezahlt && !member.bezahlt;
+
+		diesel::update(&*data).set(&*data).execute(&mut connection).await?;
+		DbResult::Ok((new_payed, member))
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			error!(%error, "Failed to edit member");
 			HttpResponse::InternalServerError().json(EditMemberResult {
 				error: Some(format!("Teilnehmer konnte nicht gespeichert werden: {error}")),
 			})
 		}
-		Ok(Ok((new_payed, member))) => {
+		Ok((new_payed, member)) => {
 			if new_payed {
 				let (status, result) = payed_mail(&state.mail, member).await;
 				HttpResponse::build(status).json(result)
@@ -130,27 +131,25 @@ pub(crate) async fn edit_member(
 pub(crate) async fn remove_supervisor(
 	state: web::Data<State>, data: web::Json<RemoveSupervisorData>,
 ) -> HttpResponse {
-	match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use db::schema::betreuer;
-			use db::schema::betreuer::columns::*;
+	match async {
+		use db::schema::betreuer;
+		use db::schema::betreuer::columns::*;
 
-			let r = diesel::delete(betreuer::table.filter(id.eq(data.supervisor)))
-				.execute(&mut db.connection)?;
-			if r == 0 {
-				bail!("Supervisor not found");
-			}
-			Ok(())
-		}))
-		.await
-		.map_err(|e| e.into())
+		let r = diesel::delete(betreuer::table.filter(id.eq(data.supervisor)))
+			.execute(&mut state.db.get().await?)
+			.await?;
+		if r == 0 {
+			bail!("Supervisor not found");
+		}
+		Ok(())
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			error!(%error, "Failed to remove supervisor");
 			HttpResponse::InternalServerError().body("Failed to remove supervisor")
 		}
-		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
 	}
 }
 
@@ -158,72 +157,82 @@ pub(crate) async fn remove_supervisor(
 pub(crate) async fn edit_supervisor(
 	state: web::Data<State>, data: web::Json<FullSupervisor>,
 ) -> HttpResponse {
-	match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			diesel::update(&*data).set(&*data).execute(&mut db.connection)?;
-			Ok(())
-		}))
-		.await
-		.map_err(|e| e.into())
+	match async {
+		diesel::update(&*data).set(&*data).execute(&mut state.db.get().await?).await?;
+		DbResult::Ok(())
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			error!(%error, "Failed to remove supervisor");
 			HttpResponse::InternalServerError().body("Failed to edit supervisor")
 		}
-		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
 	}
 }
 
 /// Return all current members as json.
 #[get("/teilnehmer")]
 pub async fn download_members(state: web::Data<State>) -> HttpResponse {
-	match state.db_addr.send(db::DownloadFullMembersMessage).await.map_err(|e| e.into()) {
-		Ok(Err(error)) | Err(error) => {
+	let mut connection = match state.db.get().await {
+		Ok(c) => c,
+		Err(error) => {
+			warn!(%error, "Error getting database connection");
+			return crate::error_response(&state);
+		}
+	};
+
+	match db::schema::teilnehmer::table.load::<FullTeilnehmer>(&mut connection).await {
+		Err(error) => {
 			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
-		Ok(Ok(members)) => HttpResponse::Ok().json(members),
+		Ok(members) => HttpResponse::Ok().json(members),
 	}
 }
 
 /// Return all supervisors as json.
 #[get("/betreuer")]
 pub async fn download_supervisors(state: web::Data<State>) -> HttpResponse {
-	match state.db_addr.send(db::DownloadFullSupervisorsMessage).await.map_err(|e| e.into()) {
-		Ok(Err(error)) | Err(error) => {
+	let mut connection = match state.db.get().await {
+		Ok(c) => c,
+		Err(error) => {
+			warn!(%error, "Error getting database connection");
+			return crate::error_response(&state);
+		}
+	};
+
+	match db::schema::betreuer::table.load::<FullSupervisor>(&mut connection).await {
+		Err(error) => {
 			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
-		Ok(Ok(supervisors)) => HttpResponse::Ok().json(supervisors),
+		Ok(supervisors) => HttpResponse::Ok().json(supervisors),
 	}
 }
 
 /// Return all unique mail addresses as json.
 #[get("/mails")]
 pub async fn download_mails(state: web::Data<State>) -> HttpResponse {
-	match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use crate::db::schema::teilnehmer;
-			use diesel::prelude::*;
+	match async {
+		use crate::db::schema::teilnehmer;
 
-			let mut mails = teilnehmer::table
-				.select(teilnehmer::eltern_mail)
-				.load::<String>(&mut db.connection)?;
-			mails.sort();
-			mails.dedup();
+		let mut mails = teilnehmer::table
+			.select(teilnehmer::eltern_mail)
+			.load::<String>(&mut state.db.get().await?)
+			.await?;
+		mails.sort();
+		mails.dedup();
 
-			Ok(mails)
-		}))
-		.await
-		.map_err(|e| e.into())
+		DbResult::Ok(mails)
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
-		Ok(Ok(mails)) => HttpResponse::Ok().json(mails),
+		Ok(mails) => HttpResponse::Ok().json(mails),
 	}
 }
 
@@ -243,35 +252,33 @@ fn betreuer_signup_date_last_year() -> OffsetDateTime {
 /// Get overview info of the current lager.
 #[get("/lager")]
 pub async fn lager_info(state: web::Data<State>) -> HttpResponse {
-	match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use crate::db::schema::{betreuer, erwischt_game, teilnehmer};
-			use diesel::dsl;
-			use diesel::prelude::*;
+	match async {
+		use crate::db::schema::{betreuer, erwischt_game, teilnehmer};
+		use diesel::dsl;
 
-			let teilnehmer_count = teilnehmer::table.count().get_result(&mut db.connection)?;
-			let old_betreuer_count = betreuer::table
-				.filter(
-					betreuer::anmeldedatum
-						.lt(betreuer_signup_date_last_year())
-						.or(dsl::not(betreuer::selbsterklaerung)),
-				)
-				.count()
-				.get_result(&mut db.connection)?;
-			let erwischt_game_count =
-				erwischt_game::table.count().get_result(&mut db.connection)?;
+		let mut connection = state.db.get().await?;
 
-			Ok(LagerInfo { teilnehmer_count, old_betreuer_count, erwischt_game_count })
-		}))
-		.await
-		.map_err(|e| e.into())
+		let teilnehmer_count = teilnehmer::table.count().get_result(&mut connection).await?;
+		let old_betreuer_count = betreuer::table
+			.filter(
+				betreuer::anmeldedatum
+					.lt(betreuer_signup_date_last_year())
+					.or(dsl::not(betreuer::selbsterklaerung)),
+			)
+			.count()
+			.get_result(&mut connection)
+			.await?;
+		let erwischt_game_count = erwischt_game::table.count().get_result(&mut connection).await?;
+
+		DbResult::Ok(LagerInfo { teilnehmer_count, old_betreuer_count, erwischt_game_count })
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			warn!(%error, "Error getting lager info");
 			crate::error_response(&state)
 		}
-		Ok(Ok(info)) => HttpResponse::Ok().json(info),
+		Ok(info) => HttpResponse::Ok().json(info),
 	}
 }
 
@@ -287,34 +294,33 @@ pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
 		}
 	}
 
-	match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use crate::db::schema::{betreuer, erwischt_game, erwischt_member, teilnehmer};
-			use diesel::dsl;
-			use diesel::prelude::*;
+	match async {
+		use crate::db::schema::{betreuer, erwischt_game, erwischt_member, teilnehmer};
+		use diesel::dsl;
 
-			diesel::delete(teilnehmer::table).execute(&mut db.connection)?;
-			diesel::delete(erwischt_member::table).execute(&mut db.connection)?;
-			diesel::delete(erwischt_game::table).execute(&mut db.connection)?;
-			diesel::delete(
-				betreuer::table.filter(
-					betreuer::anmeldedatum
-						.lt(betreuer_signup_date_last_year())
-						.or(dsl::not(betreuer::selbsterklaerung)),
-				),
-			)
-			.execute(&mut db.connection)?;
+		let mut connection = state.db.get().await?;
 
-			Ok(())
-		}))
-		.await
-		.map_err(|e| e.into())
+		diesel::delete(teilnehmer::table).execute(&mut connection).await?;
+		diesel::delete(erwischt_member::table).execute(&mut connection).await?;
+		diesel::delete(erwischt_game::table).execute(&mut connection).await?;
+		diesel::delete(
+			betreuer::table.filter(
+				betreuer::anmeldedatum
+					.lt(betreuer_signup_date_last_year())
+					.or(dsl::not(betreuer::selbsterklaerung)),
+			),
+		)
+		.execute(&mut connection)
+		.await?;
+
+		DbResult::Ok(())
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			warn!(%error, "Error deleting lager");
 			crate::error_response(&state)
 		}
-		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
 	}
 }

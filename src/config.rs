@@ -68,6 +68,9 @@ pub struct Config {
 	/// will also not be entered into the database.
 	pub test_mail: Option<String>,
 
+	/// Postgresql connection url
+	pub database: String,
+
 	/// The maximum allowed amount of members.
 	pub max_members: i64,
 	/// An error message, which will be displayed on generic errors.

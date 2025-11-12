@@ -65,7 +65,7 @@ fn get_true() -> bool { true }
 pub struct State {
 	sites: HashMap<String, basic::SiteDescriptions>,
 	config: Config,
-	db_addr: actix::Addr<db::DbExecutor>,
+	db: db::Database,
 	mail: mail::Mail,
 	/// Sizes of thumbnails.
 	/// Map path to width, height.
@@ -444,7 +444,7 @@ async fn menu(
 	}
 }
 
-#[actix_rt::main]
+#[tokio::main]
 async fn main() -> Result<()> {
 	tracing_subscriber::fmt()
 		.with_env_filter(
@@ -456,8 +456,13 @@ async fn main() -> Result<()> {
 
 	// Command line arguments
 	let args = config::Args::parse();
+
+	let content = fs::read_to_string("config.toml")?;
+	let config: Config = toml::from_str(&content)?;
+	config.validate().unwrap();
+
 	if let Some(action) = args.action {
-		management::cmd_action(action)?;
+		management::cmd_action(&config, action).await?;
 		return Ok(());
 	}
 
@@ -481,18 +486,8 @@ async fn main() -> Result<()> {
 		);
 	}
 
-	let mut content = String::new();
-	File::open("config.toml").unwrap().read_to_string(&mut content)?;
-	let config: Config = toml::from_str(&content).expect("Failed to parse config.toml");
-	config.validate().unwrap();
-
-	// Start some parallel db executors
-	let db_addr = actix::SyncArbiter::start(4, move || {
-		db::DbExecutor::new().expect("Failed to create db executor")
-	});
-
-	// Run database migrations
-	db_addr.send(db::RunMigrationsMessage).await??;
+	let database = db::Database::new(&config)?;
+	database.run_migrations().await?;
 
 	let mail = mail::Mail::new(config.clone());
 
@@ -500,7 +495,7 @@ async fn main() -> Result<()> {
 	let state = State {
 		sites,
 		config,
-		db_addr,
+		db: database,
 		mail,
 		thumbs: Default::default(),
 		log_mutex: Arc::new(Mutex::new(())),

@@ -5,7 +5,6 @@ authors = ["Flakebi <flakebi@t-online.de>"]
 edition = "2018"
 
 [dependencies]
-actix = "0.13"
 actix-files = "0.6"
 actix-identity = "0.9"
 actix-rt = "2"
@@ -16,9 +15,9 @@ clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 base64 = "0.22"
 csv = "1"
-diesel = { version = "2", features = ["postgres", "network-address", "time"] }
+diesel = { version = "2", features = ["network-address", "time"] }
+diesel-async = { version = "0.7", features = ["deadpool", "migrations", "postgres"] }
 diesel_migrations = "2"
-dotenv = "0.15"
 futures = "0.3"
 heck = "0.5"
 ipnetwork = "0.21"
@@ -34,7 +33,7 @@ serde_json = "1"
 t4rust-derive = "0.3"
 time = { version = "0.3", features = ["parsing"] }
 toml = "0.9"
-tokio = "1"
+tokio = { version = "1", features = ["macros"] }
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_debug"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"

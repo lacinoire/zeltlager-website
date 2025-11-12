@@ -25,6 +25,9 @@ max_members = 70
 # Wird bei manchen Fehlern angezeigt (zusätlich zu einer Fehlermeldung)
 error_message = "Bitte informieren Sie uns über webmaster@meine.seite."
 
+# Postgresql URL
+database = "postgres://<username>:<password>@<host>/<database>"
+
 # Optional
 # Standardwert: 127.0.0.1:8080
 bind_address = "127.0.0.1:8080"
@@ -35,6 +38,9 @@ secure = true
 
 # Wird auf allen Seiten angezeigt, die mit dem basic-Template angezeigt werden.
 global_message = "<h1>Ich bin ein globaler Header</h1>"
+
+# Log für Anmeldungen
+log_file = "zeltlager.log"
 
 # Von dieser E-Mail Addresse aus werden die Bestätigungsmails verschickt
 [sender_mail]
@@ -68,4 +74,4 @@ Um Fehler zu finden:
 
 ### Entwickler
 
-Caro und Sebi, zwei Betreuer aus dem Zeltlager.
+Caro, Sebi und Jessi, Betreuer aus dem Zeltlager.

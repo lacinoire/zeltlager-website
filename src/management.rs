@@ -1,15 +1,13 @@
+use std::io;
 use std::io::Write;
-use std::{env, io};
 
-use anyhow::{Result, format_err};
-use diesel::Connection;
-use diesel::pg::PgConnection;
+use anyhow::Result;
 use diesel::prelude::*;
-use dotenv::dotenv;
+use diesel_async::RunQueryDsl;
 use scrypt::Scrypt;
 use scrypt::password_hash::{PasswordHasher, SaltString};
 
-use crate::config::Action;
+use crate::config::{Action, Config};
 use crate::db;
 
 fn ask_username() -> String {
@@ -28,19 +26,18 @@ fn confirm(msg: &str) -> bool {
 	["y", "Y", "yes", "Yes", "YES"].contains(&name.trim())
 }
 
-pub(crate) fn cmd_action(action: Action) -> Result<()> {
+pub(crate) async fn cmd_action(config: &Config, action: Action) -> Result<()> {
 	use crate::db::schema::users::dsl::*;
 
-	dotenv().ok();
-	let database_url = env::var("DATABASE_URL").map_err(|e| {
-		format_err!("DATABASE_URL is not set, are you missing a .env file? ({:?})", e)
-	})?;
-	let mut connection = PgConnection::establish(&database_url)?;
+	let db = crate::db::Database::new(config)?;
+	let mut connection = db.get().await?;
+
 	match action {
 		Action::AddUser { username: name, force } => {
 			let name = name.unwrap_or_else(ask_username);
 			let exists = diesel::select(diesel::dsl::exists(users.filter(username.eq(&name))))
-				.get_result(&mut connection)?;
+				.get_result(&mut connection)
+				.await?;
 			// Check if the user exists
 			// Ask for confirmation
 			if !force
@@ -58,18 +55,20 @@ pub(crate) fn cmd_action(action: Action) -> Result<()> {
 			if exists {
 				diesel::update(users.filter(username.eq(&name)))
 					.set(password.eq(pw))
-					.execute(&mut connection)?;
+					.execute(&mut connection)
+					.await?;
 			} else {
 				let user = db::models::User { username: name, password: pw };
 				diesel::insert_into(db::schema::users::table)
 					.values(&user)
-					.execute(&mut connection)?;
+					.execute(&mut connection)
+					.await?;
 			}
 		}
 		Action::DelUser { username: name } => {
 			let name = name.unwrap_or_else(ask_username);
 			let count =
-				diesel::delete(users.filter(username.eq(&name))).execute(&mut connection)?;
+				diesel::delete(users.filter(username.eq(&name))).execute(&mut connection).await?;
 			if count == 0 {
 				println!("User not found");
 			} else {

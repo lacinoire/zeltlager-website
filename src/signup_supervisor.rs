@@ -3,14 +3,16 @@ use std::io::Write;
 
 use actix_web::{http::StatusCode, *};
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use scrypt::password_hash;
 use serde::{Deserialize, Serialize};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime};
 use tracing::{error, warn};
 
-use crate::db::models::{self, Gender};
-use crate::db::models::{date, opt_date};
+use crate::db::models::{self, Gender, date, opt_date};
 use crate::{HttpResponse, State, db};
+
+type DbResult<T> = anyhow::Result<T>;
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
@@ -59,11 +61,6 @@ struct GetDataResult {
 async fn signup_internal(
 	state: &State, body: HashMap<String, String>,
 ) -> (StatusCode, SignupResult) {
-	let db_addr = state.db_addr.clone();
-	let error_message = state.config.error_message.clone();
-	let log_file = state.config.log_file.clone();
-	let log_mutex = state.log_mutex.clone();
-
 	// Get the body of the request
 	let supervisor = match db::models::Supervisor::from_hashmap(body.clone()) {
 		Ok(supervisor) => supervisor,
@@ -72,9 +69,9 @@ async fn signup_internal(
 			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error) });
 		}
 	};
-	if let Some(log_file) = log_file {
+	if let Some(log_file) = &state.config.log_file {
 		let res: Result<_, Error> = (|| {
-			let _lock = log_mutex.lock().unwrap();
+			let _lock = state.log_mutex.lock().unwrap();
 			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
 			writeln!(
 				file,
@@ -93,24 +90,21 @@ async fn signup_internal(
 		}
 	}
 
-	match db_addr
-		.send(db::SignupSupervisorMessage { supervisor: supervisor.clone(), is_pre_signup: false })
-		.await
-	{
-		Ok(Err(error)) => {
-			warn!(%error, "Error inserting into database");
-		}
+	match state.db.signup_supervisor(&supervisor, false).await {
 		Err(error) => {
 			warn!(%error, "Error inserting into database");
+			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+				error: Some(
+					format!(
+						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+						state.config.error_message
+					)
+					.into(),
+				),
+			})
 		}
-		Ok(Ok(())) => {
-			return (StatusCode::OK, SignupResult { error: None });
-		}
+		Ok(()) => (StatusCode::OK, SignupResult { error: None }),
 	}
-
-	(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-		error: Some(format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into()),
-	})
 }
 
 #[post("/signup-supervisor")]
@@ -157,42 +151,43 @@ pub async fn resignup(
 		.replace('=', "");
 	let mail2 = mail.clone();
 	let token2 = token.clone();
-	let supervisor = match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use db::schema::betreuer;
-			use db::schema::betreuer::columns::*;
+	let supervisor = match async {
+		use db::schema::betreuer;
+		use db::schema::betreuer::columns::*;
 
-			let supervisor = match betreuer::table
-				.filter(mail.eq(mail2))
-				.first::<models::FullSupervisor>(&mut db.connection)
-			{
-				Err(diesel::result::Error::NotFound) => return Ok(None),
-				Err(e) => return Err(e.into()),
-				Ok(supervisor) => supervisor,
-			};
+		let mut connection = state.db.get().await?;
 
-			// Save token in db
-			diesel::update(betreuer::table)
-				.filter(id.eq(supervisor.id))
-				.set((signup_token.eq(token2.as_str()), signup_token_time.eq(diesel::dsl::now)))
-				.execute(&mut db.connection)?;
+		let supervisor = match betreuer::table
+			.filter(mail.eq(mail2))
+			.first::<models::FullSupervisor>(&mut connection)
+			.await
+		{
+			Err(diesel::result::Error::NotFound) => return DbResult::Ok(None),
+			Err(e) => return Err(e.into()),
+			Ok(supervisor) => supervisor,
+		};
 
-			Ok(Some(supervisor))
-		}))
-		.await
-		.map_err(|e| e.into())
+		// Save token in db
+		diesel::update(betreuer::table)
+			.filter(id.eq(supervisor.id))
+			.set((signup_token.eq(token2.as_str()), signup_token_time.eq(diesel::dsl::now)))
+			.execute(&mut connection)
+			.await?;
+
+		Ok(Some(supervisor))
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			error!(%error, "Failed to get supervisor");
 			return err("Es ist leider ein Fehler suchen der E-Mailadresse aufgetreten".into());
 		}
-		Ok(Ok(None)) => {
+		Ok(None) => {
 			// Not found
 			warn!(mail, "Failed to find supervisor by mail");
 			return HttpResponse::build(StatusCode::OK).json(ResignupResult { error: None });
 		}
-		Ok(Ok(Some(supervisor))) => supervisor,
+		Ok(Some(supervisor)) => supervisor,
 	};
 
 	// Send mail with link
@@ -217,47 +212,45 @@ pub async fn get_data(state: web::Data<State>, request: web::Json<GetDataRequest
 
 	// Check token
 	let token = request.0.token;
-	let supervisor = match state
-		.db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use db::schema::betreuer;
-			use db::schema::betreuer::columns::*;
+	let supervisor = match async {
+		use db::schema::betreuer;
+		use db::schema::betreuer::columns::*;
 
-			let now = OffsetDateTime::now_utc() - Duration::days(1);
-			let now_primitive = PrimitiveDateTime::new(now.date(), now.time());
-			let supervisor = match betreuer::table
-				.filter(signup_token.eq(token).and(signup_token_time.gt(now_primitive)))
-				.first::<models::FullSupervisor>(&mut db.connection)
-			{
-				Err(diesel::result::Error::NotFound) => return Ok(None),
-				Err(e) => return Err(e.into()),
-				Ok(supervisor) => supervisor,
-			};
+		let mut connection = state.db.get().await?;
 
-			// Remove token from db
-			diesel::update(betreuer::table)
-				.filter(id.eq(supervisor.id))
-				.set((
-					signup_token.eq(None::<String>),
-					signup_token_time.eq(None::<PrimitiveDateTime>),
-				))
-				.execute(&mut db.connection)?;
+		let now = OffsetDateTime::now_utc() - Duration::days(1);
+		let now_primitive = PrimitiveDateTime::new(now.date(), now.time());
+		let supervisor = match betreuer::table
+			.filter(signup_token.eq(token).and(signup_token_time.gt(now_primitive)))
+			.first::<models::FullSupervisor>(&mut connection)
+			.await
+		{
+			Err(diesel::result::Error::NotFound) => return DbResult::Ok(None),
+			Err(e) => return Err(e.into()),
+			Ok(supervisor) => supervisor,
+		};
 
-			Ok(Some(supervisor))
-		}))
-		.await
-		.map_err(|e| e.into())
+		// Remove token from db
+		diesel::update(betreuer::table)
+			.filter(id.eq(supervisor.id))
+			.set((signup_token.eq(None::<String>), signup_token_time.eq(None::<PrimitiveDateTime>)))
+			.execute(&mut connection)
+			.await?;
+
+		Ok(Some(supervisor))
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			error!(%error, "Failed to get supervisor by token");
 			return err("Es ist leider ein Fehler suchen der E-Mailadresse aufgetreten".into());
 		}
-		Ok(Ok(None)) => {
+		Ok(None) => {
 			// Not found
 			warn!("Failed to find supervisor by token");
 			return err("Daten konnten nicht vorausgefüllt werden".into());
 		}
-		Ok(Ok(Some(supervisor))) => supervisor,
+		Ok(Some(supervisor)) => supervisor,
 	};
 
 	HttpResponse::build(StatusCode::OK).json(GetDataResult {
@@ -289,11 +282,6 @@ pub async fn get_data(state: web::Data<State>, request: web::Json<GetDataRequest
 async fn presignup_internal(
 	state: &State, mut body: HashMap<String, String>,
 ) -> (StatusCode, SignupResult) {
-	let db_addr = state.db_addr.clone();
-	let error_message = state.config.error_message.clone();
-	let log_file = state.config.log_file.clone();
-	let log_mutex = state.log_mutex.clone();
-
 	let err = |msg| (StatusCode::BAD_REQUEST, SignupResult { error: Some(msg) });
 	let internal_err =
 		|msg: String| (StatusCode::INTERNAL_SERVER_ERROR, SignupResult { error: Some(msg.into()) });
@@ -320,9 +308,9 @@ async fn presignup_internal(
 			return err(error);
 		}
 	};
-	if let Some(log_file) = log_file {
+	if let Some(log_file) = &state.config.log_file {
 		let res: Result<_, Error> = (|| {
-			let _lock = log_mutex.lock().unwrap();
+			let _lock = state.log_mutex.lock().unwrap();
 			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
 			writeln!(
 				file,
@@ -343,30 +331,29 @@ async fn presignup_internal(
 
 	// If a mail address is already signed up, do not store in database but send a mail
 	let supervisor_mail = supervisor.mail.clone();
-	match db_addr
-		.send(db::RunOnDbMsg(move |db| {
-			use db::schema::betreuer;
-			use db::schema::betreuer::columns::*;
+	match async {
+		use db::schema::betreuer;
+		use db::schema::betreuer::columns::*;
 
-			// Check if the e-mail already exists
-			match betreuer::table
-				.filter(mail.eq(&supervisor_mail))
-				.select(id)
-				.first::<i32>(&mut db.connection)
-			{
-				Err(diesel::result::Error::NotFound) => Ok(false),
-				Err(e) => Err(e.into()),
-				Ok(_) => Ok(true),
-			}
-		}))
-		.await
-		.map_err(|e| e.into())
+		// Check if the e-mail already exists
+		match betreuer::table
+			.filter(mail.eq(&supervisor_mail))
+			.select(id)
+			.first::<i32>(&mut state.db.get().await?)
+			.await
+		{
+			Err(diesel::result::Error::NotFound) => DbResult::Ok(false),
+			Err(e) => Err(e.into()),
+			Ok(_) => Ok(true),
+		}
+	}
+	.await
 	{
-		Ok(Err(error)) | Err(error) => {
+		Err(error) => {
 			error!(%error, "Failed to get supervisor by mail");
 			return err("Es ist leider ein Fehler suchen der E-Mailadresse aufgetreten".into());
 		}
-		Ok(Ok(true)) => {
+		Ok(true) => {
 			// Already exists, send mail
 			warn!(mail = supervisor.mail, "Supervisor tried to pre-signup but already exists");
 			match state.mail.send_supervisor_presignup_failed(&supervisor).await {
@@ -377,35 +364,25 @@ async fn presignup_internal(
 			}
 			return (StatusCode::OK, SignupResult { error: None });
 		}
-		Ok(Ok(false)) => {}
+		Ok(false) => {}
 	};
 
-	match db_addr
-		.send(db::SignupSupervisorMessage { supervisor: supervisor.clone(), is_pre_signup: true })
-		.await
-	{
-		Ok(Err(error)) => {
-			warn!(%error, "Error inserting into database");
-			return internal_err(format!(
-				"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-				error_message
-			));
-		}
+	match state.db.signup_supervisor(&supervisor, true).await {
 		Err(error) => {
 			warn!(%error, "Error inserting into database");
 			return internal_err(format!(
 				"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-				error_message
+				state.config.error_message
 			));
 		}
-		Ok(Ok(())) => {}
+		Ok(()) => {}
 	}
 
 	// Send mail to specified users
 	match state.mail.send_supervisor_presignup(&supervisor, &grund, &kommentar).await {
 		Err(error) => {
 			warn!(%error, "Error sending presignup e-mail");
-			internal_err(format!("Es ist ein Fehler aufgetreten.\n{}", error_message))
+			internal_err(format!("Es ist ein Fehler aufgetreten.\n{}", state.config.error_message))
 		}
 		Ok(()) => {
 			// Successful

@@ -58,14 +58,9 @@ async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
 		.realip_remote_addr()
 		.ok_or_else(|| format_err!("no ip detected"))?
 		.to_string();
-	match state.db_addr.send(db::CheckRateMessage { ip }).await {
-		Ok(result) => {
-			if result? {
-				Ok(())
-			} else {
-				bail!("Rate limit exceeded");
-			}
-		}
+	match state.db.check_rate(&ip).await {
+		Ok(true) => Ok(()),
+		Ok(false) => bail!("Rate limit exceeded"),
 		Err(msg) => bail!(msg),
 	}
 }
@@ -79,77 +74,76 @@ fn set_logged_in(id: i32, request: &HttpRequest) -> Result<()> {
 async fn login_internal(
 	state: &State, req: &HttpRequest, body: HashMap<String, String>,
 ) -> (StatusCode, LoginResult) {
-	// Search user in database
-	let db_addr = state.db_addr.clone();
-	let error_message = &state.config.error_message;
-
 	// Check rate limit
-	let msg = match db::AuthenticateMessage::from_hashmap(body) {
+	if let Err(error) = rate_limit(state, req).await {
+		info!(%error, "Rate limit exceeded");
+		return (StatusCode::FORBIDDEN, LoginResult {
+			error: Some("Zu viele Login Anfragen. Probieren Sie es später noch einmal.".into()),
+		});
+	}
+
+	// Search user in database
+	let msg = match db::Authentication::from_hashmap(body) {
 		Ok(r) => r,
 		Err(error) => {
-			error!(%error, "Failed to get authentication message");
+			error!(?error, "Failed to get authentication message");
 			return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
-				error: Some(format!("Es ist ein interner Fehler aufgetreten.\n{}", error_message)),
+				error: Some(format!(
+					"Es ist ein interner Fehler aufgetreten.\n{}",
+					state.config.error_message
+				)),
 			});
 		}
 	};
 
-	if let Err(error) = rate_limit(state, req).await {
-		info!(%error, "Rate limit exceeded");
-		(StatusCode::FORBIDDEN, LoginResult {
-			error: Some("Zu viele Login Anfragen. Probieren Sie es später noch einmal.".into()),
-		})
-	} else {
-		match db_addr.send(msg).await.map_err(|e| e.into()) {
-			Err(error) | Ok(Err(error)) => {
-				// Show error
-				warn!(%error, "Error by auth message");
-				(StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
+	match state.db.authenticate(&msg).await {
+		Err(error) => {
+			// Show error
+			warn!(%error, "Error by auth message");
+			(StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
+				error: Some(format!(
+					"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+					state.config.error_message
+				)),
+			})
+		}
+		Ok(Some(id)) => {
+			if let Err(error) = set_logged_in(id, req) {
+				warn!(%error, "Failed to set login identity");
+				return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
 					error: Some(format!(
-						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-						error_message
+						"Es ist ein Fehler beim Login aufgetreten.\n{}",
+						state.config.error_message
 					)),
-				})
+				});
 			}
-			Ok(Ok(Some(id))) => {
-				if let Err(error) = set_logged_in(id, req) {
-					warn!(%error, "Failed to set login identity");
+			let ip = match req
+				.connection_info()
+				.realip_remote_addr()
+				.ok_or_else(|| format_err!("no ip detected"))
+			{
+				Ok(r) => r.to_string(),
+				Err(error) => {
+					error!(%error, "Failed to get ip");
 					return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
 						error: Some(format!(
-							"Es ist ein Fehler beim Login aufgetreten.\n{}",
-							error_message
+							"Es ist ein interner Fehler aufgetreten.\n{}",
+							state.config.error_message
 						)),
 					});
 				}
-				let ip = match req
-					.connection_info()
-					.realip_remote_addr()
-					.ok_or_else(|| format_err!("no ip detected"))
-				{
-					Ok(r) => r.to_string(),
-					Err(error) => {
-						error!(%error, "Failed to get ip");
-						return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
-							error: Some(format!(
-								"Es ist ein interner Fehler aufgetreten.\n{}",
-								error_message
-							)),
-						});
-					}
-				};
-				if let Err(error) = state.db_addr.send(db::DecreaseRateCounterMessage { ip }).await
-				{
-					error!(%error, "Failed to decrease rate limiting counter");
-				}
-				(StatusCode::OK, LoginResult { error: None })
+			};
+			if let Err(error) = state.db.decrease_rate_counter(&ip).await {
+				error!(%error, "Failed to decrease rate limiting counter");
 			}
-			Ok(Ok(None)) => {
-				// Wrong username or password
-				// Show error and prefilled form
-				(StatusCode::FORBIDDEN, LoginResult {
-					error: Some("Falsches Passwort oder falscher Benutzername".into()),
-				})
-			}
+			(StatusCode::OK, LoginResult { error: None })
+		}
+		Ok(None) => {
+			// Wrong username or password
+			// Show error and prefilled form
+			(StatusCode::FORBIDDEN, LoginResult {
+				error: Some("Falsches Passwort oder falscher Benutzername".into()),
+			})
 		}
 	}
 }
@@ -190,13 +184,13 @@ pub fn logged_in_user(identity: &Option<Identity>) -> Option<i32> {
 
 pub async fn get_roles(state: &State, id: &Option<Identity>) -> Result<Option<Vec<Roles>>> {
 	if let Some(user) = logged_in_user(id) {
-		Ok(Some(user_get_roles(state, user).await?))
+		let roles = state
+			.db
+			.get_roles(user)
+			.await
+			.map_err(|e| format_err!("Failed to get user roles: {}", e))?;
+		Ok(Some(roles))
 	} else {
 		Ok(None)
 	}
-}
-
-pub async fn user_get_roles(state: &State, user: i32) -> Result<Vec<Roles>> {
-	let msg = db::GetRolesMessage { user };
-	state.db_addr.send(msg).await.map_err(|e| format_err!("Failed to get user roles: {}", e))?
 }

@@ -3,27 +3,21 @@
 //! - A Message struct with a `Message` Implementation
 //! - A Handler method for the DbExecutor
 
-// TODO Use more RunOnDbMsg
-
 use std::collections::HashMap;
-use std::env;
-use std::net::IpAddr;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
-use actix::prelude::*;
 use anyhow::{Result, bail, format_err};
-use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::Error;
+use diesel_async::pooled_connection::deadpool::Pool;
+use diesel_async::{AsyncMigrationHarness, AsyncPgConnection, RunQueryDsl};
 use diesel_migrations::MigrationHarness;
-use dotenv::dotenv;
 use ipnetwork::IpNetwork;
 use scrypt::Scrypt;
 use scrypt::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
 use serde::Serialize;
-use time::OffsetDateTime;
-use time::PrimitiveDateTime;
-use tracing::info;
+use time::{OffsetDateTime, PrimitiveDateTime};
+use tracing::{info, warn};
 
 use crate::auth;
 
@@ -66,102 +60,28 @@ pub struct FormError {
 	pub message: String,
 }
 
-pub struct DbExecutor {
-	pub(crate) connection: PgConnection,
+#[derive(Clone)]
+pub struct Database {
+	pool: Pool<AsyncPgConnection>,
 }
 
-impl Actor for DbExecutor {
-	type Context = SyncContext<Self>;
-}
-
-pub struct CheckRateMessage {
-	pub ip: String,
-}
-impl Message for CheckRateMessage {
-	type Result = Result<bool>;
-}
-
-pub struct SignupMessage {
-	pub member: models::Teilnehmer,
-}
-impl Message for SignupMessage {
-	type Result = Result<()>;
-}
-
-pub struct DownloadMembersMessage;
-impl Message for DownloadMembersMessage {
-	type Result = Result<Vec<models::Teilnehmer>>;
-}
-
-pub struct DownloadFullMembersMessage;
-impl Message for DownloadFullMembersMessage {
-	type Result = Result<Vec<models::FullTeilnehmer>>;
-}
-
-pub struct DownloadFullSupervisorsMessage;
-impl Message for DownloadFullSupervisorsMessage {
-	type Result = Result<Vec<models::FullSupervisor>>;
-}
-
-pub struct DownloadBetreuerMessage;
-impl Message for DownloadBetreuerMessage {
-	type Result = Result<Vec<models::Supervisor>>;
-}
-
-pub struct SignupSupervisorMessage {
-	pub supervisor: models::Supervisor,
-	pub is_pre_signup: bool,
-}
-impl Message for SignupSupervisorMessage {
-	type Result = Result<()>;
-}
-
-pub struct CountMemberMessage;
-impl Message for CountMemberMessage {
-	type Result = Result<i64>;
-}
-
-pub struct AuthenticateMessage {
+pub struct Authentication {
 	pub username: String,
 	pub password: String,
 }
-impl Message for AuthenticateMessage {
-	type Result = Result<Option<i32>>;
-}
 
-pub struct DecreaseRateCounterMessage {
-	pub ip: String,
-}
-impl Message for DecreaseRateCounterMessage {
-	type Result = Result<()>;
-}
+impl Authentication {
+	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<Self, FormError> {
+		let res =
+			Self { username: get_str!(map, "username")?, password: get_str!(map, "password")? };
 
-pub struct RunOnDbMsg<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>>(pub F);
-impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>> Message for RunOnDbMsg<I, F> {
-	type Result = Result<I>;
-}
+		map.remove("submit");
+		if !map.is_empty() {
+			warn!(?map, "Authentication::from_hashmap: Map is not yet empty");
+		}
 
-impl AuthenticateMessage {
-	pub fn from_hashmap(mut map: HashMap<String, String>) -> Result<AuthenticateMessage> {
-		Ok(AuthenticateMessage {
-			username: get_str!(map, "username").map_err(|e| format_err!(e.message))?,
-			password: get_str!(map, "password").map_err(|e| format_err!(e.message))?,
-		})
+		Ok(res)
 	}
-}
-
-/// If the user is member of this role.
-pub struct GetRolesMessage {
-	pub user: i32,
-}
-
-impl Message for GetRolesMessage {
-	type Result = Result<Vec<auth::Roles>>;
-}
-
-pub struct RunMigrationsMessage;
-impl Message for RunMigrationsMessage {
-	type Result = Result<()>;
 }
 
 impl From<String> for FormError {
@@ -172,24 +92,25 @@ impl<'a> From<&'a str> for FormError {
 	fn from(s: &'a str) -> Self { Self { field: None, message: s.into() } }
 }
 
-impl DbExecutor {
-	pub fn new() -> Result<Self> {
-		dotenv().ok();
-		let database_url = env::var("DATABASE_URL").map_err(|e| {
-			format_err!("DATABASE_URL is not set, are you missing a .env file? ({:?})", e)
-		})?;
-		let connection = PgConnection::establish(&database_url)?;
-
-		Ok(Self { connection })
+impl Database {
+	pub fn new(config: &crate::Config) -> Result<Self> {
+		let config = diesel_async::pooled_connection::AsyncDieselConnectionManager::<
+			AsyncPgConnection,
+		>::new(&config.database);
+		let pool: Pool<AsyncPgConnection> = Pool::builder(config).build()?;
+		Ok(Self { pool })
 	}
-}
 
-impl Handler<RunMigrationsMessage> for DbExecutor {
-	type Result = Result<()>;
+	/// Get a connection from the pool.
+	pub async fn get(
+		&self,
+	) -> Result<diesel_async::pooled_connection::deadpool::Object<AsyncPgConnection>> {
+		Ok(self.pool.get().await?)
+	}
 
-	fn handle(&mut self, _: RunMigrationsMessage, _: &mut Self::Context) -> Self::Result {
-		let migrated = self
-			.connection
+	pub async fn run_migrations(&self) -> Result<()> {
+		let mut migrations = AsyncMigrationHarness::new(self.get().await?);
+		let migrated = migrations
 			.run_pending_migrations(MIGRATIONS)
 			.map_err(|e| format_err!("Failed to run migrations: {}", e))?;
 		if !migrated.is_empty() {
@@ -198,21 +119,19 @@ impl Handler<RunMigrationsMessage> for DbExecutor {
 
 		Ok(())
 	}
-}
 
-impl Handler<CheckRateMessage> for DbExecutor {
-	type Result = Result<bool>;
-
-	fn handle(&mut self, msg: CheckRateMessage, _: &mut Self::Context) -> Self::Result {
+	pub async fn check_rate(&self, ip: &str) -> Result<bool> {
 		use self::schema::rate_limiting::dsl::*;
 		use diesel::dsl::insert_into;
 
-		let parse_result = msg.ip.parse::<SocketAddr>();
+		let mut connection = self.get().await?;
+
+		let parse_result = ip.parse::<SocketAddr>();
 		let ip: IpNetwork = match parse_result {
 			Ok(result) => result.ip().into(),
-			Err(_) => msg.ip.parse::<IpAddr>()?.into(),
+			Err(_) => ip.parse::<IpAddr>()?.into(),
 		};
-		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&mut self.connection);
+		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&mut connection).await;
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
@@ -220,10 +139,11 @@ impl Handler<CheckRateMessage> for DbExecutor {
 				let now = PrimitiveDateTime::new(now.date(), now.time());
 				if entry.first_count <= now - crate::ratelimit_duration() {
 					// reset counter and grant request
-					diesel::update(&entry).set(counter.eq(1)).execute(&mut self.connection)?;
+					diesel::update(&entry).set(counter.eq(1)).execute(&mut connection).await?;
 					diesel::update(&entry)
 						.set(first_count.eq(diesel::dsl::now.at_time_zone("utc")))
-						.execute(&mut self.connection)?;
+						.execute(&mut connection)
+						.await?;
 					Ok(true)
 				} else if entry.counter >= crate::RATELIMIT_MAX_COUNTER {
 					// limit reached
@@ -231,7 +151,8 @@ impl Handler<CheckRateMessage> for DbExecutor {
 				} else {
 					diesel::update(&entry)
 						.set(counter.eq(counter + 1))
-						.execute(&mut self.connection)?;
+						.execute(&mut connection)
+						.await?;
 					Ok(true)
 				}
 			}
@@ -242,28 +163,32 @@ impl Handler<CheckRateMessage> for DbExecutor {
 						counter.eq(1),
 						first_count.eq(diesel::dsl::now.at_time_zone("utc")),
 					))
-					.execute(&mut self.connection)?;
+					.execute(&mut connection)
+					.await?;
 				Ok(true)
 			}
 			Err(e) => Err(e.into()),
 		}
 	}
-}
 
-impl Handler<DecreaseRateCounterMessage> for DbExecutor {
-	type Result = Result<()>;
-
-	fn handle(&mut self, msg: DecreaseRateCounterMessage, _: &mut Self::Context) -> Self::Result {
+	pub async fn decrease_rate_counter(&self, ip: &str) -> Result<()> {
 		use self::schema::rate_limiting::dsl::*;
 
-		let ip: IpNetwork = msg.ip.parse::<SocketAddr>()?.ip().into();
-		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&mut self.connection);
+		let mut connection = self.get().await?;
+
+		let parse_result = ip.parse::<SocketAddr>();
+		let ip: IpNetwork = match parse_result {
+			Ok(result) => result.ip().into(),
+			Err(_) => ip.parse::<IpAddr>()?.into(),
+		};
+		let entry_res = rate_limiting.find(ip).first::<models::RateLimiting>(&mut connection).await;
 		// check for no entry found
 		match entry_res {
 			Ok(entry) => {
 				diesel::update(&entry)
 					.set(counter.eq(counter - 1))
-					.execute(&mut self.connection)?;
+					.execute(&mut connection)
+					.await?;
 				Ok(())
 			}
 			Err(Error::NotFound) => {
@@ -272,190 +197,73 @@ impl Handler<DecreaseRateCounterMessage> for DbExecutor {
 			Err(e) => Err(e.into()),
 		}
 	}
-}
 
-impl<I: 'static, F: FnOnce(&mut DbExecutor) -> Result<I>> Handler<RunOnDbMsg<I, F>> for DbExecutor {
-	type Result = Result<I>;
-	fn handle(&mut self, msg: RunOnDbMsg<I, F>, _: &mut Self::Context) -> Self::Result {
-		msg.0(self)
-	}
-}
-
-impl Handler<SignupMessage> for DbExecutor {
-	type Result = Result<()>;
-
-	fn handle(&mut self, msg: SignupMessage, _: &mut Self::Context) -> Self::Result {
+	pub async fn count_members(&self) -> Result<i64> {
 		use self::schema::teilnehmer;
 
-		diesel::insert_into(teilnehmer::table).values(&msg.member).execute(&mut self.connection)?;
-
-		Ok(())
+		Ok(teilnehmer::table.count().get_result(&mut self.get().await?).await?)
 	}
-}
 
-impl Handler<DownloadMembersMessage> for DbExecutor {
-	type Result = Result<Vec<models::Teilnehmer>>;
-
-	fn handle(&mut self, _: DownloadMembersMessage, _: &mut Self::Context) -> Self::Result {
-		use self::schema::teilnehmer;
-		use self::schema::teilnehmer::*;
-		let all_columns_but_id = (
-			vorname,
-			nachname,
-			geburtsdatum,
-			geschlecht,
-			schwimmer,
-			vegetarier,
-			tetanus_impfung,
-			eltern_name,
-			eltern_mail,
-			eltern_handynummer,
-			strasse,
-			hausnummer,
-			ort,
-			plz,
-			kommentar,
-			agb,
-			allergien,
-			unvertraeglichkeiten,
-			medikamente,
-			krankenversicherung,
-			land,
-			krankheiten,
-			eigenanreise,
-		);
-
-		Ok(teilnehmer::table
-			.select(all_columns_but_id)
-			.load::<models::Teilnehmer>(&mut self.connection)?)
-	}
-}
-
-impl Handler<DownloadFullMembersMessage> for DbExecutor {
-	type Result = Result<Vec<models::FullTeilnehmer>>;
-
-	fn handle(&mut self, _: DownloadFullMembersMessage, _: &mut Self::Context) -> Self::Result {
-		use self::schema::teilnehmer;
-
-		Ok(teilnehmer::table.load::<models::FullTeilnehmer>(&mut self.connection)?)
-	}
-}
-
-impl Handler<DownloadFullSupervisorsMessage> for DbExecutor {
-	type Result = Result<Vec<models::FullSupervisor>>;
-
-	fn handle(&mut self, _: DownloadFullSupervisorsMessage, _: &mut Self::Context) -> Self::Result {
-		use self::schema::betreuer;
-
-		Ok(betreuer::table.load::<models::FullSupervisor>(&mut self.connection)?)
-	}
-}
-
-impl Handler<DownloadBetreuerMessage> for DbExecutor {
-	type Result = Result<Vec<models::Supervisor>>;
-
-	fn handle(&mut self, _: DownloadBetreuerMessage, _: &mut Self::Context) -> Self::Result {
-		use self::schema::betreuer;
-		use self::schema::betreuer::*;
-		let all_columns_but_id = (
-			vorname,
-			nachname,
-			geburtsdatum,
-			geschlecht,
-			juleica_nummer,
-			mail,
-			handynummer,
-			strasse,
-			hausnummer,
-			ort,
-			plz,
-			kommentar,
-			agb,
-			selbsterklaerung,
-			fuehrungszeugnis_ausstellung,
-			fuehrungszeugnis_eingesehen,
-			allergien,
-			unvertraeglichkeiten,
-			medikamente,
-			krankenversicherung,
-			vegetarier,
-			tetanus_impfung,
-			land,
-			krankheiten,
-			juleica_gueltig_bis,
-		);
-
-		Ok(betreuer::table
-			.select(all_columns_but_id)
-			.load::<models::Supervisor>(&mut self.connection)?)
-	}
-}
-
-impl Handler<SignupSupervisorMessage> for DbExecutor {
-	type Result = Result<()>;
-
-	fn handle(&mut self, msg: SignupSupervisorMessage, _: &mut Self::Context) -> Self::Result {
+	pub async fn signup_supervisor(
+		&self, supervisor: &models::Supervisor, is_pre_signup: bool,
+	) -> Result<()> {
 		use self::schema::betreuer;
 		use self::schema::betreuer::columns::*;
 
+		let mut connection = self.get().await?;
+
 		// Check if the e-mail already exists
-		let supervisor = match betreuer::table
-			.filter(mail.eq(&msg.supervisor.mail))
+		let supervisor_id = match betreuer::table
+			.filter(mail.eq(&supervisor.mail))
 			.select(id)
-			.first::<i32>(&mut self.connection)
+			.first::<i32>(&mut connection)
+			.await
 		{
 			Err(diesel::result::Error::NotFound) => None,
 			Err(e) => return Err(e.into()),
 			Ok(supervisor) => Some(supervisor),
 		};
 
-		if msg.is_pre_signup && supervisor.is_some() {
+		if is_pre_signup && supervisor_id.is_some() {
 			// Disable updating for pre-signups
 			bail!("E-mail address is already registered");
 		}
 
-		if let Some(supervisor) = supervisor {
+		if let Some(supervisor_id) = supervisor_id {
 			// Update
 			diesel::update(betreuer::table)
-				.filter(id.eq(&supervisor))
+				.filter(id.eq(&supervisor_id))
 				.set((
-					msg.supervisor,
+					supervisor,
 					anmeldedatum.eq(diesel::dsl::now),
 					signup_token.eq(None::<String>),
 					signup_token_time.eq(None::<PrimitiveDateTime>),
 				))
-				.execute(&mut self.connection)?;
+				.execute(&mut connection)
+				.await?;
 		} else {
 			// Insert new
 			diesel::insert_into(betreuer::table)
-				.values(&msg.supervisor)
-				.execute(&mut self.connection)?;
+				.values(supervisor)
+				.execute(&mut connection)
+				.await?;
 		}
 
 		Ok(())
 	}
-}
 
-impl Handler<CountMemberMessage> for DbExecutor {
-	type Result = Result<i64>;
-
-	fn handle(&mut self, _: CountMemberMessage, _: &mut Self::Context) -> Self::Result {
-		use self::schema::teilnehmer;
-
-		Ok(teilnehmer::table.count().get_result(&mut self.connection)?)
-	}
-}
-
-impl Handler<AuthenticateMessage> for DbExecutor {
-	type Result = Result<Option<i32>>;
-
-	fn handle(&mut self, msg: AuthenticateMessage, _: &mut Self::Context) -> Self::Result {
+	/// Returns `None` when the user was not found or the password is incorrect
+	/// or `Some(<id>)` if authentication succeeded.
+	pub async fn authenticate(&self, msg: &Authentication) -> Result<Option<i32>> {
 		use self::schema::users::dsl::*;
+
+		let mut connection = self.get().await?;
 
 		// Fetch user from db
 		match users
 			.filter(username.eq(&msg.username))
-			.first::<models::UserQueryResult>(&mut self.connection)
+			.first::<models::UserQueryResult>(&mut connection)
+			.await
 		{
 			Ok(user) => {
 				if PasswordHash::new(&user.password)
@@ -479,16 +287,14 @@ impl Handler<AuthenticateMessage> for DbExecutor {
 			Err(err) => Err(err.into()),
 		}
 	}
-}
 
-impl Handler<GetRolesMessage> for DbExecutor {
-	type Result = Result<Vec<auth::Roles>>;
-
-	fn handle(&mut self, msg: GetRolesMessage, _: &mut Self::Context) -> Self::Result {
+	pub async fn get_roles(&self, user: i32) -> Result<Vec<auth::Roles>> {
 		use self::schema::roles::dsl::*;
 
+		let mut connection = self.get().await?;
+
 		// Fetch user from db
-		match roles.filter(user_id.eq(msg.user)).get_results::<models::Role>(&mut self.connection) {
+		match roles.filter(user_id.eq(user)).get_results::<models::Role>(&mut connection).await {
 			Ok(mut res) => {
 				// Convert to enum
 				res.drain(..).map(|r| r.role.parse()).collect::<Result<_>>()
