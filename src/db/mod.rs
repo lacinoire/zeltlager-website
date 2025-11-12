@@ -18,12 +18,12 @@ use diesel::result::Error;
 use diesel_migrations::MigrationHarness;
 use dotenv::dotenv;
 use ipnetwork::IpNetwork;
-use log::info;
 use scrypt::Scrypt;
 use scrypt::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
 use serde::Serialize;
 use time::OffsetDateTime;
 use time::PrimitiveDateTime;
+use tracing::info;
 
 use crate::auth;
 
@@ -193,7 +193,7 @@ impl Handler<RunMigrationsMessage> for DbExecutor {
 			.run_pending_migrations(MIGRATIONS)
 			.map_err(|e| format_err!("Failed to run migrations: {}", e))?;
 		if !migrated.is_empty() {
-			info!("Run database migrations: {:?}", migrated);
+			info!(?migrated, "Run database migrations");
 		}
 
 		Ok(())

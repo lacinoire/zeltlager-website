@@ -8,11 +8,11 @@ use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Text;
 use heck::ToTitleCase;
 use ipnetwork::IpNetwork;
-use log::warn;
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use time::macros::format_description;
 use time::{Date, OffsetDateTime, PrimitiveDateTime};
+use tracing::warn;
 
 use crate::{GERMAN_DATE_FORMAT, ISO_DATE_FORMAT, LAGER_START, PRIMITIVE_DATE_TIME_FORMAT};
 
@@ -656,7 +656,7 @@ impl Teilnehmer {
 
 		map.remove("submit");
 		if !map.is_empty() {
-			warn!("Teilnehmer::from_hashmap: Map is not yet empty ({:?})", map);
+			warn!(?map, "Teilnehmer::from_hashmap: Map is not yet empty");
 		}
 
 		Ok(res)
@@ -775,7 +775,7 @@ impl Supervisor {
 
 		map.remove("submit");
 		if !map.is_empty() {
-			warn!("Supervisor::from_hashmap: Map is not yet empty ({:?})", map);
+			warn!(?map, "Supervisor::from_hashmap: Map is not yet empty");
 		}
 
 		Ok(res)
@@ -821,7 +821,7 @@ impl Supervisor {
 
 		map.remove("submit");
 		if !map.is_empty() {
-			warn!("Supervisor::from_pre_hashmap: Map is not yet empty ({:?})", map);
+			warn!(?map, "Supervisor::from_pre_hashmap: Map is not yet empty");
 		}
 
 		Ok(res)

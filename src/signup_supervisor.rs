@@ -3,10 +3,10 @@ use std::io::Write;
 
 use actix_web::{http::StatusCode, *};
 use diesel::prelude::*;
-use log::{error, warn};
 use scrypt::password_hash;
 use serde::{Deserialize, Serialize};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime};
+use tracing::{error, warn};
 
 use crate::db::models::{self, Gender};
 use crate::db::models::{date, opt_date};
@@ -68,7 +68,7 @@ async fn signup_internal(
 	let supervisor = match db::models::Supervisor::from_hashmap(body.clone()) {
 		Ok(supervisor) => supervisor,
 		Err(error) => {
-			warn!("Error handling form content: {:?}", error);
+			warn!(?error, "Error handling form content");
 			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error) });
 		}
 	};
@@ -89,7 +89,7 @@ async fn signup_internal(
 		})();
 
 		if let Err(error) = res {
-			warn!("Failed to log new supervisor: {:?}", error);
+			warn!(%error, "Failed to log new supervisor");
 		}
 	}
 
@@ -98,10 +98,10 @@ async fn signup_internal(
 		.await
 	{
 		Ok(Err(error)) => {
-			warn!("Error inserting into database: {}", error);
+			warn!(%error, "Error inserting into database");
 		}
 		Err(error) => {
-			warn!("Error inserting into database: {}", error);
+			warn!(%error, "Error inserting into database");
 		}
 		Ok(Ok(())) => {
 			return (StatusCode::OK, SignupResult { error: None });
@@ -183,13 +183,13 @@ pub async fn resignup(
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to get supervisor: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to get supervisor");
 			return err("Es ist leider ein Fehler suchen der E-Mailadresse aufgetreten".into());
 		}
 		Ok(Ok(None)) => {
 			// Not found
-			warn!("Failed to find supervisor by mail '{mail}'");
+			warn!(mail, "Failed to find supervisor by mail");
 			return HttpResponse::build(StatusCode::OK).json(ResignupResult { error: None });
 		}
 		Ok(Ok(Some(supervisor))) => supervisor,
@@ -198,10 +198,10 @@ pub async fn resignup(
 	// Send mail with link
 	match state.mail_addr.send(mail::ResignupMessage { supervisor, token }).await {
 		Err(error) => {
-			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+			error!(mail, %error, "Error sending e-mail");
 		}
 		Ok(Err(error)) => {
-			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+			error!(mail, %error, "Error sending e-mail");
 		}
 		Ok(Ok(())) => {
 			// Successful
@@ -252,8 +252,8 @@ pub async fn get_data(state: web::Data<State>, request: web::Json<GetDataRequest
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to get supervisor by token: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to get supervisor by token");
 			return err("Es ist leider ein Fehler suchen der E-Mailadresse aufgetreten".into());
 		}
 		Ok(Ok(None)) => {
@@ -306,21 +306,21 @@ async fn presignup_internal(
 	let grund = match db::get_freetext_str!(body, "grund") {
 		Ok(res) => res,
 		Err(error) => {
-			warn!("Error handling form content: {:?}", error);
+			warn!(?error, "Error handling form content");
 			return err(error);
 		}
 	};
 	let kommentar = match db::get_freetext_str!(body, "kommentar") {
 		Ok(res) => res,
 		Err(error) => {
-			warn!("Error handling form content: {:?}", error);
+			warn!(?error, "Error handling form content");
 			return err(error);
 		}
 	};
 	let supervisor = match db::models::Supervisor::from_pre_hashmap(body) {
 		Ok(supervisor) => supervisor,
 		Err(error) => {
-			warn!("Error handling form content: {:?}", error);
+			warn!(?error, "Error handling form content");
 			return err(error);
 		}
 	};
@@ -341,7 +341,7 @@ async fn presignup_internal(
 		})();
 
 		if let Err(error) = res {
-			warn!("Failed to log new supervisor: {:?}", error);
+			warn!(%error, "Failed to log new supervisor");
 		}
 	}
 
@@ -366,19 +366,19 @@ async fn presignup_internal(
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to get supervisor by mail: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to get supervisor by mail");
 			return err("Es ist leider ein Fehler suchen der E-Mailadresse aufgetreten".into());
 		}
 		Ok(Ok(true)) => {
 			// Already exists, send mail
-			warn!("Supervisor tried to pre-signup but already exists ({})", supervisor.mail);
+			warn!(mail = supervisor.mail, "Supervisor tried to pre-signup but already exists");
 			match state.mail_addr.send(mail::PresignupFailedMessage { supervisor }).await {
 				Err(error) => {
-					error!("Error sending presignup failed e-mail: {:?}", error);
+					error!(%error, "Error sending presignup failed e-mail");
 				}
 				Ok(Err(error)) => {
-					error!("Error sending presignup failed e-mail: {:?}", error);
+					error!(%error, "Error sending presignup failed e-mail");
 				}
 				Ok(Ok(())) => {}
 			}
@@ -392,14 +392,14 @@ async fn presignup_internal(
 		.await
 	{
 		Ok(Err(error)) => {
-			warn!("Error inserting into database: {}", error);
+			warn!(%error, "Error inserting into database");
 			return internal_err(format!(
 				"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
 				error_message
 			));
 		}
 		Err(error) => {
-			warn!("Error inserting into database: {}", error);
+			warn!(%error, "Error inserting into database");
 			return internal_err(format!(
 				"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
 				error_message
@@ -411,10 +411,10 @@ async fn presignup_internal(
 	// Send mail to specified users
 	match state.mail_addr.send(mail::PresignupMessage { supervisor, grund, kommentar }).await {
 		Err(error) => {
-			error!("Error sending presignup e-mail: {:?}", error);
+			warn!(%error, "Error sending presignup e-mail");
 		}
 		Ok(Err(error)) => {
-			error!("Error sending presignup e-mail: {:?}", error);
+			warn!(%error, "Error sending presignup e-mail");
 		}
 		Ok(Ok(())) => {
 			// Successful

@@ -3,7 +3,6 @@ extern crate diesel;
 
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
-use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -24,11 +23,11 @@ use clap::Parser;
 use futures::future::LocalBoxFuture;
 use futures::prelude::*;
 use lettre::message::Mailbox;
-use log::{error, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use time::macros::format_description;
 use time::{Date, Duration};
+use tracing::{error, warn};
 
 mod admin;
 mod auth;
@@ -217,11 +216,11 @@ fn check_csrf(req: &ServiceRequest, domain: Option<&str>) -> bool {
 				match header {
 					Ok(ref origin) if origin.ends_with(domain) => {}
 					Ok(ref origin) => {
-						warn!("Origin does not match: {:?} does not end with {:?}", origin, domain);
+						warn!(%origin, %domain, "Origin does not end with domain");
 						return false;
 					}
-					Err(e) => {
-						warn!("Origin not found: {}", e);
+					Err(error) => {
+						warn!(%error, "Origin not found");
 						return false;
 					}
 				}
@@ -292,8 +291,8 @@ where
 			let identity = identity.ok();
 			let roles = match auth::get_roles(&state, &identity).await {
 				Ok(r) => r,
-				Err(e) => {
-					error!("Failed to get roles: {}", e);
+				Err(error) => {
+					error!(%error, "Failed to get roles");
 					return Ok(req.into_response(crate::error_response(&state)));
 				}
 			};
@@ -302,7 +301,7 @@ where
 					Ok(service.call(req).await?.map_into_boxed_body())
 				} else {
 					let res = forbidden().await;
-					warn!("Forbidden '{}'", req.path());
+					warn!(path = %req.path(), "Forbidden");
 					Ok(req.into_response(res))
 				}
 			} else {
@@ -371,7 +370,7 @@ fn error_response(state: &State) -> HttpResponse {
 }
 
 async fn not_found(req: HttpRequest) -> HttpResponse {
-	warn!("File not found '{}'", req.path());
+	warn!(path = %req.path(), "File not found");
 	HttpResponse::NotFound().body("Page not found")
 }
 
@@ -393,8 +392,8 @@ async fn menu(
 	{
 		let roles = match auth::get_roles(&state, &id).await {
 			Ok(r) => r,
-			Err(e) => {
-				error!("Failed to get roles: {}", e);
+			Err(error) => {
+				error!(%error, "Failed to get roles");
 				return crate::error_response(&state);
 			}
 		};
@@ -440,18 +439,20 @@ async fn menu(
 			items: menu_items,
 		})
 	} else {
-		error!("Did not find site prefix {:?}", data.prefix);
+		error!(prefix = data.prefix, "Did not find site prefix");
 		crate::error_response(&state)
 	}
 }
 
 #[actix_rt::main]
 async fn main() -> Result<()> {
-	if env::var("RUST_LOG").is_err() {
-		// Default log level
-		env::set_var("RUST_LOG", "actix_web=info,zeltlager_website=info");
-	}
-	env_logger::init();
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or(
+				tracing_subscriber::EnvFilter::new("actix_web=info,zeltlager_website=info"),
+			),
+		)
+		.init();
 
 	// Command line arguments
 	let args = config::Args::parse();

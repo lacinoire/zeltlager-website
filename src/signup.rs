@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 use actix_web::http::StatusCode;
 use actix_web::*;
 use anyhow::Result;
-use log::{error, warn};
 use serde::Serialize;
+use tracing::{error, warn};
 
 use crate::{HttpResponse, State, db, mail};
 
@@ -33,7 +33,7 @@ async fn signup_check_count(
 		signup_mail(&mail_addr, member, error_message).await
 	} else if count >= max_members {
 		// Show error
-		warn!("Already too many members registered (from {})", member.eltern_mail);
+		warn!(mail = member.eltern_mail, "Already too many members registered");
 		(StatusCode::BAD_REQUEST, SignupResult {
 			error: Some(
 				"Während Ihrer Anmeldung ist das Zeltlager leider schon voll geworden.".into(),
@@ -58,16 +58,16 @@ async fn signup_check_count(
 			})();
 
 			if let Err(error) = res {
-				warn!("Failed to log new member: {:?}", error);
+				warn!(%error, "Failed to log new member");
 			}
 		}
 
 		match db_addr.send(db::SignupMessage { member: member.clone() }).await {
 			Err(error) => {
-				warn!("Error inserting into database: {:?}", error);
+				warn!(%error, "Error inserting into database");
 			}
 			Ok(Err(error)) => {
-				warn!("Error inserting into database: {:?}", error);
+				warn!(%error, "Error inserting into database");
 			}
 			Ok(Ok(())) => {
 				return signup_mail(&mail_addr, member, error_message).await;
@@ -91,10 +91,10 @@ async fn signup_mail(
 	let mail = member.eltern_mail.clone();
 	match mail_addr.send(mail::SignupMessage { member }).await {
 		Err(error) => {
-			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+			error!(mail, %error, "Error sending e-mail");
 		}
 		Ok(Err(error)) => {
-			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+			error!(mail, %error, "Error sending e-mail");
 		}
 		Ok(Ok(())) => {
 			// Signup successful
@@ -118,7 +118,7 @@ async fn signup_mail(
 pub async fn signup_state(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::CountMemberMessage).await.map_err(|e| e.into()) {
 		Err(error) | Ok(Err(error)) => {
-			error!("Failed to get current member count: {:?}", error);
+			error!(%error, "Failed to get current member count");
 			crate::error_response(&state)
 		}
 		Ok(Ok(count)) => {
@@ -142,7 +142,7 @@ async fn signup_internal(
 	let mut member = match db::models::Teilnehmer::from_hashmap(body) {
 		Ok(member) => member,
 		Err(error) => {
-			warn!("Error handling form content: {:?}", error);
+			warn!(?error, "Error handling form content");
 			return (StatusCode::BAD_REQUEST, SignupResult { error: Some(error) });
 		}
 	};
@@ -152,7 +152,7 @@ async fn signup_internal(
 
 	match db_addr.send(db::CountMemberMessage).await {
 		Err(error) => {
-			warn!("Error inserting into database: {}", error);
+			warn!(%error, "Error inserting into database");
 			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
 				error: Some(
 					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
@@ -160,7 +160,7 @@ async fn signup_internal(
 			})
 		}
 		Ok(Err(error)) => {
-			warn!("Error inserting into database: {}", error);
+			warn!(%error, "Error inserting into database");
 			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
 				error: Some(
 					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),

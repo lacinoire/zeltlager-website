@@ -3,7 +3,7 @@
 use std::fs;
 
 use actix_web::*;
-use log::{error, warn};
+use tracing::{debug, error, warn};
 
 use crate::{State, Thumb};
 
@@ -32,8 +32,8 @@ pub async fn list_images(state: State, name: String) -> HttpResponse {
 	// List images
 	let files = match fs::read_dir(format!("Bilder{name}")) {
 		Ok(files) => files,
-		Err(e) => {
-			error!("Failed to list images in {}: {}", name, e);
+		Err(error) => {
+			error!(name, %error, "Failed to list images");
 			return HttpResponse::InternalServerError()
 				.body("Fehler: Bilder konnten nicht gefunden werden.");
 		}
@@ -44,7 +44,7 @@ pub async fn list_images(state: State, name: String) -> HttpResponse {
 		let file = match file {
 			Ok(file) => file,
 			Err(error) => {
-				error!("Cannot read picture from {} ({:?})", name, error);
+				error!(name, %error, "Cannot read picture");
 				continue;
 			}
 		};
@@ -53,24 +53,21 @@ pub async fn list_images(state: State, name: String) -> HttpResponse {
 			continue;
 		}
 		match path.file_name() {
-			None => warn!("Cannot get filename of {:?} in {}", path, name),
+			None => warn!(path = %path.display(), name, "Cannot get filename"),
 			Some(file_name) => match file_name.to_str() {
-				None => warn!("Filename {:?} in {} is not valid unicode", path, name),
+				None => warn!(path = %path.display(), name, "Filename is not valid unicode"),
 				Some(file_name) => {
 					if file_name != ".gitignore" {
 						let created = match file.metadata().and_then(|m| m.created()) {
 							Ok(time) => time,
 							Err(error) => {
-								error!(
-									"Cannot read created time of picture {} / {} ({:?})",
-									name, file_name, error
-								);
+								error!(name, file_name, %error, "Cannot read created time of picture");
 								std::time::SystemTime::now()
 							}
 						};
 						if let Some(name) = path.to_str() {
 							let file = thumbs.get(name).cloned().unwrap_or_else(|| {
-								log::debug!("Failed to get thumb size for {name:?}");
+								debug!(name, "Failed to get thumb size");
 								Thumb { name: file_name.to_string(), ..Thumb::default() }
 							});
 							list.push((file, created));

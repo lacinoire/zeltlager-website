@@ -10,10 +10,10 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 
 use anyhow::{Result, bail, format_err};
-use log::{debug, error, trace, warn};
 use notify_debouncer_full::new_debouncer;
 use notify_debouncer_full::notify::{EventKind, RecursiveMode};
 use rayon::prelude::*;
+use tracing::{debug, error, info, trace, warn};
 
 use crate::{State, Thumb};
 
@@ -28,8 +28,8 @@ pub fn watch_thumbs(state: State, path: PathBuf) {
 	// Create a channel to receive the events.
 	let (tx, rx) = channel();
 
-	if let Err(e) = scan_files(&state, &path, true) {
-		error!("Error when scanning files: {:?}", e);
+	if let Err(error) = scan_files(&state, &path, true) {
+		error!(%error, "Error when scanning files");
 	}
 
 	let mut debouncer =
@@ -51,18 +51,18 @@ pub fn watch_thumbs(state: State, path: PathBuf) {
 							| EventKind::Remove(_)
 					)
 				}) {
-					debug!("Got notify events: {v:?}");
-					if let Err(e) = scan_files(&state, &path, false) {
-						error!("Error when scanning files: {:?}", e);
+					debug!(?v, "Got notify events");
+					if let Err(error) = scan_files(&state, &path, false) {
+						error!(%error, "Error when scanning files");
 					}
 				}
 			}
-			Ok(Err(e)) => {
-				error!("Watch error: {:?}", e);
+			Ok(Err(error)) => {
+				error!(?error, "Watch error");
 				break;
 			}
-			Err(e) => {
-				error!("Watch error: {:?}", e);
+			Err(error) => {
+				error!(%error, "Watch error");
 				break;
 			}
 		}
@@ -70,7 +70,7 @@ pub fn watch_thumbs(state: State, path: PathBuf) {
 }
 
 fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
-	log::info!("Scanning {path:?} for thumbnails");
+	info!(path = %path.display(), "Scanning for thumbnails");
 	// Search for files where we need a thumbnail
 	let mut create_thumbs = Vec::new();
 	let files = fs::read_dir(path)?.map(|e| e.map_err(|e| e.into())).collect::<Result<Vec<_>>>()?;
@@ -81,10 +81,10 @@ fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
 		}
 
 		match file_path.file_name() {
-			None => warn!("Cannot get filename of {:?}", file_path),
+			None => warn!(?file_path, "Cannot get filename"),
 			Some(name) => {
 				match name.to_str() {
-					None => warn!("Filename {:?} is not valid unicode", file_path),
+					None => warn!(?file_path, "Filename is not valid unicode"),
 					Some(name) => {
 						let lower_name = name.to_lowercase();
 						if lower_name.ends_with(".jpg")
@@ -94,8 +94,8 @@ fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
 						{
 							// Check if there is a thumbnail for it
 							match thumb_up_to_date(path, name) {
-								Err(e) => {
-									warn!("Failed to check thumbnail for {name}: {e:?}");
+								Err(error) => {
+									warn!(name, %error, "Failed to check thumbnail");
 								}
 								Ok(thumb) => create_thumbs.push(thumb),
 							}
@@ -115,9 +115,9 @@ fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
 			let name = file.file_name();
 			if let Some(name) = name.to_str() {
 				if !thumb_names.contains(&name) {
-					debug!("Remove outdated thumbnail {:?}", name);
-					if let Err(e) = fs::remove_file(file.path()) {
-						warn!("Failed to remove outdated thumbnail {:?}: {:?}", name, e);
+					debug!(name, "Remove outdated thumbnail");
+					if let Err(error) = fs::remove_file(file.path()) {
+						warn!(name, %error, "Failed to remove outdated thumbnail");
 					}
 				}
 			}
@@ -134,12 +134,12 @@ fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
 							let mut thumb = t.thumb.clone();
 							thumb.width = Some(size.0);
 							thumb.height = Some(size.1);
-							trace!("Got thumbnail size {:?} {size:?}", t.orig);
+							trace!(name = t.orig, ?size, "Got thumbnail size");
 							let mut thumbs = state.thumbs.write().unwrap();
 							thumbs.insert(t.orig.clone(), thumb);
 						}
-						Err(e) => {
-							warn!("Failed to get thumbnail size for {thumb:?}: {e:?}",);
+						Err(error) => {
+							warn!(thumb, %error, "Failed to get thumbnail size for");
 						}
 					}
 				}
@@ -157,17 +157,15 @@ fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
 		};
 		let orig = path.join(&t.thumb.name);
 		let thumb = path.join("thumbs").join(thumb_name);
-		if let Err(e) = create_thumb(&orig, &thumb) {
-			warn!("Failed to create thumbnail for {:?}: {:?}", orig.display(), e);
+		if let Err(error) = create_thumb(&orig, &thumb) {
+			warn!(path = %orig.display(), %error, "Failed to create thumbnail");
 		} else {
 			// Add size
 			let size = match get_thumb_size(&thumb) {
 				Ok(r) => r,
-				Err(e) => {
-					warn!(
-						"Failed to get thumbnail size for {:?}: {:?}",
-						orig.file_name().unwrap(),
-						e
+				Err(error) => {
+					warn!(file = ?orig.file_name().unwrap(), %error,
+						"Failed to get thumbnail size"
 					);
 					return;
 				}
@@ -175,7 +173,7 @@ fn scan_files(state: &State, path: &Path, first_run: bool) -> Result<()> {
 			let mut thumb = t.thumb.clone();
 			thumb.width = Some(size.0);
 			thumb.height = Some(size.1);
-			trace!("Got thumbnail size {:?} {size:?}", t.orig);
+			trace!(name = t.orig, ?size, "Got thumbnail size");
 			let mut thumbs = state.thumbs.write().unwrap();
 			thumbs.insert(t.orig.clone(), thumb);
 		}
@@ -233,8 +231,9 @@ fn thumb_up_to_date(path: &Path, file: &str) -> Result<CreateThumb> {
 		let mut thumb_is_new = thumb_modified.duration_since(orig_modified).is_ok();
 		if !thumb_is_new {
 			debug!(
-				"Thumbnail is outdated (modified time): {thumb_modified:?} earlier than \
-				 {orig_modified:?}"
+				?thumb_modified,
+				?orig_modified,
+				"Thumbnail is outdated: modified time earlier than file time"
 			);
 		}
 
@@ -244,7 +243,7 @@ fn thumb_up_to_date(path: &Path, file: &str) -> Result<CreateThumb> {
 			let thumb_t = thumb_meta.ctime();
 			thumb_is_new &= orig_t <= thumb_t;
 			if !thumb_is_new {
-				debug!("Thumbnail is outdated (ctime): {thumb_t:?} earlier than {orig_t:?}");
+				debug!(?thumb_t, ?orig_t, "Thumbnail is outdated: ctime earlier than file time");
 			}
 		}
 
@@ -279,7 +278,7 @@ fn create_thumb(orig_file: &Path, thumb_file: &Path) -> Result<()> {
 	} else {
 		orig_path
 	};
-	debug!("Create thumbnail for {orig_path:?}");
+	debug!(path = orig_path, "Create thumbnail");
 	let proc = Command::new("magick")
 		.args([
 			orig_path,

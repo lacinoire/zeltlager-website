@@ -3,10 +3,10 @@
 use actix_web::*;
 use anyhow::bail;
 use diesel::prelude::*;
-use log::error;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
 use time::{OffsetDateTime, PrimitiveDateTime};
+use tracing::error;
 
 use crate::{State, db};
 
@@ -38,8 +38,8 @@ pub async fn get_games(state: web::Data<State>) -> HttpResponse {
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to get games: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to get games");
 			HttpResponse::InternalServerError().body("Failed to get games")
 		}
 		Ok(Ok(r)) => HttpResponse::Ok().json(&r),
@@ -63,8 +63,8 @@ pub async fn get_game(state: web::Data<State>, game_id: web::Path<i32>) -> HttpR
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to get members: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to get members");
 			HttpResponse::InternalServerError().body("Failed to get members")
 		}
 		Ok(Ok(r)) => HttpResponse::Ok().json(&r),
@@ -136,8 +136,8 @@ pub async fn create_game(state: web::Data<State>) -> HttpResponse {
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to create game: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to create game");
 			HttpResponse::InternalServerError().body("Failed to create game")
 		}
 		Ok(Ok(r)) => HttpResponse::Ok().json(r),
@@ -169,8 +169,8 @@ pub async fn delete_game(state: web::Data<State>, game_id: web::Path<i32>) -> Ht
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to delete game: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to delete game");
 			HttpResponse::InternalServerError().body("Failed to delete game")
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
@@ -201,8 +201,8 @@ pub(crate) async fn catch(state: web::Data<State>, data: web::Json<CatchData>) -
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to catch member: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to catch member");
 			HttpResponse::InternalServerError().body("Failed to catch member")
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
@@ -256,8 +256,8 @@ pub(crate) async fn insert(state: web::Data<State>, data: web::Json<InsertData>)
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to insert member: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to insert member");
 			HttpResponse::InternalServerError().body("Failed to insert member")
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),

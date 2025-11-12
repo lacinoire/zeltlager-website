@@ -2,8 +2,8 @@ use actix_web::http::StatusCode;
 use actix_web::*;
 use anyhow::bail;
 use diesel::prelude::*;
-use log::{error, warn};
 use serde::{Deserialize, Serialize};
+use tracing::{error, warn};
 
 use crate::{
 	State,
@@ -57,8 +57,8 @@ pub(crate) async fn remove_member(
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to remove member: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to remove member");
 			HttpResponse::InternalServerError().body("Failed to remove member")
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
@@ -73,7 +73,7 @@ async fn payed_mail(
 	let mail = member.eltern_mail.clone();
 	let error = match mail_addr.send(mail::PayedMessage { member }).await {
 		Err(error) => {
-			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+			error!(mail, %error, "Error sending e-mail");
 			format!(
 				"Die Änderung wurde erfolgreich gespeichert.\nEs ist leider ein Fehler beim \
 				 E-Mail senden aufgetreten.\n{}",
@@ -81,7 +81,7 @@ async fn payed_mail(
 			)
 		}
 		Ok(Err(error)) => {
-			error!("Error sending e-mail to {:?}: {:?}", mail, error);
+			error!(mail, %error, "Error sending e-mail");
 			format!(
 				"Die Änderung wurde erfolgreich gespeichert.\nEs ist leider ein Fehler beim \
 				 E-Mail senden aufgetreten.\n{}",
@@ -118,10 +118,10 @@ pub(crate) async fn edit_member(
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to edit member: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to edit member");
 			HttpResponse::InternalServerError().json(EditMemberResult {
-				error: Some(format!("Teilnehmer konnte nicht gespeichert werden: {}", e)),
+				error: Some(format!("Teilnehmer konnte nicht gespeichert werden: {error}")),
 			})
 		}
 		Ok(Ok((new_payed, member))) => {
@@ -156,8 +156,8 @@ pub(crate) async fn remove_supervisor(
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to remove supervisor: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to remove supervisor");
 			HttpResponse::InternalServerError().body("Failed to remove supervisor")
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
@@ -177,8 +177,8 @@ pub(crate) async fn edit_supervisor(
 		.await
 		.map_err(|e| e.into())
 	{
-		Ok(Err(e)) | Err(e) => {
-			error!("Failed to edit supervisor: {}", e);
+		Ok(Err(error)) | Err(error) => {
+			error!(%error, "Failed to remove supervisor");
 			HttpResponse::InternalServerError().body("Failed to edit supervisor")
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
@@ -190,7 +190,7 @@ pub(crate) async fn edit_supervisor(
 pub async fn download_members(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::DownloadFullMembersMessage).await.map_err(|e| e.into()) {
 		Ok(Err(error)) | Err(error) => {
-			warn!("Error fetching from database: {}", error);
+			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
 		Ok(Ok(members)) => HttpResponse::Ok().json(members),
@@ -202,7 +202,7 @@ pub async fn download_members(state: web::Data<State>) -> HttpResponse {
 pub async fn download_supervisors(state: web::Data<State>) -> HttpResponse {
 	match state.db_addr.send(db::DownloadFullSupervisorsMessage).await.map_err(|e| e.into()) {
 		Ok(Err(error)) | Err(error) => {
-			warn!("Error fetching from database: {}", error);
+			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
 		Ok(Ok(supervisors)) => HttpResponse::Ok().json(supervisors),
@@ -230,7 +230,7 @@ pub async fn download_mails(state: web::Data<State>) -> HttpResponse {
 		.map_err(|e| e.into())
 	{
 		Ok(Err(error)) | Err(error) => {
-			warn!("Error fetching from database: {}", error);
+			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
 		Ok(Ok(mails)) => HttpResponse::Ok().json(mails),
@@ -278,7 +278,7 @@ pub async fn lager_info(state: web::Data<State>) -> HttpResponse {
 		.map_err(|e| e.into())
 	{
 		Ok(Err(error)) | Err(error) => {
-			warn!("Error getting lager info: {}", error);
+			warn!(%error, "Error getting lager info");
 			crate::error_response(&state)
 		}
 		Ok(Ok(info)) => HttpResponse::Ok().json(info),
@@ -292,7 +292,7 @@ pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
 	if let Some(log_file) = &state.config.log_file {
 		if let Err(error) = std::fs::remove_file(log_file) {
 			if error.kind() != std::io::ErrorKind::NotFound {
-				error!("Failed to remove log file ({}): {error}", log_file.display());
+				error!(file = %log_file.display(), %error, "Failed to remove log file");
 			}
 		}
 	}
@@ -322,7 +322,7 @@ pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
 		.map_err(|e| e.into())
 	{
 		Ok(Err(error)) | Err(error) => {
-			warn!("Error deleting lager: {}", error);
+			warn!(%error, "Error deleting lager");
 			crate::error_response(&state)
 		}
 		Ok(Ok(())) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),

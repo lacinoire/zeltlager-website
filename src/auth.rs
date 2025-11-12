@@ -6,12 +6,12 @@ use std::collections::HashMap;
 use actix_identity::Identity;
 use actix_web::http::StatusCode;
 use actix_web::*;
-use anyhow::{bail, format_err, Result};
-use log::{error, info, warn};
+use anyhow::{Result, bail, format_err};
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
+use tracing::{error, info, warn};
 
-use crate::{db, State};
+use crate::{State, db};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Roles {
@@ -86,8 +86,8 @@ async fn login_internal(
 	// Check rate limit
 	let msg = match db::AuthenticateMessage::from_hashmap(body) {
 		Ok(r) => r,
-		Err(e) => {
-			error!("Failed to get authentication message: {}", e);
+		Err(error) => {
+			error!(%error, "Failed to get authentication message");
 			return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
 				error: Some(format!("Es ist ein interner Fehler aufgetreten.\n{}", error_message)),
 			});
@@ -95,7 +95,7 @@ async fn login_internal(
 	};
 
 	if let Err(error) = rate_limit(state, req).await {
-		info!("Rate limit exceeded ({:?})", error);
+		info!(%error, "Rate limit exceeded");
 		(StatusCode::FORBIDDEN, LoginResult {
 			error: Some("Zu viele Login Anfragen. Probieren Sie es später noch einmal.".into()),
 		})
@@ -103,7 +103,7 @@ async fn login_internal(
 		match db_addr.send(msg).await.map_err(|e| e.into()) {
 			Err(error) | Ok(Err(error)) => {
 				// Show error
-				warn!("Error by auth message: {}", error);
+				warn!(%error, "Error by auth message");
 				(StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
 					error: Some(format!(
 						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
@@ -113,7 +113,7 @@ async fn login_internal(
 			}
 			Ok(Ok(Some(id))) => {
 				if let Err(error) = set_logged_in(id, req) {
-					warn!("Failed to set login identity: {}", error);
+					warn!(%error, "Failed to set login identity");
 					return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
 						error: Some(format!(
 							"Es ist ein Fehler beim Login aufgetreten.\n{}",
@@ -127,8 +127,8 @@ async fn login_internal(
 					.ok_or_else(|| format_err!("no ip detected"))
 				{
 					Ok(r) => r.to_string(),
-					Err(e) => {
-						error!("Failed to get ip: {}", e);
+					Err(error) => {
+						error!(%error, "Failed to get ip");
 						return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
 							error: Some(format!(
 								"Es ist ein interner Fehler aufgetreten.\n{}",
@@ -137,8 +137,9 @@ async fn login_internal(
 						});
 					}
 				};
-				if let Err(e) = state.db_addr.send(db::DecreaseRateCounterMessage { ip }).await {
-					error!("Failed to decrease rate limiting counter: {}", e);
+				if let Err(error) = state.db_addr.send(db::DecreaseRateCounterMessage { ip }).await
+				{
+					error!(%error, "Failed to decrease rate limiting counter");
 				}
 				(StatusCode::OK, LoginResult { error: None })
 			}

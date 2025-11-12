@@ -57,7 +57,7 @@ DATABASE_URL=postgres://<username>:<password>@<host>/<database>
 
 ```
 cd frontend
-yarn && yarn build
+bun install && bun run build
 cd ..
 cargo run --release
 ```

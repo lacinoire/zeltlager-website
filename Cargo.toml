@@ -19,12 +19,10 @@ csv = "1"
 diesel = { version = "2", features = ["postgres", "network-address", "time"] }
 diesel_migrations = "2"
 dotenv = "0.15"
-env_logger = "0.11"
 futures = "0.3"
 heck = "0.5"
 ipnetwork = "0.21"
 lettre = "0.11"
-log = "0.4"
 mime = "0.3"
 notify-debouncer-full = "0.6"
 rand = "0.8"
@@ -37,6 +35,8 @@ t4rust-derive = "0.3"
 time = { version = "0.3", features = ["parsing"] }
 toml = "0.9"
 tokio = "1"
+tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_debug"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"
 
 # Compile in release mode to speed up password checking
