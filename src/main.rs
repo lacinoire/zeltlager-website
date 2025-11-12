@@ -66,7 +66,7 @@ pub struct State {
 	sites: HashMap<String, basic::SiteDescriptions>,
 	config: Config,
 	db_addr: actix::Addr<db::DbExecutor>,
-	mail_addr: actix::Addr<mail::MailExecutor>,
+	mail: mail::Mail,
 	/// Sizes of thumbnails.
 	/// Map path to width, height.
 	thumbs: Arc<RwLock<HashMap<String, Thumb>>>,
@@ -494,16 +494,14 @@ async fn main() -> Result<()> {
 	// Run database migrations
 	db_addr.send(db::RunMigrationsMessage).await??;
 
-	// Start some parallel mail executors
-	let config2 = config.clone();
-	let mail_addr = actix::SyncArbiter::start(4, move || mail::MailExecutor::new(config2.clone()));
+	let mail = mail::Mail::new(config.clone());
 
 	let address = config.bind_address.clone();
 	let state = State {
 		sites,
 		config,
 		db_addr,
-		mail_addr,
+		mail,
 		thumbs: Default::default(),
 		log_mutex: Arc::new(Mutex::new(())),
 	};

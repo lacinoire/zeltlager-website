@@ -10,7 +10,7 @@ use tracing::{error, warn};
 
 use crate::db::models::{self, Gender};
 use crate::db::models::{date, opt_date};
-use crate::{HttpResponse, State, db, mail};
+use crate::{HttpResponse, State, db};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
@@ -196,20 +196,16 @@ pub async fn resignup(
 	};
 
 	// Send mail with link
-	match state.mail_addr.send(mail::ResignupMessage { supervisor, token }).await {
+	match state.mail.send_supervisor_resignup(&supervisor, &token).await {
 		Err(error) => {
 			error!(mail, %error, "Error sending e-mail");
+			err("Es ist leider ein Fehler beim Versenden der E-Mail aufgetreten".into())
 		}
-		Ok(Err(error)) => {
-			error!(mail, %error, "Error sending e-mail");
-		}
-		Ok(Ok(())) => {
+		Ok(()) => {
 			// Successful
-			return HttpResponse::build(StatusCode::OK).json(ResignupResult { error: None });
+			HttpResponse::build(StatusCode::OK).json(ResignupResult { error: None })
 		}
 	}
-
-	err("Es ist leider ein Fehler beim Versenden der E-Mail aufgetreten".into())
 }
 
 /// Get data for resignup
@@ -373,14 +369,11 @@ async fn presignup_internal(
 		Ok(Ok(true)) => {
 			// Already exists, send mail
 			warn!(mail = supervisor.mail, "Supervisor tried to pre-signup but already exists");
-			match state.mail_addr.send(mail::PresignupFailedMessage { supervisor }).await {
+			match state.mail.send_supervisor_presignup_failed(&supervisor).await {
 				Err(error) => {
 					error!(%error, "Error sending presignup failed e-mail");
 				}
-				Ok(Err(error)) => {
-					error!(%error, "Error sending presignup failed e-mail");
-				}
-				Ok(Ok(())) => {}
+				Ok(()) => {}
 			}
 			return (StatusCode::OK, SignupResult { error: None });
 		}
@@ -409,20 +402,16 @@ async fn presignup_internal(
 	}
 
 	// Send mail to specified users
-	match state.mail_addr.send(mail::PresignupMessage { supervisor, grund, kommentar }).await {
+	match state.mail.send_supervisor_presignup(&supervisor, &grund, &kommentar).await {
 		Err(error) => {
 			warn!(%error, "Error sending presignup e-mail");
+			internal_err(format!("Es ist ein Fehler aufgetreten.\n{}", error_message))
 		}
-		Ok(Err(error)) => {
-			warn!(%error, "Error sending presignup e-mail");
-		}
-		Ok(Ok(())) => {
+		Ok(()) => {
 			// Successful
-			return (StatusCode::OK, SignupResult { error: None });
+			(StatusCode::OK, SignupResult { error: None })
 		}
 	}
-
-	internal_err(format!("Es ist ein Fehler aufgetreten.\n{}", error_message))
 }
 
 #[post("/presignup-supervisor")]

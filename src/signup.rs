@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 use std::io::Write;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 
 use actix_web::http::StatusCode;
 use actix_web::*;
@@ -9,7 +7,7 @@ use anyhow::Result;
 use serde::Serialize;
 use tracing::{error, warn};
 
-use crate::{HttpResponse, State, db, mail};
+use crate::{HttpResponse, State, db};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
@@ -22,81 +20,13 @@ struct SignupState {
 	is_full: bool,
 }
 
-/// Check if too many members are already registered, then call `signup_mail`.
-async fn signup_check_count(
-	count: i64, max_members: i64, db_addr: &actix::Addr<db::DbExecutor>,
-	mail_addr: actix::Addr<mail::MailExecutor>, member: db::models::Teilnehmer,
-	error_message: String, log_file: Option<PathBuf>, log_mutex: Arc<Mutex<()>>, state: &State,
-) -> (StatusCode, SignupResult) {
-	if state.config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
-		// Don't insert test signup into database
-		signup_mail(&mail_addr, member, error_message).await
-	} else if count >= max_members {
-		// Show error
-		warn!(mail = member.eltern_mail, "Already too many members registered");
-		(StatusCode::BAD_REQUEST, SignupResult {
-			error: Some(
-				"Während Ihrer Anmeldung ist das Zeltlager leider schon voll geworden.".into(),
-			),
-		})
-	} else {
-		if let Some(log_file) = log_file {
-			let res: Result<_, Error> = (|| {
-				let _lock = log_mutex.lock().unwrap();
-				let mut file =
-					std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
-				writeln!(
-					file,
-					"{}: Teilnehmer: {}",
-					time::OffsetDateTime::now_utc()
-						.format(&time::format_description::well_known::Rfc3339)
-						.unwrap(),
-					serde_json::to_string(&member)?
-				)?;
-
-				Ok(())
-			})();
-
-			if let Err(error) = res {
-				warn!(%error, "Failed to log new member");
-			}
-		}
-
-		match db_addr.send(db::SignupMessage { member: member.clone() }).await {
-			Err(error) => {
-				warn!(%error, "Error inserting into database");
-			}
-			Ok(Err(error)) => {
-				warn!(%error, "Error inserting into database");
-			}
-			Ok(Ok(())) => {
-				return signup_mail(&mail_addr, member, error_message).await;
-			}
-		}
-
-		(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
-			error: Some(
-				format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
-			),
-		})
-	}
-}
-
 /// Write an email and show a success site.
-async fn signup_mail(
-	mail_addr: &actix::Addr<mail::MailExecutor>, member: db::models::Teilnehmer,
-	error_message: String,
-) -> (StatusCode, SignupResult) {
-	// Write an e-mail
-	let mail = member.eltern_mail.clone();
-	match mail_addr.send(mail::SignupMessage { member }).await {
+async fn signup_mail(state: &State, member: db::models::Teilnehmer) -> (StatusCode, SignupResult) {
+	match state.mail.send_member_signup(&member).await {
 		Err(error) => {
-			error!(mail, %error, "Error sending e-mail");
+			error!(mail = member.eltern_mail, %error, "Error sending e-mail");
 		}
-		Ok(Err(error)) => {
-			error!(mail, %error, "Error sending e-mail");
-		}
-		Ok(Ok(())) => {
+		Ok(()) => {
 			// Signup successful
 			return (StatusCode::OK, SignupResult { error: None });
 		}
@@ -107,7 +37,7 @@ async fn signup_mail(
 			format!(
 				"Ihre Daten wurden erfolgreich gespeichert.\nEs ist leider ein Fehler beim E-Mail \
 				 senden aufgetreten.\n{}",
-				error_message
+				state.config.error_message
 			)
 			.into(),
 		),
@@ -130,14 +60,6 @@ pub async fn signup_state(state: web::Data<State>) -> HttpResponse {
 async fn signup_internal(
 	state: &State, body: HashMap<String, String>,
 ) -> (StatusCode, SignupResult) {
-	let db_addr = state.db_addr.clone();
-	let mail_addr = state.mail_addr.clone();
-	let error_message = state.config.error_message.clone();
-	let max_members = state.config.max_members;
-	let log_file = state.config.log_file.clone();
-	let log_mutex = state.log_mutex.clone();
-	let db_addr2 = db_addr.clone();
-
 	// Get the body of the request
 	let mut member = match db::models::Teilnehmer::from_hashmap(body) {
 		Ok(member) => member,
@@ -150,38 +72,88 @@ async fn signup_internal(
 	// Remove spaces
 	member.trim();
 
-	match db_addr.send(db::CountMemberMessage).await {
+	let count = match state.db_addr.send(db::CountMemberMessage).await {
 		Err(error) => {
 			warn!(%error, "Error inserting into database");
-			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
 				error: Some(
-					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
+					format!(
+						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+						state.config.error_message
+					)
+					.into(),
 				),
-			})
+			});
 		}
 		Ok(Err(error)) => {
 			warn!(%error, "Error inserting into database");
-			(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+			return (StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
 				error: Some(
-					format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", error_message).into(),
+					format!(
+						"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+						state.config.error_message
+					)
+					.into(),
 				),
-			})
+			});
 		}
-		Ok(Ok(count)) => {
-			signup_check_count(
-				count,
-				max_members,
-				&db_addr2,
-				mail_addr,
-				member,
-				error_message,
-				log_file,
-				log_mutex,
-				state,
-			)
-			.await
+		Ok(Ok(count)) => count,
+	};
+
+	if state.config.test_mail.as_ref().map(|m| m == &member.eltern_mail).unwrap_or(false) {
+		// Don't insert test signup into database
+		return signup_mail(state, member).await;
+	}
+	// Check if too many members are already registered, then call `signup_mail`.
+	if count >= state.config.max_members {
+		// Show error
+		warn!(mail = member.eltern_mail, "Already too many members registered");
+		return (StatusCode::BAD_REQUEST, SignupResult {
+			error: Some(
+				"Während Ihrer Anmeldung ist das Zeltlager leider schon voll geworden.".into(),
+			),
+		});
+	}
+
+	if let Some(log_file) = &state.config.log_file {
+		let res: Result<_, Error> = (|| {
+			let _lock = state.log_mutex.lock().unwrap();
+			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
+			writeln!(
+				file,
+				"{}: Teilnehmer: {}",
+				time::OffsetDateTime::now_utc()
+					.format(&time::format_description::well_known::Rfc3339)
+					.unwrap(),
+				serde_json::to_string(&member)?
+			)?;
+
+			Ok(())
+		})();
+
+		if let Err(error) = res {
+			warn!(%error, "Failed to log new member");
 		}
 	}
+
+	match state.db_addr.send(db::SignupMessage { member: member.clone() }).await {
+		Err(error) => {
+			warn!(%error, "Error inserting into database");
+		}
+		Ok(Err(error)) => {
+			warn!(%error, "Error inserting into database");
+		}
+		Ok(Ok(())) => {
+			return signup_mail(state, member).await;
+		}
+	}
+
+	(StatusCode::INTERNAL_SERVER_ERROR, SignupResult {
+		error: Some(
+			format!("Es ist ein Datenbank-Fehler aufgetreten.\n{}", state.config.error_message)
+				.into(),
+		),
+	})
 }
 
 #[post("/signup")]

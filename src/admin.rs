@@ -67,28 +67,18 @@ pub(crate) async fn remove_member(
 
 /// Write mail to confirm payment
 async fn payed_mail(
-	mail_addr: &actix::Addr<mail::MailExecutor>, member: db::models::FullTeilnehmer,
+	mail: &mail::Mail, member: db::models::FullTeilnehmer,
 ) -> (StatusCode, EditMemberResult) {
-	// Write an e-mail
-	let mail = member.eltern_mail.clone();
-	let error = match mail_addr.send(mail::PayedMessage { member }).await {
+	let error = match mail.send_member_payed(&member).await {
 		Err(error) => {
-			error!(mail, %error, "Error sending e-mail");
+			error!(mail = member.eltern_mail, %error, "Error sending e-mail");
 			format!(
 				"Die Änderung wurde erfolgreich gespeichert.\nEs ist leider ein Fehler beim \
 				 E-Mail senden aufgetreten.\n{}",
 				error
 			)
 		}
-		Ok(Err(error)) => {
-			error!(mail, %error, "Error sending e-mail");
-			format!(
-				"Die Änderung wurde erfolgreich gespeichert.\nEs ist leider ein Fehler beim \
-				 E-Mail senden aufgetreten.\n{}",
-				error
-			)
-		}
-		Ok(Ok(())) => {
+		Ok(()) => {
 			// Signup successful
 			return (StatusCode::OK, EditMemberResult { error: None });
 		}
@@ -126,7 +116,7 @@ pub(crate) async fn edit_member(
 		}
 		Ok(Ok((new_payed, member))) => {
 			if new_payed {
-				let (status, result) = payed_mail(&state.mail_addr, member).await;
+				let (status, result) = payed_mail(&state.mail, member).await;
 				HttpResponse::build(status).json(result)
 			} else {
 				HttpResponse::Ok().json(EditMemberResult { error: None })
