@@ -26,7 +26,8 @@ Die An- und Abreise erfolgt mit modernen, klimatisierten Reisebussen.
 
 💶 **Teilnahmegebühr: 250 €** – alles inklusive!  
 Darin enthalten sind Unterkunft, Verpflegung, Ausflüge, Eintritte und Material für Aktionen.  
-Ein kleines Taschengeld für persönliche Wünsche reicht völlig aus.
+Ein kleines Taschengeld für persönliche Wünsche reicht völlig aus.  
+Falls du keine eigene Liege oder keinen Schlafsack hast, ist das kein Problem. Für 20 € kannst du diese Sachen bei uns ausleihen.
 
 Die Teilnehmerzahl ist begrenzt – <a href="/anmeldung">**schnell anmelden lohnt sich!**</a> Die Anmeldung wird erst mit dem Zahlungseingang innerhalb von 14 Tagen verbindlich.
 

@@ -12,6 +12,8 @@ Die Teilnehmer benötigen folgende persönliche Ausrüstung:
 - Feldbett oder 3-Bein Liege 🛏
 - Warmer Schlafsack 🛌
 
+Falls du keine eigene Liege oder keinen Schlafsack hast, ist das kein Problem. Für 20 € kannst du diese Sachen bei uns ausleihen.
+
 Persönliche zeltlagergerechte Kleidung:
 
 - Warme Jacke 🧥
