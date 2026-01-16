@@ -135,10 +135,10 @@
 				{
 					id: "eigenanreise",
 					name: "Anreise",
-					help_tooltip: "Rückfahrt genauso entweder zum Westfriedhof<br>oder Abholung vom Zeltlager",
+					help_tooltip: "Rückfahrt genauso entweder zum Abholpunkt<br>oder Abholung vom Zeltlager",
 					type: "radio",
 					variants: [
-						{ id: "false", name: "Mein Kind fährt mit dem bereitgestellten Bus vom Westfriedhof in München um 10:00 Uhr" },
+						{ id: "false", name: "Mein Kind fährt mit dem bereitgestellten Bus vom S-Bahnhof Langwied um 10:00 Uhr" },
 						{ id: "true", name: "Mein Kind wird am Anreisetag bis 11:00 Uhr direkt ins Zeltlager gebracht" },
 					],
 				},
