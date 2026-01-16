@@ -7,17 +7,19 @@ Damit ist <# if self.member.geschlecht == Gender::Male { #>er<# } else { #>sie<#
 <# if !self.member.eigenanreise { #>
 Abfahrt: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> um 10:00 Uhr
 Ankunft: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> um ca. 14:00 Uhr
-auf dem Parkplatz Westfriedhof in der Baldurstraße, gegenüber Einmündung Altmühlstraße.
+Treffpunkt: Parkplatz S-Bahnhof Langwied, Bergsonstraße
 <# } else { #>
 Ankunft: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> bis 11:00 Uhr
 Abfahrt: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> bis 14:00 Uhr
-vom Zeltlager. Den genauen Ort des Zeltlagers, in der Umgebung von Landsberg am Lech, teilen wir Ihnen vor dem Zeltlager mit.
+vom Zeltlager. Den genauen Ort des Zeltlagers, in der Umgebung von München/Landsberg am Lech, teilen wir Ihnen vor dem Zeltlager mit.
 <# } #>
 
 Ihr Kind benötigt folgende persönliche Ausrüstung:
 
 - Feldbett oder 3-Bein Liege 🛏
 - Warmer Schlafsack 🛌
+
+Falls Sie keine eigene Liege oder keinen Schlafsack haben, ist das kein Problem. Für 20 € können Sie diese Sachen bei uns ausleihen. Bitte schreiben Sie uns eine E-Mail, falls sie etwas ausleihen wollen.
 
 Persönliche zeltlagergerechte Kleidung:
 
