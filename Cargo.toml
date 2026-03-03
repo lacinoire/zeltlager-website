@@ -5,27 +5,26 @@ authors = ["Flakebi <flakebi@t-online.de>"]
 edition = "2018"
 
 [dependencies]
-actix-files = "0.6"
-actix-identity = "0.9"
-actix-rt = "2"
-actix-service = "2"
-actix-session = { version = "0.11", features = ["cookie-session"] }
-actix-web = "4"
+axum = "0.8"
 clap = { version = "4", features = ["derive"] }
+clru = "0.6"
 anyhow = "1"
 base64 = "0.22"
 csv = "1"
 diesel = { version = "2", features = ["network-address", "time"] }
 diesel-async = { version = "0.7", features = ["deadpool", "migrations", "postgres"] }
 diesel_migrations = "2"
+fnv = "1"
 futures = "0.3"
 heck = "0.5"
+http-body-util = "0.1"
 ipnetwork = "0.21"
 lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 mime = "0.3"
 notify-debouncer-full = "0.6"
 rand = "0.8"
 rayon = "1"
+real-ip = "0.1"
 rpassword = "7"
 scrypt = "0.11"
 serde = { version = "1", features = ["derive"] }
@@ -34,6 +33,10 @@ t4rust-derive = "0.3"
 time = { version = "0.3", features = ["parsing"] }
 toml = "0.9"
 tokio = { version = "1", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+tower-sessions = "0.14"
+tower-sessions-sqlx-store = { version = "0.15", features = ["postgres"] }
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_debug"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"

@@ -2,7 +2,9 @@
 
 use std::fs;
 
-use actix_web::*;
+use axum::Json;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use tracing::{debug, error, warn};
 
 use crate::{State, Thumb};
@@ -28,14 +30,17 @@ pub fn split_image_name(s: &str) -> String {
 	res
 }
 
-pub async fn list_images(state: State, name: String) -> HttpResponse {
+pub async fn list_images(state: &State, name: &str) -> Response {
 	// List images
 	let files = match fs::read_dir(format!("Bilder{name}")) {
 		Ok(files) => files,
 		Err(error) => {
 			error!(name, %error, "Failed to list images");
-			return HttpResponse::InternalServerError()
-				.body("Fehler: Bilder konnten nicht gefunden werden.");
+			return (
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Fehler: Bilder konnten nicht gefunden werden.",
+			)
+				.into_response();
 		}
 	};
 	let mut list = Vec::new();
@@ -81,5 +86,5 @@ pub async fn list_images(state: State, name: String) -> HttpResponse {
 	// Sort the newest file first
 	list.sort_unstable_by(|a, b| a.1.cmp(&b.1).reverse());
 	let list = list.into_iter().map(|i| i.0).collect::<Vec<_>>();
-	HttpResponse::Ok().json(list)
+	Json(list).into_response()
 }

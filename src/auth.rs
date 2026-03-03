@@ -2,22 +2,33 @@
 //! and authorization (rights management).
 
 use std::collections::HashMap;
+use std::net::{IpAddr, SocketAddr};
 
-use actix_identity::Identity;
-use actix_web::http::StatusCode;
-use actix_web::*;
 use anyhow::{Result, bail, format_err};
+use axum::body::Body;
+use axum::extract::ConnectInfo;
+use axum::http::{HeaderMap, StatusCode};
+use axum::response::{IntoResponse, Response};
+use axum::{Form, Json, extract};
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
+use tower_sessions::Session;
 use tracing::{error, info, warn};
 
-use crate::{State, db};
+use crate::{ExtractState, State, db};
+
+const USER_KEY: &str = "user";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Roles {
 	Admin,
 	Erwischt,
 	Images(String),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Identity {
+	id: i32,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -52,12 +63,16 @@ impl<'de> Deserialize<'de> for Roles {
 	}
 }
 
-async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
-	let ip = req
-		.connection_info()
-		.realip_remote_addr()
-		.ok_or_else(|| format_err!("no ip detected"))?
-		.to_string();
+fn get_ip(headers: &HeaderMap, addr: SocketAddr) -> Result<IpAddr> {
+	Ok(real_ip::real_ip(headers, addr.ip(), &[
+		IpAddr::from([127, 0, 0, 1]).into(),
+		IpAddr::from([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]).into(),
+	])
+	.ok_or_else(|| format_err!("no ip detected"))?)
+}
+
+async fn rate_limit(state: &State, headers: &HeaderMap, addr: SocketAddr) -> Result<()> {
+	let ip = get_ip(headers, addr)?.to_string();
 	match state.db.check_rate(&ip).await {
 		Ok(true) => Ok(()),
 		Ok(false) => bail!("Rate limit exceeded"),
@@ -65,17 +80,18 @@ async fn rate_limit(state: &State, req: &HttpRequest) -> Result<()> {
 	}
 }
 
-fn set_logged_in(id: i32, request: &HttpRequest) -> Result<()> {
+async fn set_logged_in(id: i32, session: Session) -> Result<()> {
 	// Logged in: Store "user id"
-	Identity::login(&request.extensions(), id.to_string())?;
+	session.insert(USER_KEY, Identity { id }).await?;
 	Ok(())
 }
 
 async fn login_internal(
-	state: &State, req: &HttpRequest, body: HashMap<String, String>,
+	state: &State, headers: &HeaderMap, addr: SocketAddr, body: HashMap<String, String>,
+	session: Session,
 ) -> (StatusCode, LoginResult) {
 	// Check rate limit
-	if let Err(error) = rate_limit(state, req).await {
+	if let Err(error) = rate_limit(state, headers, addr).await {
 		info!(%error, "Rate limit exceeded");
 		return (StatusCode::FORBIDDEN, LoginResult {
 			error: Some("Zu viele Login Anfragen. Probieren Sie es später noch einmal.".into()),
@@ -108,7 +124,7 @@ async fn login_internal(
 			})
 		}
 		Ok(Some(id)) => {
-			if let Err(error) = set_logged_in(id, req) {
+			if let Err(error) = set_logged_in(id, session).await {
 				warn!(%error, "Failed to set login identity");
 				return (StatusCode::INTERNAL_SERVER_ERROR, LoginResult {
 					error: Some(format!(
@@ -117,11 +133,7 @@ async fn login_internal(
 					)),
 				});
 			}
-			let ip = match req
-				.connection_info()
-				.realip_remote_addr()
-				.ok_or_else(|| format_err!("no ip detected"))
-			{
+			let ip = match get_ip(headers, addr) {
 				Ok(r) => r.to_string(),
 				Err(error) => {
 					error!(%error, "Failed to get ip");
@@ -148,42 +160,57 @@ async fn login_internal(
 	}
 }
 
-#[post("/login")]
 pub async fn login(
-	state: web::Data<State>, req: HttpRequest, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = login_internal(&state, &req, body.into_inner()).await;
-	HttpResponse::build(status).json(result)
+	extract::State(state): ExtractState, headers: HeaderMap, session: Session,
+	ConnectInfo(addr): ConnectInfo<SocketAddr>, Form(body): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+	let (status, result) = login_internal(&state, &headers, addr, body, session).await;
+	(status, Json(result))
 }
 
-#[post("/login-nojs")]
 pub async fn login_nojs(
-	state: web::Data<State>, req: HttpRequest, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = login_internal(&state, &req, body.into_inner()).await;
+	extract::State(state): ExtractState, headers: HeaderMap, session: Session,
+	ConnectInfo(addr): ConnectInfo<SocketAddr>, Form(body): Form<HashMap<String, String>>,
+) -> Response {
+	let (status, result) = login_internal(&state, &headers, addr, body, session).await;
 	if let Some(error) = result.error {
-		HttpResponse::build(status).body(error)
+		(status, error).into_response()
 	} else {
 		debug_assert_eq!(status, StatusCode::OK);
-		HttpResponse::Found().append_header(("location", "/")).finish()
+		Response::builder()
+			.status(StatusCode::FOUND)
+			.header("location", "/")
+			.body(Body::empty())
+			.unwrap()
 	}
 }
 
-#[get("/logout")]
-pub async fn logout(id: Identity) -> HttpResponse {
-	id.logout();
-	HttpResponse::Found().append_header(("location", "/")).finish()
+pub async fn logout(session: Session) -> Response {
+	if let Err(error) = session.delete().await {
+		error!(%error, "Failed to log out");
+	}
+	Response::builder()
+		.status(StatusCode::FOUND)
+		.header("location", "/")
+		.body(Body::empty())
+		.unwrap()
 }
 
 // Utility methods for other modules
 
 /// Get the id of the logged in user
-pub fn logged_in_user(identity: &Option<Identity>) -> Option<i32> {
-	identity.as_ref().and_then(|i| i.id().ok()).and_then(|id| id.parse::<i32>().ok())
+pub async fn logged_in_user(session: &Session) -> Option<i32> {
+	match session.get::<Identity>(USER_KEY).await {
+		Err(error) => {
+			error!(%error, "Failed to get session");
+			None
+		}
+		Ok(r) => r.map(|i| i.id),
+	}
 }
 
-pub async fn get_roles(state: &State, id: &Option<Identity>) -> Result<Option<Vec<Roles>>> {
-	if let Some(user) = logged_in_user(id) {
+pub async fn get_roles(state: &State, session: &Session) -> Result<Option<Vec<Roles>>> {
+	if let Some(user) = logged_in_user(session).await {
 		let roles = state
 			.db
 			.get_roles(user)

@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 use std::io::Write;
 
-use actix_web::{http::StatusCode, *};
+use anyhow::Result;
+use axum::body::Body;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::{Form, Json, extract};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use scrypt::password_hash;
@@ -10,7 +14,7 @@ use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime};
 use tracing::{error, warn};
 
 use crate::db::models::{self, Gender, date, opt_date};
-use crate::{HttpResponse, State, db};
+use crate::{ExtractState, State, db};
 
 type DbResult<T> = anyhow::Result<T>;
 
@@ -20,12 +24,12 @@ struct SignupResult {
 }
 
 #[derive(Clone, Debug, Serialize)]
-struct ResignupResult {
+pub(crate) struct ResignupResult {
 	error: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct GetDataRequest {
+pub(crate) struct GetDataRequest {
 	token: String,
 }
 
@@ -70,7 +74,7 @@ async fn signup_internal(
 		}
 	};
 	if let Some(log_file) = &state.config.log_file {
-		let res: Result<_, Error> = (|| {
+		let res: Result<_> = (|| {
 			let _lock = state.log_mutex.lock().unwrap();
 			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
 			writeln!(
@@ -107,37 +111,34 @@ async fn signup_internal(
 	}
 }
 
-#[post("/signup-supervisor")]
 pub async fn signup(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = signup_internal(&state, body.into_inner()).await;
-	HttpResponse::build(status).json(result)
+	extract::State(state): ExtractState, Form(body): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+	let (status, result) = signup_internal(&state, body).await;
+	(status, Json(result))
 }
 
-#[post("/signup-supervisor-nojs")]
 pub async fn signup_nojs(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = signup_internal(&state, body.into_inner()).await;
+	extract::State(state): ExtractState, Form(body): Form<HashMap<String, String>>,
+) -> Response {
+	let (status, result) = signup_internal(&state, body).await;
 	if let Some(error) = result.error {
-		HttpResponse::build(status).body(error.message)
+		Response::builder().status(status).body(Body::new(error.message)).unwrap()
 	} else {
 		debug_assert_eq!(status, StatusCode::OK);
-		HttpResponse::Found()
-			.append_header(("location", "/intern/betreuer-anmeldung-erfolgreich"))
-			.finish()
+		Response::builder()
+			.status(StatusCode::FOUND)
+			.header("location", "/intern/betreuer-anmeldung-erfolgreich")
+			.body(Body::empty())
+			.unwrap()
 	}
 }
 
 /// Send mail with token link
-#[post("/resignup-supervisor")]
 pub async fn resignup(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let err = |msg| {
-		HttpResponse::build(StatusCode::BAD_REQUEST).json(ResignupResult { error: Some(msg) })
-	};
+	extract::State(state): ExtractState, Form(body): Form<HashMap<String, String>>,
+) -> (StatusCode, Json<ResignupResult>) {
+	let err = |msg| (StatusCode::BAD_REQUEST, Json(ResignupResult { error: Some(msg) }));
 
 	let Some(mail) = body.get("mail") else {
 		return err("Etwas ist schiefgegangen (E-Mailadresse nicht bekannt)".into());
@@ -185,7 +186,7 @@ pub async fn resignup(
 		Ok(None) => {
 			// Not found
 			warn!(mail, "Failed to find supervisor by mail");
-			return HttpResponse::build(StatusCode::OK).json(ResignupResult { error: None });
+			return (StatusCode::OK, Json(ResignupResult { error: None }));
 		}
 		Ok(Some(supervisor)) => supervisor,
 	};
@@ -198,20 +199,20 @@ pub async fn resignup(
 		}
 		Ok(()) => {
 			// Successful
-			HttpResponse::build(StatusCode::OK).json(ResignupResult { error: None })
+			(StatusCode::OK, Json(ResignupResult { error: None }))
 		}
 	}
 }
 
 /// Get data for resignup
-#[post("/get-supervisor-data")]
-pub async fn get_data(state: web::Data<State>, request: web::Json<GetDataRequest>) -> HttpResponse {
-	let err = |msg| {
-		HttpResponse::build(StatusCode::BAD_REQUEST).json(ResignupResult { error: Some(msg) })
-	};
+pub async fn get_data(
+	extract::State(state): ExtractState, Json(request): Json<GetDataRequest>,
+) -> Response {
+	let err =
+		|msg| (StatusCode::BAD_REQUEST, Json(ResignupResult { error: Some(msg) })).into_response();
 
 	// Check token
-	let token = request.0.token;
+	let token = request.token;
 	let supervisor = match async {
 		use db::schema::betreuer;
 		use db::schema::betreuer::columns::*;
@@ -253,7 +254,7 @@ pub async fn get_data(state: web::Data<State>, request: web::Json<GetDataRequest
 		Ok(Some(supervisor)) => supervisor,
 	};
 
-	HttpResponse::build(StatusCode::OK).json(GetDataResult {
+	Json(GetDataResult {
 		vorname: supervisor.vorname,
 		nachname: supervisor.nachname,
 		geburtsdatum: supervisor.geburtsdatum,
@@ -277,6 +278,7 @@ pub async fn get_data(state: web::Data<State>, request: web::Json<GetDataRequest
 		krankheiten: supervisor.krankheiten,
 		juleica_gueltig_bis: supervisor.juleica_gueltig_bis,
 	})
+	.into_response()
 }
 
 async fn presignup_internal(
@@ -309,7 +311,7 @@ async fn presignup_internal(
 		}
 	};
 	if let Some(log_file) = &state.config.log_file {
-		let res: Result<_, Error> = (|| {
+		let res: Result<_> = (|| {
 			let _lock = state.log_mutex.lock().unwrap();
 			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
 			writeln!(
@@ -391,25 +393,25 @@ async fn presignup_internal(
 	}
 }
 
-#[post("/presignup-supervisor")]
 pub async fn presignup(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = presignup_internal(&state, body.into_inner()).await;
-	HttpResponse::build(status).json(result)
+	extract::State(state): ExtractState, Form(body): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+	let (status, result) = presignup_internal(&state, body).await;
+	(status, Json(result))
 }
 
-#[post("/presignup-supervisor-nojs")]
 pub async fn presignup_nojs(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = presignup_internal(&state, body.into_inner()).await;
+	extract::State(state): ExtractState, Form(body): Form<HashMap<String, String>>,
+) -> Response {
+	let (status, result) = presignup_internal(&state, body).await;
 	if let Some(error) = result.error {
-		HttpResponse::build(status).body(error.message)
+		Response::builder().status(status).body(Body::new(error.message)).unwrap()
 	} else {
 		debug_assert_eq!(status, StatusCode::OK);
-		HttpResponse::Found()
-			.append_header(("location", "/betreuer-anmeldung-erfolgreich"))
-			.finish()
+		Response::builder()
+			.status(StatusCode::FOUND)
+			.header("location", "/betreuer-anmeldung-erfolgreich")
+			.body(Body::empty())
+			.unwrap()
 	}
 }

@@ -1,19 +1,14 @@
-use actix_web::http::StatusCode;
-use actix_web::*;
-use anyhow::bail;
+use anyhow::{Error, bail};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::{Json, extract};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
-use crate::{
-	State,
-	db::{
-		self,
-		models::{FullSupervisor, FullTeilnehmer},
-	},
-	mail,
-};
+use crate::db::models::{FullSupervisor, FullTeilnehmer};
+use crate::{ExtractState, WebResult, db, mail};
 use time::OffsetDateTime;
 
 type DbResult<T> = anyhow::Result<T>;
@@ -40,10 +35,14 @@ pub struct LagerInfo {
 	erwischt_game_count: i64,
 }
 
-#[post("/teilnehmer/remove")]
+fn err<T>(error: Error, msg: &'static str) -> WebResult<T> {
+	error!(%error, "{msg}");
+	Err((StatusCode::INTERNAL_SERVER_ERROR, msg).into_response())
+}
+
 pub(crate) async fn remove_member(
-	state: web::Data<State>, data: web::Json<RemoveMemberData>,
-) -> HttpResponse {
+	extract::State(state): ExtractState, Json(data): Json<RemoveMemberData>,
+) -> WebResult<&'static str> {
 	match async {
 		use db::schema::teilnehmer;
 		use db::schema::teilnehmer::columns::*;
@@ -58,11 +57,8 @@ pub(crate) async fn remove_member(
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to remove member");
-			HttpResponse::InternalServerError().body("Failed to remove member")
-		}
-		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Err(error) => err(error, "Failed to remove member"),
+		Ok(()) => Ok("Success"),
 	}
 }
 
@@ -88,10 +84,9 @@ async fn payed_mail(
 	(StatusCode::INTERNAL_SERVER_ERROR, EditMemberResult { error: Some(error) })
 }
 
-#[post("/teilnehmer/edit")]
 pub(crate) async fn edit_member(
-	state: web::Data<State>, data: web::Json<FullTeilnehmer>,
-) -> HttpResponse {
+	extract::State(state): ExtractState, Json(data): Json<FullTeilnehmer>,
+) -> Response {
 	match async {
 		use db::schema::teilnehmer;
 		use db::schema::teilnehmer::columns::*;
@@ -104,33 +99,36 @@ pub(crate) async fn edit_member(
 			.await?;
 		let new_payed = data.bezahlt && !member.bezahlt;
 
-		diesel::update(&*data).set(&*data).execute(&mut connection).await?;
+		diesel::update(&data).set(&data).execute(&mut connection).await?;
 		DbResult::Ok((new_payed, member))
 	}
 	.await
 	{
 		Err(error) => {
 			error!(%error, "Failed to edit member");
-			HttpResponse::InternalServerError().json(EditMemberResult {
-				error: Some(format!("Teilnehmer konnte nicht gespeichert werden: {error}")),
-			})
+			(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				Json(EditMemberResult {
+					error: Some(format!("Teilnehmer konnte nicht gespeichert werden: {error}")),
+				}),
+			)
+				.into_response()
 		}
 		Ok((new_payed, member)) => {
 			if new_payed {
 				let (status, result) = payed_mail(&state.mail, member).await;
-				HttpResponse::build(status).json(result)
+				(status, Json(result)).into_response()
 			} else {
-				HttpResponse::Ok().json(EditMemberResult { error: None })
+				Json(EditMemberResult { error: None }).into_response()
 			}
 		}
 	}
 }
 
 // TODO Use delete("/betreuer/{id}") here and for teilnehmer
-#[post("/betreuer/remove")]
 pub(crate) async fn remove_supervisor(
-	state: web::Data<State>, data: web::Json<RemoveSupervisorData>,
-) -> HttpResponse {
+	extract::State(state): ExtractState, Json(data): Json<RemoveSupervisorData>,
+) -> WebResult<&'static str> {
 	match async {
 		use db::schema::betreuer;
 		use db::schema::betreuer::columns::*;
@@ -145,35 +143,29 @@ pub(crate) async fn remove_supervisor(
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to remove supervisor");
-			HttpResponse::InternalServerError().body("Failed to remove supervisor")
-		}
-		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Err(error) => err(error, "Failed to remove supervisor"),
+		Ok(()) => Ok("Success"),
 	}
 }
 
-#[post("/betreuer/edit")]
 pub(crate) async fn edit_supervisor(
-	state: web::Data<State>, data: web::Json<FullSupervisor>,
-) -> HttpResponse {
+	extract::State(state): ExtractState, Json(data): Json<FullSupervisor>,
+) -> WebResult<&'static str> {
 	match async {
-		diesel::update(&*data).set(&*data).execute(&mut state.db.get().await?).await?;
+		diesel::update(&data).set(&data).execute(&mut state.db.get().await?).await?;
 		DbResult::Ok(())
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to remove supervisor");
-			HttpResponse::InternalServerError().body("Failed to edit supervisor")
-		}
-		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Err(error) => err(error, "Failed to edit supervisor"),
+		Ok(()) => Ok("Success"),
 	}
 }
 
 /// Return all current members as json.
-#[get("/teilnehmer")]
-pub async fn download_members(state: web::Data<State>) -> HttpResponse {
+pub async fn download_members(
+	extract::State(state): ExtractState,
+) -> WebResult<Json<Vec<FullTeilnehmer>>> {
 	let mut connection = match state.db.get().await {
 		Ok(c) => c,
 		Err(error) => {
@@ -187,13 +179,14 @@ pub async fn download_members(state: web::Data<State>) -> HttpResponse {
 			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
-		Ok(members) => HttpResponse::Ok().json(members),
+		Ok(members) => Ok(Json(members)),
 	}
 }
 
 /// Return all supervisors as json.
-#[get("/betreuer")]
-pub async fn download_supervisors(state: web::Data<State>) -> HttpResponse {
+pub async fn download_supervisors(
+	extract::State(state): ExtractState,
+) -> WebResult<Json<Vec<FullSupervisor>>> {
 	let mut connection = match state.db.get().await {
 		Ok(c) => c,
 		Err(error) => {
@@ -207,13 +200,13 @@ pub async fn download_supervisors(state: web::Data<State>) -> HttpResponse {
 			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
-		Ok(supervisors) => HttpResponse::Ok().json(supervisors),
+		Ok(supervisors) => Ok(Json(supervisors)),
 	}
 }
 
-/// Return all unique mail addresses as json.
-#[get("/mails")]
-pub async fn download_mails(state: web::Data<State>) -> HttpResponse {
+pub async fn download_mails(
+	extract::State(state): ExtractState,
+) -> Result<Json<Vec<String>>, Response> {
 	match async {
 		use crate::db::schema::teilnehmer;
 
@@ -232,7 +225,7 @@ pub async fn download_mails(state: web::Data<State>) -> HttpResponse {
 			warn!(%error, "Error fetching from database");
 			crate::error_response(&state)
 		}
-		Ok(mails) => HttpResponse::Ok().json(mails),
+		Ok(mails) => Ok(Json(mails)),
 	}
 }
 
@@ -250,8 +243,7 @@ fn betreuer_signup_date_last_year() -> OffsetDateTime {
 }
 
 /// Get overview info of the current lager.
-#[get("/lager")]
-pub async fn lager_info(state: web::Data<State>) -> HttpResponse {
+pub async fn lager_info(extract::State(state): ExtractState) -> WebResult<Json<LagerInfo>> {
 	match async {
 		use crate::db::schema::{betreuer, erwischt_game, teilnehmer};
 		use diesel::dsl;
@@ -278,13 +270,12 @@ pub async fn lager_info(state: web::Data<State>) -> HttpResponse {
 			warn!(%error, "Error getting lager info");
 			crate::error_response(&state)
 		}
-		Ok(info) => HttpResponse::Ok().json(info),
+		Ok(info) => Ok(Json(info)),
 	}
 }
 
 /// Remove all data for the current lager.
-#[delete("/lager")]
-pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
+pub async fn remove_lager(extract::State(state): ExtractState) -> WebResult<&'static str> {
 	// Remove log file
 	if let Some(log_file) = &state.config.log_file {
 		if let Err(error) = std::fs::remove_file(log_file) {
@@ -321,6 +312,6 @@ pub async fn remove_lager(state: web::Data<State>) -> HttpResponse {
 			warn!(%error, "Error deleting lager");
 			crate::error_response(&state)
 		}
-		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Ok(()) => Ok("Success"),
 	}
 }

@@ -4,30 +4,29 @@ extern crate diesel;
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fs;
-use std::fs::File;
-use std::io::{self, Read, Write};
-use std::rc::Rc;
+use std::net::SocketAddr;
 use std::sync::{Arc, LazyLock, Mutex, RwLock};
 
-use actix_files::Files;
-use actix_identity::{Identity, IdentityExt, IdentityMiddleware};
-use actix_session::config::{PersistentSession, TtlExtensionPolicy};
-use actix_session::{SessionMiddleware, storage::CookieSessionStore};
-use actix_web::body::MessageBody;
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::http::header::DispositionType;
-use actix_web::web::Data;
-use actix_web::*;
 use anyhow::{Result, format_err};
+use axum::body::{Body, Bytes};
+use axum::extract::{Query, Request};
+use axum::http::header::LAST_MODIFIED;
+use axum::http::{self, StatusCode};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{any, get, post};
+use axum::{Json, Router, extract};
 use clap::Parser;
-use futures::future::LocalBoxFuture;
-use futures::prelude::*;
 use lettre::message::Mailbox;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use time::macros::format_description;
 use time::{Date, Duration};
-use tracing::{error, warn};
+use tower::{Layer, ServiceExt};
+use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
+use tower_sessions::{ExpiredDeletion, Expiry, Session, SessionManagerLayer};
+use tower_sessions_sqlx_store::PostgresStore;
+use tower_sessions_sqlx_store::sqlx::Pool;
+use tracing::{error, info, warn};
 
 mod admin;
 mod auth;
@@ -35,6 +34,7 @@ mod basic;
 mod config;
 mod db;
 mod erwischt;
+mod etag;
 mod images;
 mod mail;
 mod management;
@@ -42,11 +42,10 @@ mod signup;
 mod signup_supervisor;
 mod thumbs;
 
-use config::{Config, MailAddress};
+use crate::config::{Config, MailAddress};
 
 const DEFAULT_PREFIX: &str = "public";
 const RATELIMIT_MAX_COUNTER: i32 = 50;
-const KEY_FILE: &str = "secret.key";
 const ISO_DATE_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
 	format_description!("[year]-[month]-[day]");
 const GERMAN_DATE_FORMAT: &[time::format_description::BorrowedFormatItem<'_>] =
@@ -61,7 +60,9 @@ fn cookie_maxtime() -> Duration { Duration::days(2) }
 fn ratelimit_duration() -> Duration { Duration::days(1) }
 fn get_true() -> bool { true }
 
-#[derive(Clone)]
+type WebResult<T, E = Response> = Result<T, E>;
+type ExtractState = extract::State<Arc<State>>;
+
 pub struct State {
 	sites: HashMap<String, basic::SiteDescriptions>,
 	config: Config,
@@ -69,9 +70,9 @@ pub struct State {
 	mail: mail::Mail,
 	/// Sizes of thumbnails.
 	/// Map path to width, height.
-	thumbs: Arc<RwLock<HashMap<String, Thumb>>>,
+	thumbs: RwLock<HashMap<String, Thumb>>,
 	/// Used to lock access to the log file.
-	log_mutex: Arc<Mutex<()>>,
+	log_mutex: Mutex<()>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -104,85 +105,35 @@ struct MenuRequestData {
 	prefix: Option<String>,
 }
 
-#[derive(Debug, Clone)]
-struct ImagesPathRewriter {
-	image_dirs: Vec<String>,
-}
-
-pub struct ImagesPathRewriterTransform<S> {
-	service: S,
-	image_dirs: Vec<String>,
-}
-
-impl<S, B> Transform<S, ServiceRequest> for ImagesPathRewriter
-where
-	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-	S::Future: 'static,
-{
-	type Response = ServiceResponse<B>;
-	type Error = Error;
-	type Transform = ImagesPathRewriterTransform<S>;
-	type InitError = ();
-	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
-
-	fn new_transform(&self, service: S) -> Self::Future {
-		future::ok(ImagesPathRewriterTransform { service, image_dirs: self.image_dirs.clone() })
-	}
-}
-
-impl<S, B> Service<ServiceRequest> for ImagesPathRewriterTransform<S>
-where
-	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-	S::Future: 'static,
-{
-	type Response = ServiceResponse<B>;
-	type Error = Error;
-	type Future = S::Future;
-
-	actix_service::forward_ready!(service);
-
-	fn call(&self, mut req: ServiceRequest) -> Self::Future {
-		let head = req.head_mut();
-
-		let original_path = head.uri.path();
-		let mut path = original_path;
-		if original_path.starts_with("/Bilder") {
-			for name in &self.image_dirs {
-				if original_path.trim_end_matches('/') == format!("/Bilder{}", name) {
-					path = "/images/";
-				}
+fn rewrite_images_path<B>(image_dirs: &[String], mut req: Request<B>) -> Request<B> {
+	let uri = req.uri_mut();
+	let mut path = uri.path();
+	if path.starts_with("/Bilder") {
+		for name in image_dirs {
+			if path.trim_end_matches('/') == format!("/Bilder{}", name) {
+				path = "/images/";
+				break;
 			}
 		}
-		if path != original_path {
-			let mut parts = head.uri.clone().into_parts();
-			let query = parts.path_and_query.as_ref().and_then(|pq| pq.query());
-
-			let path = match query {
-				Some(q) => web::Bytes::from(format!("{}?{}", path, q)),
-				None => web::Bytes::copy_from_slice(path.as_bytes()),
-			};
-			parts.path_and_query = Some(http::uri::PathAndQuery::from_maybe_shared(path).unwrap());
-
-			let uri = http::Uri::from_parts(parts).unwrap();
-			req.match_info_mut().get_mut().update(&uri);
-			req.head_mut().uri = uri;
-		}
-		self.service.call(req)
 	}
+	if path != uri.path() {
+		let mut parts = uri.clone().into_parts();
+
+		let path = match uri.query() {
+			Some(q) => Bytes::from(format!("{}?{}", path, q)),
+			None => Bytes::copy_from_slice(path.as_bytes()),
+		};
+		parts.path_and_query = Some(http::uri::PathAndQuery::from_maybe_shared(path).unwrap());
+
+		*uri = http::Uri::from_parts(parts).unwrap();
+	}
+	req
 }
 
 impl TryInto<Mailbox> for MailAddress {
 	type Error = anyhow::Error;
 	fn try_into(self) -> Result<Mailbox> {
 		Ok(Mailbox { name: self.name, email: self.address.parse()? })
-	}
-}
-
-fn content_disposition_map(typ: &mime::Name) -> DispositionType {
-	match *typ {
-		// For images and application/pdf in object tags
-		mime::IMAGE | mime::TEXT | mime::VIDEO | mime::APPLICATION => DispositionType::Inline,
-		_ => DispositionType::Attachment,
 	}
 }
 
@@ -209,146 +160,86 @@ fn get_origin(headers: &http::header::HeaderMap) -> Option<Result<String>> {
 		})
 }
 
-fn check_csrf(req: &ServiceRequest, domain: Option<&str>) -> bool {
+async fn check_csrf(
+	extract::State(config): extract::State<Config>, req: Request, next: axum::middleware::Next,
+) -> Response {
 	if !req.method().is_safe() {
-		if let Some(domain) = domain {
+		if let Some(domain) = config.domain {
 			if let Some(header) = get_origin(req.headers()) {
 				match header {
-					Ok(ref origin) if origin.ends_with(domain) => {}
+					Ok(ref origin) if origin.ends_with(&domain) => {}
 					Ok(ref origin) => {
 						warn!(%origin, %domain, "Origin does not end with domain");
-						return false;
+						return (StatusCode::BAD_REQUEST, "Cross origin request denied")
+							.into_response();
 					}
 					Err(error) => {
 						warn!(%error, "Origin not found");
-						return false;
+						return (StatusCode::BAD_REQUEST, "Cross origin request denied")
+							.into_response();
 					}
 				}
 			}
 		}
 	}
-	true
+	next.run(req).await
 }
 
+fn remove_last_modified(mut resp: Response) -> Response {
+	resp.headers_mut().remove(LAST_MODIFIED);
+	resp
+}
+
+#[derive(Clone)]
 struct HasRolePredicate {
+	state: Arc<State>,
 	/// The role to check for
 	role: auth::Roles,
 	/// If this is an API endpoint or a user-facing endpoint
 	is_api: bool,
 }
 
-struct HasRolePredicateMiddleware<S> {
-	service: Rc<S>,
-	role: auth::Roles,
-	is_api: bool,
-}
-
 impl HasRolePredicate {
-	fn new(role: auth::Roles, is_api: bool) -> Self { Self { role, is_api } }
-}
-
-impl<S, B> Transform<S, ServiceRequest> for HasRolePredicate
-where
-	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-	S::Future: 'static,
-	B: MessageBody + 'static,
-{
-	type Response = ServiceResponse;
-	type Error = Error;
-	type InitError = ();
-	type Transform = HasRolePredicateMiddleware<S>;
-	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
-
-	fn new_transform(&self, service: S) -> Self::Future {
-		future::ok(HasRolePredicateMiddleware {
-			service: Rc::new(service),
-			role: self.role.clone(),
-			is_api: self.is_api,
-		})
+	fn new(state: Arc<State>, role: auth::Roles, is_api: bool) -> Self {
+		Self { state, role, is_api }
 	}
 }
 
-impl<S, B> Service<ServiceRequest> for HasRolePredicateMiddleware<S>
-where
-	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-	S::Future: 'static,
-	B: MessageBody + 'static,
-{
-	type Response = ServiceResponse;
-	type Error = Error;
-	type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
-
-	actix_service::forward_ready!(service);
-
-	fn call(&self, req: ServiceRequest) -> Self::Future {
-		let service = Rc::clone(&self.service);
-		let state = req.app_data::<Data<State>>().unwrap().clone();
-		let identity = req.get_identity();
-		let role = self.role.clone();
-		let is_api = self.is_api;
-
-		async move {
-			let identity = identity.ok();
-			let roles = match auth::get_roles(&state, &identity).await {
-				Ok(r) => r,
-				Err(error) => {
-					error!(%error, "Failed to get roles");
-					return Ok(req.into_response(crate::error_response(&state)));
-				}
-			};
-			if let Some(roles) = roles {
-				if roles.contains(&role) {
-					Ok(service.call(req).await?.map_into_boxed_body())
-				} else {
-					let res = forbidden().await;
-					warn!(path = %req.path(), "Forbidden");
-					Ok(req.into_response(res))
-				}
-			} else {
-				// Not logged in
-				if is_api {
-					// Return an error that can be displayed
-					Ok(req.into_response(
-						HttpResponse::Unauthorized().body("Bitte anmelden, Sie sind ausgeloggt."),
-					))
-				} else {
-					let location = format!(
-						"/login?redirect={}",
-						url::form_urlencoded::byte_serialize(req.path().as_bytes())
-							.collect::<String>()
-					);
-					// Redirect to login site with redirect to original site
-					Ok(req.into_response(
-						HttpResponse::Found().append_header(("location", location)).finish(),
-					))
-				}
-			}
+async fn has_role(
+	extract::State(this): extract::State<HasRolePredicate>, req: Request,
+	next: axum::middleware::Next,
+) -> Response {
+	let Some(session) = req.extensions().get::<Session>() else {
+		error!("Failed to get session");
+		return error_response::<()>(&this.state).unwrap_err();
+	};
+	let roles = match auth::get_roles(&this.state, &session).await {
+		Ok(r) => r,
+		Err(error) => {
+			error!(%error, "Failed to get roles");
+			return error_response::<()>(&this.state).unwrap_err();
 		}
-		.boxed_local()
+	};
+	if let Some(roles) = roles {
+		if roles.contains(&this.role) { next.run(req).await } else { forbidden(req) }
+	} else {
+		// Not logged in
+		if this.is_api {
+			// Return an error that can be displayed
+			(StatusCode::UNAUTHORIZED, "Bitte anmelden, Sie sind ausgeloggt.").into_response()
+		} else {
+			let location = format!(
+				"/login?redirect={}",
+				url::form_urlencoded::byte_serialize(req.uri().path().as_bytes())
+					.collect::<String>()
+			);
+			Response::builder()
+				.status(StatusCode::FOUND)
+				.header("location", location)
+				.body(Body::empty())
+				.unwrap()
+		}
 	}
-}
-
-fn fix_encoding_header<S, B>(
-	req: ServiceRequest, srv: &S,
-) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>>
-where
-	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-	S::Future: 'static,
-	B: MessageBody + 'static,
-{
-	srv.call(req).map(|response| {
-		response.map(|mut response| {
-			let headers = response.headers_mut();
-			if let Some(header) = headers.get_mut(actix_web::http::header::CONTENT_ENCODING) {
-				if let Ok(h) = header.to_str() {
-					if h == "identity" {
-						headers.remove(actix_web::http::header::CONTENT_ENCODING);
-					}
-				}
-			}
-			response
-		})
-	})
 }
 
 impl Config {
@@ -364,37 +255,38 @@ impl Config {
 	}
 }
 
-fn error_response(state: &State) -> HttpResponse {
-	HttpResponse::InternalServerError()
-		.body(format!("Es ist ein interner Fehler aufgetreten.\n{}", state.config.error_message))
+fn error_response<T>(state: &State) -> WebResult<T, Response> {
+	Err((
+		StatusCode::INTERNAL_SERVER_ERROR,
+		format!("Es ist ein interner Fehler aufgetreten.\n{}", state.config.error_message),
+	)
+		.into_response())
 }
 
-async fn not_found(req: HttpRequest) -> HttpResponse {
-	warn!(path = %req.path(), "File not found");
-	HttpResponse::NotFound().body("Page not found")
+async fn not_found(req: Request) -> Response {
+	warn!(path = %req.uri(), "File not found");
+	(StatusCode::NOT_FOUND, "Page not found").into_response()
 }
 
-async fn forbidden() -> HttpResponse {
-	// This gets printed sometimes without a request being forbidden because
-	// we need the request.
-	HttpResponse::NotFound().body("Page not found")
+fn forbidden(req: Request) -> Response {
+	warn!(path = %req.uri(), "Forbidden");
+	(StatusCode::NOT_FOUND, "Page not found").into_response()
 }
 
-#[get("/menu")]
 async fn menu(
-	state: web::Data<State>, data: web::Query<MenuRequestData>, id: Option<Identity>,
-) -> HttpResponse {
+	extract::State(state): ExtractState, Query(data): Query<MenuRequestData>, session: Session,
+) -> Result<Json<MenuData>, Response> {
 	if let Some(site_descriptions) = data
 		.prefix
 		.as_deref()
 		.and_then(|p| state.sites.get(p))
 		.or_else(|| state.sites.get(DEFAULT_PREFIX))
 	{
-		let roles = match auth::get_roles(&state, &id).await {
+		let roles = match auth::get_roles(&state, &session).await {
 			Ok(r) => r,
 			Err(error) => {
 				error!(%error, "Failed to get roles");
-				return crate::error_response(&state);
+				return error_response(&state);
 			}
 		};
 		let mut menu_items = Vec::new();
@@ -433,11 +325,11 @@ async fn menu(
 			});
 		}
 
-		HttpResponse::Ok().json(MenuData {
+		Ok(Json(MenuData {
 			is_logged_in: roles.is_some(),
 			global_message: state.config.global_message.clone(),
 			items: menu_items,
-		})
+		}))
 	} else {
 		error!(prefix = data.prefix, "Did not find site prefix");
 		crate::error_response(&state)
@@ -447,11 +339,9 @@ async fn menu(
 #[tokio::main]
 async fn main() -> Result<()> {
 	tracing_subscriber::fmt()
-		.with_env_filter(
-			tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or(
-				tracing_subscriber::EnvFilter::new("actix_web=info,zeltlager_website=info"),
-			),
-		)
+		.with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or(
+			tracing_subscriber::EnvFilter::new("tower_http=debug,zeltlager_website=info"),
+		))
 		.init();
 
 	// Command line arguments
@@ -464,17 +354,6 @@ async fn main() -> Result<()> {
 	if let Some(action) = args.action {
 		management::cmd_action(&config, action).await?;
 		return Ok(());
-	}
-
-	// Get cookie master key
-	let mut key = [0; 32];
-	if let Ok(mut key_file) = File::open(KEY_FILE) {
-		key_file.read_exact(&mut key)?;
-	} else {
-		rand::thread_rng().fill(&mut key);
-		// Save in file
-		let mut key_file = File::create(KEY_FILE)?;
-		key_file.write_all(&key)?;
 	}
 
 	let mut sites = HashMap::new();
@@ -492,14 +371,14 @@ async fn main() -> Result<()> {
 	let mail = mail::Mail::new(config.clone());
 
 	let address = config.bind_address.clone();
-	let state = State {
+	let state = Arc::new(State {
 		sites,
 		config,
 		db: database,
 		mail,
 		thumbs: Default::default(),
-		log_mutex: Arc::new(Mutex::new(())),
-	};
+		log_mutex: Mutex::new(()),
+	});
 
 	// Start thumbnail creator
 	let mut image_dirs = Vec::new();
@@ -510,131 +389,120 @@ async fn main() -> Result<()> {
 		{
 			image_dirs.push(path.to_string());
 			let state2 = state.clone();
-			std::thread::spawn(move || thumbs::watch_thumbs(state2, d.file_name().into()));
+			std::thread::spawn(move || thumbs::watch_thumbs(&state2, d.file_name().into()));
 		}
 	}
 
-	HttpServer::new(move || {
-		let domain = state.config.domain.clone();
-		let app = App::new()
-			.app_data(Data::new(state.clone()))
-			.wrap(middleware::Logger::default())
-			.wrap_fn(move |req, srv| {
-				// Test for CSRF, check origin header
-				if !check_csrf(&req, domain.as_deref()) {
-					future::err(
-						io::Error::new(io::ErrorKind::Other, "Cross origin request denied").into(),
-					)
-					.right_future()
-				} else {
-					srv.call(req).left_future()
-				}
-			});
+	let api_admin_routes = Router::new()
+		.route("/mails", get(admin::download_mails))
+		.route("/teilnehmer", get(admin::download_members))
+		.route("/betreuer", get(admin::download_supervisors))
+		.route("/lager", get(admin::lager_info).delete(admin::remove_lager))
+		.route("/teilnehmer/remove", post(admin::remove_member))
+		.route("/teilnehmer/edit", post(admin::edit_member))
+		.route("/betreuer/remove", post(admin::remove_supervisor))
+		.route("/betreuer/edit", post(admin::edit_supervisor))
+		.layer(axum::middleware::from_fn_with_state(
+			HasRolePredicate::new(state.clone(), auth::Roles::Admin, true),
+			has_role,
+		));
 
-		let cookie_session_store = CookieSessionStore::default();
-		let session_middleware = SessionMiddleware::builder(
-			cookie_session_store,
-			actix_web::cookie::Key::derive_from(&key),
-		)
-		.cookie_name("user".into())
-		.cookie_secure(state.config.secure)
-		.cookie_same_site(actix_web::cookie::SameSite::Strict)
-		.cookie_domain(state.config.domain.clone())
-		.session_lifecycle(
-			PersistentSession::default()
-				.session_ttl(cookie_maxtime())
-				.session_ttl_extension_policy(TtlExtensionPolicy::OnEveryRequest),
-		);
+	let api_erwischt_routes = Router::new()
+		.route("/games", get(erwischt::get_games))
+		.route("/game/{id}", get(erwischt::get_game).delete(erwischt::delete_game))
+		.route("/game", post(erwischt::create_game))
+		.route("/game/setCatch", post(erwischt::catch))
+		.route("/game/insert", post(erwischt::insert))
+		.layer(axum::middleware::from_fn_with_state(
+			HasRolePredicate::new(state.clone(), auth::Roles::Erwischt, true),
+			has_role,
+		));
 
-		let mut app = app
-			.wrap(
-				IdentityMiddleware::builder()
-					.visit_deadline(Some(cookie_maxtime().unsigned_abs()))
-					.build(),
-			)
-			.wrap(session_middleware.build())
-			.service(
-				web::scope("/api")
-					.service(auth::login)
-					.service(auth::login_nojs)
-					.service(auth::logout)
-					.service(menu)
-					.service(signup::signup_state)
-					.service(signup::signup)
-					.service(signup::signup_nojs)
-					.service(signup_supervisor::signup)
-					.service(signup_supervisor::signup_nojs)
-					.service(signup_supervisor::resignup)
-					.service(signup_supervisor::get_data)
-					.service(signup_supervisor::presignup)
-					.service(signup_supervisor::presignup_nojs)
-					.service(
-						web::scope("/admin")
-							.wrap(HasRolePredicate::new(auth::Roles::Admin, true))
-							.service(admin::download_mails)
-							.service(admin::download_members)
-							.service(admin::download_supervisors)
-							.service(admin::lager_info)
-							.service(admin::remove_lager)
-							.service(admin::remove_member)
-							.service(admin::edit_member)
-							.service(admin::remove_supervisor)
-							.service(admin::edit_supervisor),
-					)
-					.service(
-						web::scope("/erwischt")
-							.wrap(HasRolePredicate::new(auth::Roles::Erwischt, true))
-							.service(erwischt::get_games)
-							.service(erwischt::get_game)
-							.service(erwischt::create_game)
-							.service(erwischt::delete_game)
-							.service(erwischt::catch)
-							.service(erwischt::insert),
-					),
-			);
+	let api_routes = Router::new()
+		.route("/login", post(auth::login))
+		.route("/login-nojs", post(auth::login_nojs))
+		.route("/logout", get(auth::logout))
+		.route("/menu", get(menu))
+		.route("/signup-state", get(signup::signup_state))
+		.route("/signup", post(signup::signup))
+		.route("/signup-nojs", post(signup::signup_nojs))
+		.route("/signup-supervisor", post(signup_supervisor::signup))
+		.route("/signup-supervisor-nojs", post(signup_supervisor::signup_nojs))
+		.route("/resignup-supervisor", post(signup_supervisor::resignup))
+		.route("/get-supervisor-data", post(signup_supervisor::get_data))
+		.route("/presignup-supervisor", post(signup_supervisor::presignup))
+		.route("/presignup-supervisor-nojs", post(signup_supervisor::presignup_nojs))
+		.nest("/admin", api_admin_routes)
+		.nest("/erwischt", api_erwischt_routes);
 
-		// Do not use last-modified, because it goes wrong when building with nix and the timestamp is 0
-		for name in &image_dirs {
-			let name2 = name.clone();
-			let state2 = state.clone();
-			app = app
-				.service(
-					web::scope(&format!("/Bilder{}/list", name))
-						.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone()), true))
-						.route(
-							"",
-							web::get()
-								.to(move || images::list_images(state2.clone(), name2.clone())),
-						),
+	let etag_layer =
+		axum::middleware::from_fn_with_state(etag::EtagLayer::new(), etag::compute_etag);
+
+	// Do not use last-modified, because it goes wrong when building with nix and the timestamp is 0
+	let mut app = Router::new();
+	for name in &image_dirs {
+		let name2 = name.clone();
+		app = app.merge(
+			Router::new()
+				.route(
+					&format!("/Bilder{}/list", name),
+					get(async move |extract::State(state): ExtractState| {
+						images::list_images(&state, &name2).await
+					}),
 				)
-				.service(
-					web::scope(&format!("/Bilder{}/static", name))
-						.wrap(HasRolePredicate::new(auth::Roles::Images(name.clone()), false))
-						.wrap_fn(fix_encoding_header)
-						.service(
-							Files::new("", format!("Bilder{}", name))
-								.use_last_modified(false)
-								.mime_override(content_disposition_map)
-								.default_handler(web::to(not_found)),
-						),
-				);
-		}
+				.nest(
+					&format!("/Bilder{}/static", name),
+					Router::new().fallback_service(
+						etag_layer
+							.layer(
+								ServeDir::new(format!("Bilder{}", name)).fallback(any(not_found)),
+							)
+							.map_response(remove_last_modified),
+					),
+				)
+				.layer(axum::middleware::from_fn_with_state(
+					HasRolePredicate::new(state.clone(), auth::Roles::Images(name.clone()), true),
+					has_role,
+				)),
+		);
+	}
 
-		// Serve frontend files
-		app.wrap(ImagesPathRewriter { image_dirs: image_dirs.clone() })
-			.wrap_fn(fix_encoding_header)
-			.service(
-				Files::new("", "frontend/build")
-					.use_last_modified(false)
-					.mime_override(content_disposition_map)
-					.index_file("index.html")
-					.default_handler(web::to(not_found)),
-			)
-			.default_service(web::to(not_found))
-	})
-	.bind(address)?
-	.run()
-	.await?;
+	let rewrite_img_path_middleware =
+		tower::util::MapRequestLayer::new(move |req| rewrite_images_path(&image_dirs, req));
+
+	let session_store = PostgresStore::new(Pool::connect(&state.config.database).await?);
+	session_store.migrate().await?;
+	tokio::task::spawn(
+		session_store.clone().continuously_delete_expired(tokio::time::Duration::from_mins(10)),
+	);
+
+	let mut session_layer = SessionManagerLayer::new(session_store)
+		.with_name("user")
+		.with_secure(state.config.secure)
+		.with_same_site(tower_sessions::cookie::SameSite::Strict)
+		.with_expiry(Expiry::OnInactivity(cookie_maxtime()))
+		.with_always_save(true);
+
+	if let Some(domain) = &state.config.domain {
+		session_layer = session_layer.with_domain(domain.clone());
+	}
+
+	let app = app
+		.nest("/api", api_routes)
+		.fallback_service(
+			rewrite_img_path_middleware
+				.layer(etag_layer.layer(ServeDir::new("frontend/build").fallback(any(not_found))))
+				.map_response(remove_last_modified),
+		)
+		.layer(axum::middleware::from_fn_with_state(state.config.clone(), check_csrf))
+		.layer(TraceLayer::new_for_http())
+		.layer(session_layer)
+		.with_state(state)
+		.into_make_service_with_connect_info::<SocketAddr>();
+
+	info!(%address, "Starting server");
+	let listener = tokio::net::TcpListener::bind(address).await?;
+	axum::serve(listener, app).await?;
 
 	Ok(())
 }

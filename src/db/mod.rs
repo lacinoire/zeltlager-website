@@ -44,7 +44,6 @@ macro_rules! get_freetext_str {
 }
 
 pub use get_freetext_str;
-pub use get_str;
 
 pub mod models;
 // Generate with `diesel print-schema > src/db/schema.rs`

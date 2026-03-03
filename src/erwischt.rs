@@ -1,7 +1,12 @@
 //! Erwischt game.
 
-use actix_web::*;
-use anyhow::bail;
+use anyhow::{Error, bail};
+use axum::{
+	Json,
+	extract::{self, Path},
+	http::StatusCode,
+	response::IntoResponse,
+};
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use rand::seq::SliceRandom;
@@ -9,7 +14,7 @@ use serde::Deserialize;
 use time::{OffsetDateTime, PrimitiveDateTime};
 use tracing::error;
 
-use crate::{State, db};
+use crate::{ExtractState, WebResult, db};
 
 type DbResult<T> = anyhow::Result<T>;
 
@@ -27,8 +32,14 @@ pub(crate) struct InsertData {
 	name: String,
 }
 
-#[get("/games")]
-pub async fn get_games(state: web::Data<State>) -> HttpResponse {
+fn err<T>(error: Error, msg: &'static str) -> WebResult<T> {
+	error!(%error, "{msg}");
+	Err((StatusCode::INTERNAL_SERVER_ERROR, msg).into_response())
+}
+
+pub async fn get_games(
+	extract::State(state): ExtractState,
+) -> WebResult<Json<Vec<db::models::ErwischtGame>>> {
 	match async {
 		use db::schema::erwischt_game;
 
@@ -41,23 +52,21 @@ pub async fn get_games(state: web::Data<State>) -> HttpResponse {
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to get games");
-			HttpResponse::InternalServerError().body("Failed to get games")
-		}
-		Ok(r) => HttpResponse::Ok().json(&r),
+		Err(error) => err(error, "Failed to get games"),
+		Ok(r) => Ok(Json(r)),
 	}
 }
 
-#[get("/game/{id}")]
-pub async fn get_game(state: web::Data<State>, game_id: web::Path<i32>) -> HttpResponse {
+pub async fn get_game(
+	extract::State(state): ExtractState, Path(game_id): Path<i32>,
+) -> WebResult<Json<Vec<db::models::ErwischtMember>>> {
 	match async {
 		use db::schema::erwischt_member;
 		use db::schema::erwischt_member::columns::*;
 
 		DbResult::Ok(
 			erwischt_member::table
-				.filter(game.eq(*game_id))
+				.filter(game.eq(game_id))
 				.select((id, name, target, catcher, last_change))
 				.order(id)
 				.get_results::<db::models::ErwischtMember>(&mut state.db.get().await?)
@@ -66,16 +75,12 @@ pub async fn get_game(state: web::Data<State>, game_id: web::Path<i32>) -> HttpR
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to get members");
-			HttpResponse::InternalServerError().body("Failed to get members")
-		}
-		Ok(r) => HttpResponse::Ok().json(&r),
+		Err(error) => err(error, "Failed to get game members"),
+		Ok(r) => Ok(Json(r)),
 	}
 }
 
-#[post("/game")]
-pub async fn create_game(state: web::Data<State>) -> HttpResponse {
+pub async fn create_game(extract::State(state): ExtractState) -> WebResult<Json<i32>> {
 	match async {
 		use db::schema::betreuer;
 		use db::schema::erwischt_game;
@@ -139,16 +144,14 @@ pub async fn create_game(state: web::Data<State>) -> HttpResponse {
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to create game");
-			HttpResponse::InternalServerError().body("Failed to create game")
-		}
-		Ok(r) => HttpResponse::Ok().json(r),
+		Err(error) => err(error, "Failed to create game"),
+		Ok(r) => Ok(Json(r)),
 	}
 }
 
-#[delete("/game/{id}")]
-pub async fn delete_game(state: web::Data<State>, game_id: web::Path<i32>) -> HttpResponse {
+pub async fn delete_game(
+	extract::State(state): ExtractState, Path(game_id): Path<i32>,
+) -> WebResult<&'static str> {
 	match async {
 		use db::schema::erwischt_game;
 		use db::schema::erwischt_member;
@@ -157,11 +160,11 @@ pub async fn delete_game(state: web::Data<State>, game_id: web::Path<i32>) -> Ht
 		let mut connection = state.db.get().await?;
 
 		diesel::delete(erwischt_member::table)
-			.filter(game.eq(*game_id))
+			.filter(game.eq(game_id))
 			.execute(&mut connection)
 			.await?;
 		let r = diesel::delete(erwischt_game::table)
-			.filter(erwischt_game::columns::id.eq(*game_id))
+			.filter(erwischt_game::columns::id.eq(game_id))
 			.execute(&mut connection)
 			.await?;
 
@@ -173,16 +176,14 @@ pub async fn delete_game(state: web::Data<State>, game_id: web::Path<i32>) -> Ht
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to delete game");
-			HttpResponse::InternalServerError().body("Failed to delete game")
-		}
-		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Err(error) => err(error, "Failed to delete game"),
+		Ok(()) => Ok("Success"),
 	}
 }
 
-#[post("/game/setCatch")]
-pub(crate) async fn catch(state: web::Data<State>, data: web::Json<CatchData>) -> HttpResponse {
+pub(crate) async fn catch(
+	extract::State(state): ExtractState, Json(data): Json<CatchData>,
+) -> WebResult<&'static str> {
 	match async {
 		use db::schema::erwischt_member;
 		use db::schema::erwischt_member::columns::*;
@@ -203,16 +204,14 @@ pub(crate) async fn catch(state: web::Data<State>, data: web::Json<CatchData>) -
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to catch member");
-			HttpResponse::InternalServerError().body("Failed to catch member")
-		}
-		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Err(error) => err(error, "Failed to catch member"),
+		Ok(()) => Ok("Success"),
 	}
 }
 
-#[post("/game/insert")]
-pub(crate) async fn insert(state: web::Data<State>, data: web::Json<InsertData>) -> HttpResponse {
+pub(crate) async fn insert(
+	extract::State(state): ExtractState, Json(data): Json<InsertData>,
+) -> WebResult<&'static str> {
 	match async {
 		use diesel::dsl::max;
 
@@ -266,10 +265,7 @@ pub(crate) async fn insert(state: web::Data<State>, data: web::Json<InsertData>)
 	}
 	.await
 	{
-		Err(error) => {
-			error!(%error, "Failed to insert member");
-			HttpResponse::InternalServerError().body("Failed to insert member")
-		}
-		Ok(()) => HttpResponse::Ok().content_type("text/html; charset=utf-8").body("Success"),
+		Err(error) => err(error, "Failed to insert member"),
+		Ok(()) => Ok("Success"),
 	}
 }

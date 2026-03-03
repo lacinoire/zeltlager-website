@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 use std::io::Write;
 
-use actix_web::http::StatusCode;
-use actix_web::*;
 use anyhow::Result;
+use axum::body::Body;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::{Form, Json, extract};
 use diesel_async::RunQueryDsl;
 use serde::Serialize;
 use tracing::{error, warn};
 
-use crate::{HttpResponse, State, db};
+use crate::{ExtractState, State, WebResult, db};
 
 #[derive(Clone, Debug, Serialize)]
 struct SignupResult {
@@ -17,7 +19,7 @@ struct SignupResult {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct SignupState {
+pub(crate) struct SignupState {
 	is_full: bool,
 }
 
@@ -45,16 +47,13 @@ async fn signup_mail(state: &State, member: db::models::Teilnehmer) -> (StatusCo
 	})
 }
 
-#[get("/signup-state")]
-pub async fn signup_state(state: web::Data<State>) -> HttpResponse {
+pub async fn signup_state(extract::State(state): ExtractState) -> WebResult<Json<SignupState>> {
 	match state.db.count_members().await {
 		Err(error) => {
 			error!(%error, "Failed to get current member count");
 			crate::error_response(&state)
 		}
-		Ok(count) => {
-			HttpResponse::Ok().json(SignupState { is_full: count >= state.config.max_members })
-		}
+		Ok(count) => Ok(Json(SignupState { is_full: count >= state.config.max_members })),
 	}
 }
 
@@ -105,7 +104,7 @@ async fn signup_internal(
 	}
 
 	if let Some(log_file) = &state.config.log_file {
-		let res: Result<_, Error> = (|| {
+		let res: Result<_> = (|| {
 			let _lock = state.log_mutex.lock().unwrap();
 			let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log_file)?;
 			writeln!(
@@ -162,23 +161,25 @@ async fn signup_internal(
 	}
 }
 
-#[post("/signup")]
 pub async fn signup(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = signup_internal(&state, body.into_inner()).await;
-	HttpResponse::build(status).json(result)
+	extract::State(state): ExtractState, Form(body): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+	let (status, result) = signup_internal(&state, body).await;
+	(status, Json(result))
 }
 
-#[post("/signup-nojs")]
 pub async fn signup_nojs(
-	state: web::Data<State>, body: web::Form<HashMap<String, String>>,
-) -> HttpResponse {
-	let (status, result) = signup_internal(&state, body.into_inner()).await;
+	extract::State(state): ExtractState, Form(body): Form<HashMap<String, String>>,
+) -> Response {
+	let (status, result) = signup_internal(&state, body).await;
 	if let Some(error) = result.error {
-		HttpResponse::build(status).body(error.message)
+		(status, error.message).into_response()
 	} else {
 		debug_assert_eq!(status, StatusCode::OK);
-		HttpResponse::Found().append_header(("location", "/anmeldung-erfolgreich")).finish()
+		Response::builder()
+			.status(StatusCode::FOUND)
+			.header("location", "/anmeldung-erfolgreich")
+			.body(Body::empty())
+			.unwrap()
 	}
 }

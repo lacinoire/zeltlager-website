@@ -24,7 +24,7 @@ struct CreateThumb {
 	need_thumb: bool,
 }
 
-pub fn watch_thumbs(state: State, path: PathBuf) {
+pub fn watch_thumbs(state: &State, path: PathBuf) {
 	// Create a channel to receive the events.
 	let (tx, rx) = channel();
 
