@@ -51,10 +51,24 @@ pub struct MailAccount {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+pub struct OidcSettings {
+	/// OpenID Connect Discovery URL (not including `.well-known/openid-configuration`)
+	pub server_url: String,
+	/// OAuth client id
+	pub client_id: String,
+	/// OAuth client secret
+	pub client_secret: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
 	/// The sender of emails
 	pub sender_mail: MailAddress,
 	pub sender_mail_account: MailAccount,
+
+	/// Oidc/OAuth settings
+	pub oidc: Option<OidcSettings>,
 
 	/// E-Mail addresses that receive mails for supervisor pre-signups.
 	#[serde(default)]
@@ -95,6 +109,13 @@ pub struct Config {
 
 	/// Path to a log file to log signups.
 	pub log_file: Option<PathBuf>,
+}
+
+impl Config {
+	pub fn domain(&self) -> Option<&str> {
+		// Split off port if it exists
+		self.domain.as_deref().map(|d| d.split_once(':').map(|r| r.0).unwrap_or(d))
+	}
 }
 
 fn default_bind_address() -> String { String::from("127.0.0.1:8080") }

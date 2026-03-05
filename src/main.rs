@@ -9,18 +9,24 @@ use std::sync::{Arc, LazyLock, Mutex, RwLock};
 
 use anyhow::{Result, format_err};
 use axum::body::{Body, Bytes};
+use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Query, Request};
 use axum::http::header::LAST_MODIFIED;
-use axum::http::{self, StatusCode};
+use axum::http::{self, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get, post};
 use axum::{Json, Router, extract};
+use axum_oidc::error::MiddlewareError;
+use axum_oidc::openidconnect::{ClientId, ClientSecret, IssuerUrl};
+use axum_oidc::{
+	EmptyAdditionalClaims, OidcAuthLayer, OidcClient, OidcLoginLayer, handle_oidc_redirect,
+};
 use clap::Parser;
 use lettre::message::Mailbox;
 use serde::{Deserialize, Serialize};
 use time::macros::format_description;
 use time::{Date, Duration};
-use tower::{Layer, ServiceExt};
+use tower::{Layer, ServiceBuilder, ServiceExt};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tower_sessions::{ExpiredDeletion, Expiry, Session, SessionManagerLayer};
@@ -62,6 +68,7 @@ fn get_true() -> bool { true }
 
 type WebResult<T, E = Response> = Result<T, E>;
 type ExtractState = extract::State<Arc<State>>;
+type OidcClaims = axum_oidc::OidcClaims<EmptyAdditionalClaims>;
 
 pub struct State {
 	sites: HashMap<String, basic::SiteDescriptions>,
@@ -103,6 +110,11 @@ struct MenuData {
 #[derive(Clone, Debug, Deserialize)]
 struct MenuRequestData {
 	prefix: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct OauthLoginData {
+	redirect: Option<String>,
 }
 
 fn rewrite_images_path<B>(image_dirs: &[String], mut req: Request<B>) -> Request<B> {
@@ -164,7 +176,7 @@ async fn check_csrf(
 	extract::State(config): extract::State<Config>, req: Request, next: axum::middleware::Next,
 ) -> Response {
 	if !req.method().is_safe() {
-		if let Some(domain) = config.domain {
+		if let Some(domain) = config.domain() {
 			if let Some(header) = get_origin(req.headers()) {
 				match header {
 					Ok(ref origin) if origin.ends_with(&domain) => {}
@@ -213,7 +225,8 @@ async fn has_role(
 		error!("Failed to get session");
 		return error_response::<()>(&this.state).unwrap_err();
 	};
-	let roles = match auth::get_roles(&this.state, &session).await {
+	let oidc = req.extensions().get::<OidcClaims>().cloned();
+	let roles = match auth::get_roles(&this.state, &session, &oidc).await {
 		Ok(r) => r,
 		Err(error) => {
 			error!(%error, "Failed to get roles");
@@ -273,8 +286,17 @@ fn forbidden(req: Request) -> Response {
 	(StatusCode::NOT_FOUND, "Page not found").into_response()
 }
 
+async fn redirect_start(Query(data): Query<OauthLoginData>) -> Response {
+	Response::builder()
+		.status(StatusCode::FOUND)
+		.header("location", data.redirect.as_deref().unwrap_or("/"))
+		.body(Body::empty())
+		.unwrap()
+}
+
 async fn menu(
 	extract::State(state): ExtractState, Query(data): Query<MenuRequestData>, session: Session,
+	oidc: Option<OidcClaims>,
 ) -> Result<Json<MenuData>, Response> {
 	if let Some(site_descriptions) = data
 		.prefix
@@ -282,7 +304,7 @@ async fn menu(
 		.and_then(|p| state.sites.get(p))
 		.or_else(|| state.sites.get(DEFAULT_PREFIX))
 	{
-		let roles = match auth::get_roles(&state, &session).await {
+		let roles = match auth::get_roles(&state, &session, &oidc).await {
 			Ok(r) => r,
 			Err(error) => {
 				error!(%error, "Failed to get roles");
@@ -340,7 +362,7 @@ async fn menu(
 async fn main() -> Result<()> {
 	tracing_subscriber::fmt()
 		.with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or(
-			tracing_subscriber::EnvFilter::new("tower_http=debug,zeltlager_website=info"),
+			tracing_subscriber::EnvFilter::new("tower_http=debug,zeltlager_website=info,info"),
 		))
 		.init();
 
@@ -418,7 +440,7 @@ async fn main() -> Result<()> {
 			has_role,
 		));
 
-	let api_routes = Router::new()
+	let mut api_routes = Router::new()
 		.route("/login", post(auth::login))
 		.route("/login-nojs", post(auth::login_nojs))
 		.route("/logout", get(auth::logout))
@@ -483,8 +505,48 @@ async fn main() -> Result<()> {
 		.with_expiry(Expiry::OnInactivity(cookie_maxtime()))
 		.with_always_save(true);
 
-	if let Some(domain) = &state.config.domain {
-		session_layer = session_layer.with_domain(domain.clone());
+	if let Some(domain) = &state.config.domain() {
+		session_layer = session_layer.with_domain(domain.to_string());
+	}
+
+	if let Some(cfg) = &state.config.oidc {
+		let redirect_url = format!(
+			"http{}://{}/api/oauth2/callback",
+			if state.config.secure { "s" } else { "" },
+			if let Some(origin) = &state.config.domain {
+				origin
+			} else {
+				&state.config.bind_address
+			}
+		);
+
+		let oidc_client = OidcClient::<EmptyAdditionalClaims>::builder()
+			.with_client_id(ClientId::new(cfg.client_id.clone()))
+			.with_client_secret(ClientSecret::new(cfg.client_secret.clone()))
+			.with_redirect_url(Uri::from_maybe_shared(redirect_url).unwrap())
+			.with_default_http_client()
+			.discover(IssuerUrl::new(cfg.server_url.clone())?)
+			.await?
+			.build();
+
+		let oidc_auth_service = ServiceBuilder::new()
+			.layer(HandleErrorLayer::new(|error: MiddlewareError| async {
+				warn!(%error, "oidc error");
+				error.into_response()
+			}))
+			.layer(OidcAuthLayer::new(oidc_client));
+
+		let oidc_login_service = ServiceBuilder::new()
+			.layer(HandleErrorLayer::new(|error: MiddlewareError| async {
+				warn!(%error, "oidc login error");
+				error.into_response()
+			}))
+			.layer(OidcLoginLayer::<EmptyAdditionalClaims>::new());
+
+		api_routes = api_routes
+			.route("/oauth2/login", get(redirect_start).layer(oidc_login_service))
+			.route("/oauth2/callback", any(handle_oidc_redirect::<EmptyAdditionalClaims>))
+			.layer(oidc_auth_service);
 	}
 
 	let app = app

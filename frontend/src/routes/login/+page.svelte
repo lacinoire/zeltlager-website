@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+
 	let error: string | undefined = $state();
 	let isLoading = $state(false);
 	let showPassword: boolean = $state(false);
@@ -9,6 +11,13 @@
 		if (passwordInput === undefined) return;
 		passwordInput.setAttribute("type", showPassword ? "text" : "password");
 	});
+
+	function getRedirect() {
+		if (!browser) return "/";
+		let redirect = new URLSearchParams(window.location.search).get("redirect");
+		if (redirect === null) redirect = "/";
+		return redirect;
+	}
 
 	async function login(e) {
 		e.preventDefault();
@@ -44,10 +53,7 @@
 				error = resp.error;
 			} else {
 				// Login successful
-				const urlParams = new URLSearchParams(window.location.search);
-				let redirect = urlParams.get("redirect");
-				if (redirect === null) redirect = "/";
-				window.location.href = redirect;
+				window.location.href = getRedirect();
 			}
 		} catch (e) {
 			console.error("Failed to convert login request to json", e);
@@ -126,4 +132,12 @@
 			</div>
 		</div>
 	</form>
+
+	<a
+		href={"/api/oauth2/login?redirect=" + getRedirect()}
+		rel="external"
+		class="button"
+		style="width: 100%; margin-top: 2em;">
+		Admin Login
+	</a>
 </div>

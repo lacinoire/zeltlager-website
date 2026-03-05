@@ -7,15 +7,16 @@ use std::net::{IpAddr, SocketAddr};
 use anyhow::{Result, bail, format_err};
 use axum::body::Body;
 use axum::extract::ConnectInfo;
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::{HeaderMap, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::{Form, Json, extract};
+use axum_oidc::OidcRpInitiatedLogout;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
 use tower_sessions::Session;
 use tracing::{error, info, warn};
 
-use crate::{ExtractState, State, db};
+use crate::{ExtractState, OidcClaims, State, db};
 
 const USER_KEY: &str = "user";
 
@@ -185,10 +186,17 @@ pub async fn login_nojs(
 	}
 }
 
-pub async fn logout(session: Session) -> Response {
+pub async fn logout(session: Session, logout: Option<OidcRpInitiatedLogout>) -> Response {
+	// Non-oidc logout
 	if let Err(error) = session.delete().await {
 		error!(%error, "Failed to log out");
 	}
+
+	// Oidc logout
+	if let Some(logout) = logout {
+		return logout.with_post_logout_redirect(Uri::from_static("/")).into_response();
+	}
+
 	Response::builder()
 		.status(StatusCode::FOUND)
 		.header("location", "/")
@@ -209,7 +217,9 @@ pub async fn logged_in_user(session: &Session) -> Option<i32> {
 	}
 }
 
-pub async fn get_roles(state: &State, session: &Session) -> Result<Option<Vec<Roles>>> {
+pub async fn get_roles(
+	state: &State, session: &Session, oidc: &Option<OidcClaims>,
+) -> Result<Option<Vec<Roles>>> {
 	if let Some(user) = logged_in_user(session).await {
 		let roles = state
 			.db
@@ -217,6 +227,8 @@ pub async fn get_roles(state: &State, session: &Session) -> Result<Option<Vec<Ro
 			.await
 			.map_err(|e| format_err!("Failed to get user roles: {}", e))?;
 		Ok(Some(roles))
+	} else if let Some(_oidc) = oidc {
+		Ok(Some(vec![Roles::Admin]))
 	} else {
 		Ok(None)
 	}
