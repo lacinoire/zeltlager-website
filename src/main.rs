@@ -2,7 +2,7 @@
 extern crate diesel;
 
 use std::collections::HashMap;
-use std::convert::{TryFrom, TryInto};
+use std::convert::{Infallible, TryFrom, TryInto};
 use std::fs;
 use std::net::SocketAddr;
 use std::sync::{Arc, LazyLock, Mutex, RwLock};
@@ -11,6 +11,7 @@ use anyhow::{Result, format_err};
 use axum::body::{Body, Bytes};
 use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Query, Request};
+use axum::handler::HandlerWithoutStateExt;
 use axum::http::header::LAST_MODIFIED;
 use axum::http::{self, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
@@ -176,7 +177,7 @@ async fn check_csrf(
 	extract::State(config): extract::State<Config>, req: Request, next: axum::middleware::Next,
 ) -> Response {
 	if !req.method().is_safe() {
-		if let Some(domain) = config.domain() {
+		if let Some(domain) = config.domain {
 			if let Some(header) = get_origin(req.headers()) {
 				match header {
 					Ok(ref origin) if origin.ends_with(&domain) => {}
@@ -265,6 +266,29 @@ impl Config {
 			mail::check_parsable(addr)?;
 		}
 		Ok(())
+	}
+}
+
+impl State {
+	fn get_kanidm_base_url(&self) -> Result<&str> {
+		if let Some(config) = &self.config.oidc {
+			let prefix = "https://".len();
+			let i = config.server_url[prefix..]
+				.find('/')
+				.map(|i| i + prefix)
+				.unwrap_or(config.server_url.len());
+			Ok(&config.server_url[..i])
+		} else {
+			Err(format_err!("Oidc not configured"))
+		}
+	}
+
+	fn get_kanidm_token(&self) -> Result<&str> {
+		if let Some(config) = &self.config.kanidm {
+			Ok(&config.token)
+		} else {
+			Err(format_err!("Kanidm user access token not configured"))
+		}
 	}
 }
 
@@ -424,6 +448,9 @@ async fn main() -> Result<()> {
 		.route("/teilnehmer/edit", post(admin::edit_member))
 		.route("/betreuer/remove", post(admin::remove_supervisor))
 		.route("/betreuer/edit", post(admin::edit_supervisor))
+		.route("/user/list", get(admin::list_users))
+		.route("/user/reset_password", post(admin::reset_password))
+		.route("/user/create", post(admin::create_user))
 		.layer(axum::middleware::from_fn_with_state(
 			HasRolePredicate::new(state.clone(), auth::Roles::Admin, true),
 			has_role,
@@ -549,12 +576,37 @@ async fn main() -> Result<()> {
 			.layer(oidc_auth_service);
 	}
 
+	let serve_frontend: tower::util::BoxCloneSyncService<Request, Response, Infallible> =
+		if args.dev {
+			async fn forward(uri: Uri) -> Response {
+				match reqwest::get(format!(
+					"http://localhost:5173{}",
+					uri.path_and_query().unwrap().as_str()
+				))
+				.await
+				{
+					Ok(resp) => {
+						let mut ret = Response::builder();
+						*ret.headers_mut().unwrap() = resp.headers().clone();
+						ret.body(Body::from_stream(resp.bytes_stream())).unwrap()
+					}
+					Err(error) => {
+						warn!(%error, "Failed to forward request");
+						"Internal error".into_response()
+					}
+				}
+			}
+			tower::util::BoxCloneSyncService::new(HandlerWithoutStateExt::into_service(forward))
+		} else {
+			tower::util::BoxCloneSyncService::new(
+				etag_layer.layer(ServeDir::new("frontend/build").fallback(any(not_found))),
+			)
+		};
+
 	let app = app
 		.nest("/api", api_routes)
 		.fallback_service(
-			rewrite_img_path_middleware
-				.layer(etag_layer.layer(ServeDir::new("frontend/build").fallback(any(not_found))))
-				.map_response(remove_last_modified),
+			rewrite_img_path_middleware.layer(serve_frontend).map_response(remove_last_modified),
 		)
 		.layer(axum::middleware::from_fn_with_state(state.config.clone(), check_csrf))
 		.layer(TraceLayer::new_for_http())

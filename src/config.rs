@@ -9,6 +9,8 @@ pub struct Args {
 	/// Default action is to start the server
 	#[command(subcommand)]
 	pub action: Option<Action>,
+	#[arg(long)]
+	pub dev: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -62,6 +64,20 @@ pub struct OidcSettings {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+pub struct KanidmSettings {
+	/// API access token
+	///
+	/// ```bash
+	/// $ kanidm service-account create zeltlager-website Zeltlager-Website idm_admin
+	/// $ kanidm group add-members idm_people_on_boarding zeltlager-website
+	/// $ kanidm group add-members idm_group_admins zeltlager-website
+	/// $ kanidm service-account api-token generate zeltlager-website token -w
+	/// ```
+	pub token: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
 	/// The sender of emails
 	pub sender_mail: MailAddress,
@@ -69,6 +85,9 @@ pub struct Config {
 
 	/// Oidc/OAuth settings
 	pub oidc: Option<OidcSettings>,
+
+	/// Kanidm API settings
+	pub kanidm: Option<KanidmSettings>,
 
 	/// E-Mail addresses that receive mails for supervisor pre-signups.
 	#[serde(default)]

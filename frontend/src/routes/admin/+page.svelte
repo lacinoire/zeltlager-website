@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from "svelte";
+	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
 	import { mdiDeleteOutline } from "@mdi/js";
 	import Icon from "$lib/Icon.svelte";
@@ -7,6 +7,7 @@
 
 	let error: string | undefined = $state();
 	let success: string | undefined = $state();
+	let users: string[] | undefined = $state();
 
 	let deleteModalOpen = $state(false);
 	let deleteModalInput: HTMLInputElement | undefined = $state();
@@ -15,6 +16,16 @@
 	let deleteModalBetreuer: HTMLElement | undefined = $state();
 	let deleteModalErwischtGames: HTMLElement | undefined = $state();
 	let deleteIsLoading = $state(false);
+
+	let passwordModalOpen = $state(false);
+	let passwordModalLoading = $state(false);
+	let passwordModalInput: HTMLInputElement | undefined = $state();
+	let passwordModalButton: HTMLButtonElement | undefined = $state();
+
+	let createUserModalOpen = $state(false);
+	let createUserModalLoading = $state(false);
+	let createUserModalInput: HTMLInputElement | undefined = $state();
+	let createUserModalButton: HTMLButtonElement | undefined = $state();
 
 	async function fetchDeleteInfo() {
 		deleteModalLoading = true;
@@ -91,8 +102,77 @@
 	function documentKeyDown(event) {
 		if (event.key === "Escape") {
 			closeDeleteModal();
+			mailModalOpen = false;
 		}
 	}
+
+	async function loadUsers() {
+		users = await (await fetch("/api/admin/user/list")).json();
+	}
+
+	async function resetPassword(user) {
+		passwordModalButton.innerHTML = "Kopieren";
+		passwordModalLoading = true;
+		passwordModalOpen = true;
+
+		const params = new URLSearchParams();
+		params.append("user", user);
+		const resp = await fetch("/api/admin/user/reset_password?" + params.toString(), { method: "POST" });
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Passwort konnte nicht zurückgesetzt werden. Hat der Account Admin-Rechte?";
+				passwordModalOpen = false;
+			}
+			return;
+		}
+		const data = await resp.text();
+		passwordModalInput.value = data;
+
+		passwordModalLoading = false;
+	}
+
+	async function openCreateUserModal() {
+		createUserModalOpen = true;
+	}
+
+	async function createUser() {
+		createUserModalLoading = true;
+
+		const params = new URLSearchParams();
+		params.append("user", createUserModalInput.value);
+		const resp = await fetch("/api/admin/user/create?" + params.toString(), { method: "POST" });
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to load data", resp);
+				error = "Benutzer konnte nicht erstellt werden. Hat der Account Admin-Rechte?";
+				createUserModalLoading = false;
+			}
+			return;
+		}
+
+		createUserModalLoading = false;
+		createUserModalOpen = false;
+		loadUsers();
+	}
+
+	async function copyPasswordLink() {
+		try {
+			await navigator.clipboard.writeText(passwordModalInput.value);
+			passwordModalButton.innerHTML = "✔";
+		} catch (err) {
+			console.log("Failed to copy", err);
+			passwordModalButton.innerHTML = "✘ Kopieren fehlgeschlagen";
+		}
+	}
+
+	onMount(loadUsers);
 </script>
 
 <svelte:document onkeydown={documentKeyDown} />
@@ -174,6 +254,44 @@
 </div>
 </div>
 
+{#if users !== undefined}
+<div class="content">
+<h2 class="title is-2">Administratoren</h2>
+
+<ul>
+	{#each users as u}
+		<li>
+			{u}
+			<!-- svelte-ignore a11y_missing_attribute -->
+			<a
+				role="button"
+				tabindex="0"
+				onclick={() => resetPassword(u)}
+				onkeydown={(e) => {
+					if (e.key === "Enter") resetPassword(u);
+				}}
+			>
+				Passwort zurücksetzen
+			</a>
+		</li>
+	{/each}
+	<li>
+		<!-- svelte-ignore a11y_missing_attribute -->
+		<a
+			role="button"
+			tabindex="0"
+			onclick={openCreateUserModal}
+			onkeydown={(e) => {
+				if (e.key === "Enter") openCreateUserModal();
+			}}
+		>
+			Neuen Administrator hinzufügen
+		</a>
+	</li>
+</ul>
+</div>
+{/if}
+
 <div class="modal" class:is-active={deleteModalOpen}>
   <div class="modal-background" onclick={closeDeleteModal}></div>
   <form class="modal-card" onsubmit={deleteLager}>
@@ -200,6 +318,44 @@
       </div>
     </footer>
   </form>
+</div>
+
+<div class="modal" class:is-active={passwordModalOpen}>
+  <div class="modal-background" onclick={() => passwordModalOpen = false}></div>
+  <div class="modal-content">
+  	<div class="box">
+  		<div class="field has-addons">
+			  <div class="control" style="flex-grow: 1;">
+			    <input class="input" class:is-skeleton={passwordModalLoading} type="text" bind:this={passwordModalInput} />
+			  </div>
+			  <div class="control">
+			    <button class="button is-info" class:is-skeleton={passwordModalLoading} onclick={copyPasswordLink} bind:this={passwordModalButton}>
+			    	Kopieren
+			    </button>
+			  </div>
+			</div>
+	  </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close" onclick={() => passwordModalOpen = false}></button>
+</div>
+
+<div class="modal" class:is-active={createUserModalOpen}>
+  <div class="modal-background" onclick={() => createUserModalOpen = false}></div>
+  <div class="modal-content">
+  	<div class="box">
+  		<div class="field has-addons">
+			  <div class="control" style="flex-grow: 1;">
+			    <input class="input" class:is-skeleton={createUserModalLoading} type="text" bind:this={createUserModalInput} />
+			  </div>
+			  <div class="control">
+			    <button class="button is-info" class:is-skeleton={createUserModalLoading} onclick={createUser} bind:this={createUserModalButton}>
+			    	Administrator hinzufügen
+			    </button>
+			  </div>
+			</div>
+	  </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close" onclick={() => createUserModalOpen = false}></button>
 </div>
 
 <style lang="scss">

@@ -343,6 +343,7 @@
 			} else {
 				console.error("Failed to load data", resp);
 				error = "Daten konnten nicht heruntergeladen werden. Hat der Account Admin-Rechte?";
+				mailModalOpen = false;
 			}
 			return;
 		}

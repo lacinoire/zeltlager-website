@@ -1,4 +1,7 @@
-use anyhow::{Error, bail};
+use std::mem;
+
+use anyhow::{Error, Result, bail};
+use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, extract};
@@ -8,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
 use crate::db::models::{FullSupervisor, FullTeilnehmer};
-use crate::{ExtractState, WebResult, db, mail};
+use crate::{ExtractState, State, WebResult, db, mail};
 use time::OffsetDateTime;
 
 type DbResult<T> = anyhow::Result<T>;
@@ -33,6 +36,37 @@ pub struct LagerInfo {
 	teilnehmer_count: i64,
 	old_betreuer_count: i64,
 	erwischt_game_count: i64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct KanidmUser {
+	attrs: KanidmUserAttrs,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct KanidmUserAttrs {
+	name: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct KanidmPasswordReset {
+	token: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct KanidmCreateUser {
+	attrs: KanidmCreateUserAttrs,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct KanidmCreateUserAttrs {
+	name: Vec<String>,
+	displayname: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct UserData {
+	user: String,
 }
 
 fn err<T>(error: Error, msg: &'static str) -> WebResult<T> {
@@ -313,5 +347,83 @@ pub async fn remove_lager(extract::State(state): ExtractState) -> WebResult<&'st
 			crate::error_response(&state)
 		}
 		Ok(()) => Ok("Success"),
+	}
+}
+
+pub async fn list_users_intern(state: &State) -> Result<Json<Vec<String>>> {
+	let client = reqwest::Client::new();
+	let r: Vec<KanidmUser> = client
+		.get(format!("{}/v1/person", state.get_kanidm_base_url()?))
+		.bearer_auth(state.get_kanidm_token()?)
+		.send()
+		.await?
+		.json()
+		.await?;
+	Ok(Json(r.into_iter().map(|mut u| mem::take(&mut u.attrs.name[0])).collect()))
+}
+
+/// List admin users
+pub async fn list_users(extract::State(state): ExtractState) -> WebResult<Json<Vec<String>>> {
+	match list_users_intern(&state).await {
+		Err(error) => err(error, "Failed to list users"),
+		Ok(r) => Ok(r),
+	}
+}
+
+pub async fn reset_password_intern(state: &State, user: &str) -> Result<String> {
+	let client = reqwest::Client::new();
+	let r: KanidmPasswordReset = client
+		.get(format!(
+			"{}/v1/person/{user}/_credential/_update_intent",
+			state.get_kanidm_base_url()?
+		))
+		.bearer_auth(state.get_kanidm_token()?)
+		.send()
+		.await?
+		.json()
+		.await?;
+	Ok(format!("{}/ui/reset?token={}", state.get_kanidm_base_url()?, r.token))
+}
+
+pub async fn reset_password(
+	extract::State(state): ExtractState, Query(user): Query<UserData>,
+) -> WebResult<String> {
+	match reset_password_intern(&state, &user.user).await {
+		Err(error) => err(error, "Failed to reset password"),
+		Ok(r) => Ok(r),
+	}
+}
+
+pub async fn create_user_intern(state: &State, user: &str) -> Result<()> {
+	let client = reqwest::Client::new();
+	client
+		.post(format!("{}/v1/person", state.get_kanidm_base_url()?))
+		.bearer_auth(state.get_kanidm_token()?)
+		.json(&KanidmCreateUser {
+			attrs: KanidmCreateUserAttrs {
+				name: vec![user.to_lowercase()],
+				displayname: vec![user.into()],
+			},
+		})
+		.send()
+		.await?;
+
+	// Add to group
+	client
+		.post(format!("{}/v1/group/zeltlager/_attr/member", state.get_kanidm_base_url()?))
+		.bearer_auth(state.get_kanidm_token()?)
+		.json(&[user])
+		.send()
+		.await?;
+
+	Ok(())
+}
+
+pub async fn create_user(
+	extract::State(state): ExtractState, Query(user): Query<UserData>,
+) -> WebResult<()> {
+	match create_user_intern(&state, &user.user).await {
+		Err(error) => err(error, "Failed to reset password"),
+		Ok(()) => Ok(()),
 	}
 }
