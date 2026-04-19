@@ -14,7 +14,7 @@
 Vor dem Lager muss jede:r Neu-Betreuer:in einen Juleica-Kurs gemacht haben.
 Informationen zu Terminen, der Anmeldung etc. findest du auf [www.msj.de/bildung/juleica/](https://www.msj.de/bildung/juleica/).
 
-Wenn du einen Juleica-Kurs gemacht hast, kannst du die Karte online unter [juleica-antrag.de](https://juleica-antrag.de) beantragen.
+Wenn du einen Juleica-Kurs gemacht hast, kannst du die Karte online unter [juleica.de](https://juleica.de) beantragen.
 
 Wichtige Information zum Stellen des Antrags:  
 Träger und Ausbildung: **Bayerische Sportjugend im BLSV Kreis München-Stadt**
@@ -27,7 +27,7 @@ Auf der Juleica selbst oder online unter [juleica-antrag.de](https://juleica-ant
 Alle drei Jahre muss die Juleica verlängert werden.
 
 1. Bist du im Besitz eines Trainerscheins oder eines EWS-Examens, kannst du die Juleica ohne weiteren Kurs verlängern lassen.
-2. Eine andere einfache und schnelle Möglichkeit, die Juleica zu verlängern, sind Online-Fortbildungskurse, dazu findest du viele Kurse unter [juleica-ausbildung.de](https://juleica-ausbildung.de).
+2. Eine andere einfache und schnelle Möglichkeit, die Juleica zu verlängern, sind Online-Fortbildungskurse, dazu findest du viele Kurse unter [juleica-ausbildung.de](https://juleica-ausbildung.de) oder [jugendarbeit.de](https://jugendarbeit.de).
 
 Du kannst deine Karte online unter [juleica-antrag.de](https://juleica-antrag.de) verlängern.
 Wichtige Information zum Stellen des Antrags:  
