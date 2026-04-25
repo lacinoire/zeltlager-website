@@ -357,26 +357,20 @@ async fn presignup_internal(
 		Ok(true) => {
 			// Already exists, send mail
 			warn!(mail = supervisor.mail, "Supervisor tried to pre-signup but already exists");
-			match state.mail.send_supervisor_presignup_failed(&supervisor).await {
-				Err(error) => {
-					error!(%error, "Error sending presignup failed e-mail");
-				}
-				Ok(()) => {}
+			if let Err(error) = state.mail.send_supervisor_presignup_failed(&supervisor).await {
+				error!(%error, "Error sending presignup failed e-mail");
 			}
 			return (StatusCode::OK, SignupResult { error: None });
 		}
 		Ok(false) => {}
 	};
 
-	match state.db.signup_supervisor(&supervisor, true).await {
-		Err(error) => {
-			warn!(%error, "Error inserting into database");
-			return internal_err(format!(
-				"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
-				state.config.error_message
-			));
-		}
-		Ok(()) => {}
+	if let Err(error) = state.db.signup_supervisor(&supervisor, true).await {
+		warn!(%error, "Error inserting into database");
+		return internal_err(format!(
+			"Es ist ein Datenbank-Fehler aufgetreten.\n{}",
+			state.config.error_message
+		));
 	}
 
 	// Send mail to specified users

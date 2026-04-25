@@ -28,7 +28,7 @@ pub fn watch_thumbs(state: &State, path: PathBuf) {
 	// Create a channel to receive the events.
 	let (tx, rx) = channel();
 
-	if let Err(error) = scan_files(&state, &path, true) {
+	if let Err(error) = scan_files(state, &path, true) {
 		error!(%error, "Error when scanning files");
 	}
 
@@ -52,7 +52,7 @@ pub fn watch_thumbs(state: &State, path: PathBuf) {
 					)
 				}) {
 					debug!(?v, "Got notify events");
-					if let Err(error) = scan_files(&state, &path, false) {
+					if let Err(error) = scan_files(state, &path, false) {
 						error!(%error, "Error when scanning files");
 					}
 				}

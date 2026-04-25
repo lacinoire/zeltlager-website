@@ -25,7 +25,7 @@ use crate::auth;
 #[macro_export]
 macro_rules! get_str {
 	($map:ident, $key:expr) => {
-		$map.remove($key).ok_or_else(|| crate::db::FormError {
+		$map.remove($key).ok_or_else(|| $crate::db::FormError {
 			field: Some($key.into()),
 			message: format!("{} fehlt", heck::ToTitleCase::to_title_case($key)),
 		})
@@ -35,8 +35,8 @@ macro_rules! get_str {
 #[macro_export]
 macro_rules! get_freetext_str {
 	($map:ident, $key:expr) => {
-		$map.remove($key).map(crate::db::models::cleanup_freetext).ok_or_else(|| {
-			crate::db::FormError {
+		$map.remove($key).map($crate::db::models::cleanup_freetext).ok_or_else(|| {
+			$crate::db::FormError {
 				field: Some($key.into()),
 				message: format!("{} fehlt", heck::ToTitleCase::to_title_case($key)),
 			}

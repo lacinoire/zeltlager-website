@@ -67,11 +67,11 @@ impl<'de> Deserialize<'de> for Roles {
 }
 
 fn get_ip(headers: &HeaderMap, addr: SocketAddr) -> Result<IpAddr> {
-	Ok(real_ip::real_ip(headers, addr.ip(), &[
+	real_ip::real_ip(headers, addr.ip(), &[
 		IpAddr::from([127, 0, 0, 1]).into(),
 		IpAddr::from([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]).into(),
 	])
-	.ok_or_else(|| format_err!("no ip detected"))?)
+	.ok_or_else(|| format_err!("no ip detected"))
 }
 
 async fn rate_limit(state: &State, headers: &HeaderMap, addr: SocketAddr) -> Result<()> {

@@ -276,7 +276,7 @@ async fn has_role(
 		return error_response::<()>(&this.state).unwrap_err();
 	};
 	let oidc = req.extensions().get::<OidcClaims>().cloned();
-	let roles = match auth::get_roles(&this.state, &session, &oidc).await {
+	let roles = match auth::get_roles(&this.state, session, &oidc).await {
 		Ok(r) => r,
 		Err(error) => {
 			error!(%error, "Failed to get roles");
