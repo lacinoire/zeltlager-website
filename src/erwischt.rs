@@ -131,7 +131,7 @@ pub async fn create_game(extract::State(state): ExtractState) -> WebResult<Json<
 		}
 
 		// Set targets of members
-		member.shuffle(&mut rand::thread_rng());
+		member.shuffle(&mut rand::rng());
 		let len = member.len();
 		for i in 0..(len - 1) {
 			member[i].target = member[i + 1].id;

@@ -15,7 +15,7 @@ anyhow = "1"
 base64 = "0.22"
 csv = "1"
 diesel = { version = "2", features = ["network-address", "time"] }
-diesel-async = { version = "0.7", features = ["deadpool", "migrations", "postgres"] }
+diesel-async = { version = "0.8", features = ["deadpool", "migrations", "postgres"] }
 diesel_migrations = "2"
 fnv = "1"
 futures = "0.3"
@@ -24,18 +24,18 @@ http-body-util = "0.1"
 ipnetwork = "0.21"
 lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 mime = "0.3"
-notify-debouncer-full = "0.6"
-rand = "0.8"
+notify-debouncer-full = "0.7"
+rand = "0.10"
 rayon = "1"
 real-ip = "0.1"
 reqwest = { version = "0.13", features = ["json", "stream"] }
 rpassword = "7"
-scrypt = "0.11"
+scrypt = { version = "0.12", features = ["getrandom", "phc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 t4rust-derive = "0.3"
 time = { version = "0.3", features = ["parsing"] }
-toml = "0.9"
+toml = "1"
 tokio = { version = "1", features = ["macros"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "trace"] }

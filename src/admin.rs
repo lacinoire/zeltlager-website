@@ -9,7 +9,7 @@ use axum::response::{IntoResponse, Response};
 use axum::{Json, extract};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
@@ -527,8 +527,8 @@ async fn create_image_link_intern(state: &Arc<State>, name: &str) -> Result<()> 
 
 	// Create and set auth token
 	let token = {
-		let mut rng = rand::thread_rng();
-		(0..24).map(|_| rng.sample(rand::distributions::Alphanumeric) as char).collect::<String>()
+		let mut rng = rand::rng();
+		(0..24).map(|_| rng.sample(rand::distr::Alphanumeric) as char).collect::<String>()
 	};
 	diesel::update(db::schema::users::table)
 		.filter(db::schema::users::dsl::id.eq(user))

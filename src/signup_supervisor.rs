@@ -8,7 +8,7 @@ use axum::response::{IntoResponse, Response};
 use axum::{Form, Json, extract};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use scrypt::password_hash;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime};
 use tracing::{error, warn};
@@ -145,11 +145,10 @@ pub async fn resignup(
 	};
 
 	// Generate token in URL-safe base64
-	let token = password_hash::SaltString::generate(&mut password_hash::rand_core::OsRng)
-		.as_str()
-		.replace('+', "-")
-		.replace('/', "_")
-		.replace('=', "");
+	let token = {
+		let mut rng = rand::rng();
+		(0..24).map(|_| rng.sample(rand::distr::Alphanumeric) as char).collect::<String>()
+	};
 	let mail2 = mail.clone();
 	let token2 = token.clone();
 	let supervisor = match async {

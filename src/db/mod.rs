@@ -14,7 +14,8 @@ use diesel_async::{AsyncMigrationHarness, AsyncPgConnection, RunQueryDsl};
 use diesel_migrations::MigrationHarness;
 use ipnetwork::IpNetwork;
 use scrypt::Scrypt;
-use scrypt::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use scrypt::password_hash::phc::PasswordHash;
+use scrypt::password_hash::{PasswordHasher, PasswordVerifier};
 use serde::Serialize;
 use time::{OffsetDateTime, PrimitiveDateTime};
 use tracing::{info, warn};
@@ -265,10 +266,10 @@ impl Database {
 			.await
 		{
 			Ok(user) => {
-				if PasswordHash::new(&user.password)
-					.and_then(|hash| scrypt::Scrypt.verify_password(msg.password.as_bytes(), &hash))
-					.is_ok()
-				{
+				let Ok(hash) = PasswordHash::new(&user.password) else {
+					return Ok(None);
+				};
+				if Scrypt::default().verify_password(msg.password.as_bytes(), &hash).is_ok() {
 					Ok(Some(user.id))
 				} else {
 					Ok(None)
@@ -277,10 +278,9 @@ impl Database {
 			Err(Error::NotFound) => {
 				// Hash a random password so we don’t leak much timing information if a user exists
 				// or not.
-				let salt = SaltString::generate(&mut rand::thread_rng());
-				let pw = Scrypt.hash_password(msg.username.as_bytes(), &salt)?.to_string();
+				let pw = Scrypt::default().hash_password(msg.username.as_bytes())?.to_string();
 				let hash = PasswordHash::new(&pw)?;
-				let _ = Scrypt.verify_password(msg.password.as_bytes(), &hash);
+				let _ = Scrypt::default().verify_password(msg.password.as_bytes(), &hash);
 				Ok(None)
 			}
 			Err(err) => Err(err.into()),
