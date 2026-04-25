@@ -11,6 +11,8 @@ use axum::http::{HeaderMap, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::{Form, Json, extract};
 use axum_oidc::OidcRpInitiatedLogout;
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
 use tower_sessions::Session;
@@ -81,7 +83,7 @@ async fn rate_limit(state: &State, headers: &HeaderMap, addr: SocketAddr) -> Res
 	}
 }
 
-async fn set_logged_in(id: i32, session: Session) -> Result<()> {
+async fn set_logged_in(id: i32, session: &Session) -> Result<()> {
 	// Logged in: Store "user id"
 	session.insert(USER_KEY, Identity { id }).await?;
 	Ok(())
@@ -89,7 +91,7 @@ async fn set_logged_in(id: i32, session: Session) -> Result<()> {
 
 async fn login_internal(
 	state: &State, headers: &HeaderMap, addr: SocketAddr, body: HashMap<String, String>,
-	session: Session,
+	session: &Session,
 ) -> (StatusCode, LoginResult) {
 	// Check rate limit
 	if let Err(error) = rate_limit(state, headers, addr).await {
@@ -161,11 +163,39 @@ async fn login_internal(
 	}
 }
 
+pub async fn token_login(
+	state: &State, headers: &HeaderMap, addr: SocketAddr, token: &str, session: &Session,
+) -> Result<()> {
+	// Check rate limit
+	if let Err(error) = rate_limit(state, headers, addr).await {
+		bail!("Rate limit exceeded ({error})");
+	}
+
+	// Search token in database
+	let user = db::schema::users::dsl::users
+		.filter(db::schema::users::dsl::token.eq(Some(token)))
+		.select(db::schema::users::dsl::id)
+		.first::<i32>(&mut state.db.get().await?)
+		.await?;
+
+	if let Err(error) = set_logged_in(user, session).await {
+		bail!("Failed to set login identity ({error})");
+	}
+	let ip = match get_ip(headers, addr) {
+		Ok(r) => r.to_string(),
+		Err(error) => bail!("Failed to get ip ({error})"),
+	};
+	if let Err(error) = state.db.decrease_rate_counter(&ip).await {
+		error!(%error, "Failed to decrease rate limiting counter");
+	}
+	Ok(())
+}
+
 pub async fn login(
 	extract::State(state): ExtractState, headers: HeaderMap, session: Session,
 	ConnectInfo(addr): ConnectInfo<SocketAddr>, Form(body): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-	let (status, result) = login_internal(&state, &headers, addr, body, session).await;
+	let (status, result) = login_internal(&state, &headers, addr, body, &session).await;
 	(status, Json(result))
 }
 
@@ -173,7 +203,7 @@ pub async fn login_nojs(
 	extract::State(state): ExtractState, headers: HeaderMap, session: Session,
 	ConnectInfo(addr): ConnectInfo<SocketAddr>, Form(body): Form<HashMap<String, String>>,
 ) -> Response {
-	let (status, result) = login_internal(&state, &headers, addr, body, session).await;
+	let (status, result) = login_internal(&state, &headers, addr, body, &session).await;
 	if let Some(error) = result.error {
 		(status, error).into_response()
 	} else {
@@ -188,7 +218,7 @@ pub async fn login_nojs(
 
 pub async fn logout(session: Session, logout: Option<OidcRpInitiatedLogout>) -> Response {
 	// Non-oidc logout
-	if let Err(error) = session.delete().await {
+	if let Err(error) = session.flush().await {
 		error!(%error, "Failed to log out");
 	}
 

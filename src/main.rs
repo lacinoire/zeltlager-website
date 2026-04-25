@@ -10,7 +10,7 @@ use std::sync::{Arc, LazyLock, Mutex, RwLock};
 use anyhow::{Result, format_err};
 use axum::body::{Body, Bytes};
 use axum::error_handling::HandleErrorLayer;
-use axum::extract::{Query, Request};
+use axum::extract::{ConnectInfo, Query, Request};
 use axum::handler::HandlerWithoutStateExt;
 use axum::http::header::LAST_MODIFIED;
 use axum::http::{self, StatusCode, Uri};
@@ -76,6 +76,7 @@ pub struct State {
 	config: Config,
 	db: db::Database,
 	mail: mail::Mail,
+	recreate_webserver: tokio::sync::mpsc::Sender<()>,
 	/// Sizes of thumbnails.
 	/// Map path to width, height.
 	thumbs: RwLock<HashMap<String, Thumb>>,
@@ -116,6 +117,11 @@ struct MenuRequestData {
 #[derive(Clone, Debug, Deserialize)]
 struct OauthLoginData {
 	redirect: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct LoginToken {
+	login_token: Option<String>,
 }
 
 fn rewrite_images_path<B>(image_dirs: &[String], mut req: Request<B>) -> Request<B> {
@@ -173,6 +179,7 @@ fn get_origin(headers: &http::header::HeaderMap) -> Option<Result<String>> {
 		})
 }
 
+/// Check for matching origin
 async fn check_csrf(
 	extract::State(config): extract::State<Config>, req: Request, next: axum::middleware::Next,
 ) -> Response {
@@ -193,6 +200,48 @@ async fn check_csrf(
 					}
 				}
 			}
+		}
+	}
+	next.run(req).await
+}
+
+/// Login user if there is a token
+async fn token_login(
+	extract::State(state): ExtractState, Query(token): Query<LoginToken>,
+	ConnectInfo(addr): ConnectInfo<SocketAddr>, req: Request, next: axum::middleware::Next,
+) -> Response {
+	if let Some(token) = token.login_token {
+		let Some(session) = req.extensions().get::<Session>() else {
+			error!("Failed to get session");
+			return error_response::<()>(&state).unwrap_err();
+		};
+		// Login and redirect
+		if let Err(error) = auth::token_login(&state, req.headers(), addr, &token, session).await {
+			warn!(%error, "Failed to login through token");
+		}
+
+		// Redirect to URL without token
+		if let Some(path_and_query) = req.uri().clone().into_parts().path_and_query {
+			let query = path_and_query.query().unwrap_or_default();
+			let start = query.find("login_token=").unwrap_or_default();
+			let end = query[start..].find('&').map(|i| start + i).unwrap_or(query.len());
+			let query_start = query[..start].trim_end_matches('&');
+			let mut query_end = &query[end..];
+			let tmp;
+			let location = if query_start.is_empty() && query_end.is_empty() {
+				path_and_query.path()
+			} else {
+				if query_start.is_empty() {
+					query_end = query_end.trim_start_matches('&');
+				}
+				tmp = format!("{}?{}{}", path_and_query.path(), query_start, query_end);
+				&tmp
+			};
+			return Response::builder()
+				.status(StatusCode::FOUND)
+				.header("location", location)
+				.body(Body::empty())
+				.unwrap();
 		}
 	}
 	next.run(req).await
@@ -318,6 +367,24 @@ async fn redirect_start(Query(data): Query<OauthLoginData>) -> Response {
 		.unwrap()
 }
 
+async fn redirect_provider(extract::State(state): ExtractState) -> Response {
+	let base_url = state
+		.config
+		.oidc
+		.as_ref()
+		.map(|c| {
+			url::Url::parse(&c.server_url).expect("Invalid oidc server_url")
+				[..url::Position::BeforePath]
+				.to_string()
+		})
+		.unwrap_or_default();
+	Response::builder()
+		.status(StatusCode::FOUND)
+		.header("location", base_url)
+		.body(Body::empty())
+		.unwrap()
+}
+
 async fn menu(
 	extract::State(state): ExtractState, Query(data): Query<MenuRequestData>, session: Session,
 	oidc: Option<OidcClaims>,
@@ -417,206 +484,230 @@ async fn main() -> Result<()> {
 	let mail = mail::Mail::new(config.clone());
 
 	let address = config.bind_address.clone();
+	let (recreate_webserver, mut recreate_webserver_recv) = tokio::sync::mpsc::channel(1);
 	let state = Arc::new(State {
 		sites,
 		config,
 		db: database,
 		mail,
+		recreate_webserver,
 		thumbs: Default::default(),
 		log_mutex: Mutex::new(()),
 	});
 
 	// Start thumbnail creator
-	let mut image_dirs = Vec::new();
-	for d in fs::read_dir(".")? {
-		let d = d?;
-		if let Some(path) =
-			d.path().file_name().and_then(|n| n.to_str()).and_then(|n| n.strip_prefix("Bilder"))
-		{
-			image_dirs.push(path.to_string());
-			let state2 = state.clone();
-			std::thread::spawn(move || thumbs::watch_thumbs(&state2, d.file_name().into()));
-		}
-	}
+	let mut started_thumbs = false;
 
-	let api_admin_routes = Router::new()
-		.route("/mails", get(admin::download_mails))
-		.route("/teilnehmer", get(admin::download_members))
-		.route("/betreuer", get(admin::download_supervisors))
-		.route("/lager", get(admin::lager_info).delete(admin::remove_lager))
-		.route("/teilnehmer/remove", post(admin::remove_member))
-		.route("/teilnehmer/edit", post(admin::edit_member))
-		.route("/betreuer/remove", post(admin::remove_supervisor))
-		.route("/betreuer/edit", post(admin::edit_supervisor))
-		.route("/user/list", get(admin::list_users))
-		.route("/user/reset_password", post(admin::reset_password))
-		.route("/user/create", post(admin::create_user))
-		.layer(axum::middleware::from_fn_with_state(
-			HasRolePredicate::new(state.clone(), auth::Roles::Admin, true),
-			has_role,
-		));
-
-	let api_erwischt_routes = Router::new()
-		.route("/games", get(erwischt::get_games))
-		.route("/game/{id}", get(erwischt::get_game).delete(erwischt::delete_game))
-		.route("/game", post(erwischt::create_game))
-		.route("/game/setCatch", post(erwischt::catch))
-		.route("/game/insert", post(erwischt::insert))
-		.layer(axum::middleware::from_fn_with_state(
-			HasRolePredicate::new(state.clone(), auth::Roles::Erwischt, true),
-			has_role,
-		));
-
-	let mut api_routes = Router::new()
-		.route("/login", post(auth::login))
-		.route("/login-nojs", post(auth::login_nojs))
-		.route("/logout", get(auth::logout))
-		.route("/menu", get(menu))
-		.route("/signup-state", get(signup::signup_state))
-		.route("/signup", post(signup::signup))
-		.route("/signup-nojs", post(signup::signup_nojs))
-		.route("/signup-supervisor", post(signup_supervisor::signup))
-		.route("/signup-supervisor-nojs", post(signup_supervisor::signup_nojs))
-		.route("/resignup-supervisor", post(signup_supervisor::resignup))
-		.route("/get-supervisor-data", post(signup_supervisor::get_data))
-		.route("/presignup-supervisor", post(signup_supervisor::presignup))
-		.route("/presignup-supervisor-nojs", post(signup_supervisor::presignup_nojs))
-		.nest("/admin", api_admin_routes)
-		.nest("/erwischt", api_erwischt_routes);
-
-	let etag_layer =
-		axum::middleware::from_fn_with_state(etag::EtagLayer::new(), etag::compute_etag);
-
-	// Do not use last-modified, because it goes wrong when building with nix and the timestamp is 0
-	let mut app = Router::new();
-	for name in &image_dirs {
-		let name2 = name.clone();
-		app = app.merge(
-			Router::new()
-				.route(
-					&format!("/Bilder{}/list", name),
-					get(async move |extract::State(state): ExtractState| {
-						images::list_images(&state, &name2).await
-					}),
-				)
-				.nest(
-					&format!("/Bilder{}/static", name),
-					Router::new().fallback_service(
-						etag_layer
-							.layer(
-								ServeDir::new(format!("Bilder{}", name)).fallback(any(not_found)),
-							)
-							.map_response(remove_last_modified),
-					),
-				)
-				.layer(axum::middleware::from_fn_with_state(
-					HasRolePredicate::new(state.clone(), auth::Roles::Images(name.clone()), true),
-					has_role,
-				)),
-		);
-	}
-
-	let rewrite_img_path_middleware =
-		tower::util::MapRequestLayer::new(move |req| rewrite_images_path(&image_dirs, req));
-
-	let session_store = PostgresStore::new(Pool::connect(&state.config.database).await?);
-	session_store.migrate().await?;
-	tokio::task::spawn(
-		session_store.clone().continuously_delete_expired(tokio::time::Duration::from_mins(10)),
-	);
-
-	let mut session_layer = SessionManagerLayer::new(session_store)
-		.with_name("user")
-		.with_secure(state.config.secure)
-		.with_same_site(tower_sessions::cookie::SameSite::Strict)
-		.with_expiry(Expiry::OnInactivity(cookie_maxtime()))
-		.with_always_save(true);
-
-	if let Some(domain) = &state.config.domain() {
-		session_layer = session_layer.with_domain(domain.to_string());
-	}
-
-	if let Some(cfg) = &state.config.oidc {
-		let redirect_url = format!(
-			"http{}://{}/api/oauth2/callback",
-			if state.config.secure { "s" } else { "" },
-			if let Some(origin) = &state.config.domain {
-				origin
-			} else {
-				&state.config.bind_address
-			}
-		);
-
-		let oidc_client = OidcClient::<EmptyAdditionalClaims>::builder()
-			.with_client_id(ClientId::new(cfg.client_id.clone()))
-			.with_client_secret(ClientSecret::new(cfg.client_secret.clone()))
-			.with_redirect_url(Uri::from_maybe_shared(redirect_url).unwrap())
-			.with_default_http_client()
-			.discover(IssuerUrl::new(cfg.server_url.clone())?)
-			.await?
-			.build();
-
-		let oidc_auth_service = ServiceBuilder::new()
-			.layer(HandleErrorLayer::new(|error: MiddlewareError| async {
-				warn!(%error, "oidc error");
-				error.into_response()
-			}))
-			.layer(OidcAuthLayer::new(oidc_client));
-
-		let oidc_login_service = ServiceBuilder::new()
-			.layer(HandleErrorLayer::new(|error: MiddlewareError| async {
-				warn!(%error, "oidc login error");
-				error.into_response()
-			}))
-			.layer(OidcLoginLayer::<EmptyAdditionalClaims>::new());
-
-		api_routes = api_routes
-			.route("/oauth2/login", get(redirect_start).layer(oidc_login_service))
-			.route("/oauth2/callback", any(handle_oidc_redirect::<EmptyAdditionalClaims>))
-			.layer(oidc_auth_service);
-	}
-
-	let serve_frontend: tower::util::BoxCloneSyncService<Request, Response, Infallible> =
-		if args.dev {
-			async fn forward(uri: Uri) -> Response {
-				match reqwest::get(format!(
-					"http://localhost:5173{}",
-					uri.path_and_query().unwrap().as_str()
-				))
-				.await
-				{
-					Ok(resp) => {
-						let mut ret = Response::builder();
-						*ret.headers_mut().unwrap() = resp.headers().clone();
-						ret.body(Body::from_stream(resp.bytes_stream())).unwrap()
-					}
-					Err(error) => {
-						warn!(%error, "Failed to forward request");
-						"Internal error".into_response()
-					}
+	// Infinitely restart server when requested.
+	// Needed to add new routes when a new image folder is created.
+	loop {
+		let mut image_dirs = Vec::new();
+		for d in fs::read_dir(".")? {
+			let d = d?;
+			if let Some(path) =
+				d.path().file_name().and_then(|n| n.to_str()).and_then(|n| n.strip_prefix("Bilder"))
+			{
+				image_dirs.push(path.to_string());
+				if !started_thumbs {
+					let state2 = state.clone();
+					std::thread::spawn(move || thumbs::watch_thumbs(&state2, d.file_name().into()));
 				}
 			}
-			tower::util::BoxCloneSyncService::new(HandlerWithoutStateExt::into_service(forward))
-		} else {
-			tower::util::BoxCloneSyncService::new(
-				etag_layer.layer(ServeDir::new("frontend/build").fallback(any(not_found))),
+		}
+		started_thumbs = true;
+
+		let api_admin_routes = Router::new()
+			.route("/mails", get(admin::download_mails))
+			.route("/teilnehmer", get(admin::download_members))
+			.route("/betreuer", get(admin::download_supervisors))
+			.route("/lager", get(admin::lager_info).delete(admin::remove_lager))
+			.route("/teilnehmer/remove", post(admin::remove_member))
+			.route("/teilnehmer/edit", post(admin::edit_member))
+			.route("/betreuer/remove", post(admin::remove_supervisor))
+			.route("/betreuer/edit", post(admin::edit_supervisor))
+			.route("/user/list", get(admin::list_users))
+			.route("/user/reset_password", post(admin::reset_password))
+			.route("/user/create", post(admin::create_user))
+			.route("/imageLink", post(admin::create_image_link).delete(admin::delete_image_link))
+			.route("/imageLink/list", get(admin::list_image_links))
+			.layer(axum::middleware::from_fn_with_state(
+				HasRolePredicate::new(state.clone(), auth::Roles::Admin, true),
+				has_role,
+			));
+
+		let api_erwischt_routes = Router::new()
+			.route("/games", get(erwischt::get_games))
+			.route("/game/{id}", get(erwischt::get_game).delete(erwischt::delete_game))
+			.route("/game", post(erwischt::create_game))
+			.route("/game/setCatch", post(erwischt::catch))
+			.route("/game/insert", post(erwischt::insert))
+			.layer(axum::middleware::from_fn_with_state(
+				HasRolePredicate::new(state.clone(), auth::Roles::Erwischt, true),
+				has_role,
+			));
+
+		let mut api_routes = Router::new()
+			.route("/login", post(auth::login))
+			.route("/login-nojs", post(auth::login_nojs))
+			.route("/logout", get(auth::logout))
+			.route("/menu", get(menu))
+			.route("/signup-state", get(signup::signup_state))
+			.route("/signup", post(signup::signup))
+			.route("/signup-nojs", post(signup::signup_nojs))
+			.route("/signup-supervisor", post(signup_supervisor::signup))
+			.route("/signup-supervisor-nojs", post(signup_supervisor::signup_nojs))
+			.route("/resignup-supervisor", post(signup_supervisor::resignup))
+			.route("/get-supervisor-data", post(signup_supervisor::get_data))
+			.route("/presignup-supervisor", post(signup_supervisor::presignup))
+			.route("/presignup-supervisor-nojs", post(signup_supervisor::presignup_nojs))
+			.nest("/admin", api_admin_routes)
+			.nest("/erwischt", api_erwischt_routes);
+
+		let etag_layer =
+			axum::middleware::from_fn_with_state(etag::EtagLayer::new(), etag::compute_etag);
+
+		// Do not use last-modified, because it goes wrong when building with nix and the timestamp is 0
+		let mut app = Router::new();
+		for name in &image_dirs {
+			let name2 = name.clone();
+			app = app.merge(
+				Router::new()
+					.route(
+						&format!("/Bilder{}/list", name),
+						get(async move |extract::State(state): ExtractState| {
+							images::list_images(&state, &name2).await
+						}),
+					)
+					.nest(
+						&format!("/Bilder{}/static", name),
+						Router::new().fallback_service(
+							etag_layer
+								.layer(
+									ServeDir::new(format!("Bilder{}", name))
+										.fallback(any(not_found)),
+								)
+								.map_response(remove_last_modified),
+						),
+					)
+					.layer(axum::middleware::from_fn_with_state(
+						HasRolePredicate::new(
+							state.clone(),
+							auth::Roles::Images(name.clone()),
+							true,
+						),
+						has_role,
+					)),
+			);
+		}
+
+		let rewrite_img_path_middleware =
+			tower::util::MapRequestLayer::new(move |req| rewrite_images_path(&image_dirs, req));
+
+		let session_store = PostgresStore::new(Pool::connect(&state.config.database).await?);
+		session_store.migrate().await?;
+		tokio::task::spawn(
+			session_store.clone().continuously_delete_expired(tokio::time::Duration::from_mins(10)),
+		);
+
+		let mut session_layer = SessionManagerLayer::new(session_store)
+			.with_name("user")
+			.with_secure(state.config.secure)
+			.with_same_site(tower_sessions::cookie::SameSite::Strict)
+			.with_expiry(Expiry::OnInactivity(cookie_maxtime()))
+			.with_always_save(true);
+
+		if let Some(domain) = &state.config.domain() {
+			session_layer = session_layer.with_domain(domain.to_string());
+		}
+
+		if let Some(cfg) = &state.config.oidc {
+			let redirect_url = format!(
+				"http{}://{}/api/oauth2/callback",
+				if state.config.secure { "s" } else { "" },
+				if let Some(origin) = &state.config.domain {
+					origin
+				} else {
+					&state.config.bind_address
+				}
+			);
+
+			let oidc_client = OidcClient::<EmptyAdditionalClaims>::builder()
+				.with_client_id(ClientId::new(cfg.client_id.clone()))
+				.with_client_secret(ClientSecret::new(cfg.client_secret.clone()))
+				.with_redirect_url(Uri::from_maybe_shared(redirect_url).unwrap())
+				.with_default_http_client()
+				.discover(IssuerUrl::new(cfg.server_url.clone())?)
+				.await?
+				.build();
+
+			let oidc_auth_service = ServiceBuilder::new()
+				.layer(HandleErrorLayer::new(|error: MiddlewareError| async {
+					warn!(%error, "oidc error");
+					error.into_response()
+				}))
+				.layer(OidcAuthLayer::new(oidc_client));
+
+			let oidc_login_service = ServiceBuilder::new()
+				.layer(HandleErrorLayer::new(|error: MiddlewareError| async {
+					warn!(%error, "oidc login error");
+					error.into_response()
+				}))
+				.layer(OidcLoginLayer::<EmptyAdditionalClaims>::new());
+
+			api_routes = api_routes
+				.route("/oauth2/login", get(redirect_start).layer(oidc_login_service))
+				.route("/oauth2/callback", any(handle_oidc_redirect::<EmptyAdditionalClaims>))
+				.route("/oauth2/provider", get(redirect_provider))
+				.layer(oidc_auth_service);
+		}
+
+		let serve_frontend: tower::util::BoxCloneSyncService<Request, Response, Infallible> =
+			if args.dev {
+				async fn forward(uri: Uri) -> Response {
+					match reqwest::get(format!(
+						"http://localhost:5173{}",
+						uri.path_and_query().unwrap().as_str()
+					))
+					.await
+					{
+						Ok(resp) => {
+							let mut ret = Response::builder();
+							*ret.headers_mut().unwrap() = resp.headers().clone();
+							ret.body(Body::from_stream(resp.bytes_stream())).unwrap()
+						}
+						Err(error) => {
+							warn!(%error, "Failed to forward request");
+							"Internal error".into_response()
+						}
+					}
+				}
+				tower::util::BoxCloneSyncService::new(HandlerWithoutStateExt::into_service(forward))
+			} else {
+				tower::util::BoxCloneSyncService::new(
+					etag_layer.layer(ServeDir::new("frontend/build").fallback(any(not_found))),
+				)
+			};
+
+		let app = app
+			.nest("/api", api_routes)
+			.fallback_service(
+				rewrite_img_path_middleware
+					.layer(serve_frontend)
+					.map_response(remove_last_modified),
 			)
-		};
+			.layer(axum::middleware::from_fn_with_state(state.clone(), token_login))
+			.layer(axum::middleware::from_fn_with_state(state.config.clone(), check_csrf))
+			.layer(TraceLayer::new_for_http())
+			.layer(session_layer)
+			.with_state(state.clone())
+			.into_make_service_with_connect_info::<SocketAddr>();
 
-	let app = app
-		.nest("/api", api_routes)
-		.fallback_service(
-			rewrite_img_path_middleware.layer(serve_frontend).map_response(remove_last_modified),
-		)
-		.layer(axum::middleware::from_fn_with_state(state.config.clone(), check_csrf))
-		.layer(TraceLayer::new_for_http())
-		.layer(session_layer)
-		.with_state(state)
-		.into_make_service_with_connect_info::<SocketAddr>();
+		info!(%address, "Starting server");
+		let listener = tokio::net::TcpListener::bind(address.clone()).await?;
 
-	info!(%address, "Starting server");
-	let listener = tokio::net::TcpListener::bind(address).await?;
-	axum::serve(listener, app).await?;
-
-	Ok(())
+		tokio::select! {
+			_ = axum::serve(listener, app) => {}
+			_ = recreate_webserver_recv.recv() => {}
+		}
+	}
 }

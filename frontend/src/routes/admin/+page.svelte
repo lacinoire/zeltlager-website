@@ -1,13 +1,20 @@
 <script lang="ts">
 	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
-	import { mdiDeleteOutline } from "@mdi/js";
+	import { mdiDeleteOutline, mdiPlus } from "@mdi/js";
 	import Icon from "$lib/Icon.svelte";
 	import { sleep } from "$lib/utils";
 
-	let error: string | undefined = $state();
-	let success: string | undefined = $state();
-	let users: string[] | undefined = $state();
+	interface ImageLink {
+		name: string;
+		user: string;
+		url: string;
+	}
+
+	let error: string | undefined = $state(undefined);
+	let success: string | undefined = $state(undefined);
+	let users: string[] | undefined = $state(undefined);
+	let imageLinks: ImageLink[] | undefined = $state(undefined);
 
 	let deleteModalOpen = $state(false);
 	let deleteModalInput: HTMLInputElement | undefined = $state();
@@ -16,6 +23,10 @@
 	let deleteModalBetreuer: HTMLElement | undefined = $state();
 	let deleteModalErwischtGames: HTMLElement | undefined = $state();
 	let deleteIsLoading = $state(false);
+
+	let createImageLinkModalOpen = $state(false);
+	let createImageLinkModalNameInput: HTMLInputElement | undefined = $state();
+	let createImageLinkIsLoading = $state(false);
 
 	let passwordModalOpen = $state(false);
 	let passwordModalLoading = $state(false);
@@ -60,12 +71,9 @@
 		await fetchDeleteInfo();
 	}
 
-	function onCloseDeleteModal(e) {
-		e.preventDefault();
-		closeDeleteModal();
-	}
-
-	function closeDeleteModal() {
+	function closeDeleteModal(e) {
+		if (e !== undefined)
+			e.preventDefault();
 		deleteModalOpen = false;
 		if (deleteModalInput !== undefined)
 			deleteModalInput.value = "";
@@ -90,12 +98,14 @@
 			if (resp.status == 401) {
 				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
 			} else {
-				console.error("Failed to load data", resp);
+				console.error("Failed to remove lager", resp);
 				error = "Lager löschen fehlgeschlagen (" + (await resp.text()) + ")";
 			}
+			deleteIsLoading = false;
 			return;
 		}
 
+		deleteIsLoading = false;
 		success = "Lager erfolgreich gelöscht";
 	}
 
@@ -106,8 +116,92 @@
 		}
 	}
 
+	async function loadImageLinks() {
+		imageLinks = await (await fetch("/api/admin/imageLink/list")).json();
+	}
+
+	async function createImageLink(e) {
+		e.preventDefault();
+
+		// Create link
+		const params = new URLSearchParams();
+		params.append("name", createImageLinkModalNameInput.value);
+
+		createImageLinkIsLoading = true;
+		closeCreateImageLinkModal();
+
+		const resp = await fetch("/api/admin/imageLink?" + params.toString(), {
+			method: "POST",
+		});
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to create link", resp);
+				error = "Link erstellen fehlgeschlagen (" + (await resp.text()) + ")";
+			}
+			createImageLinkIsLoading = false;
+			return;
+		}
+
+		createImageLinkIsLoading = false;
+		// May restart the server, so wait shortly
+		setTimeout(loadImageLinks, 1000);
+	}
+
+	async function openCreateImageLinkModal(e) {
+		e.preventDefault();
+		createImageLinkModalOpen = true;
+		createImageLinkIsLoading = false;
+		success = undefined;
+		if (createImageLinkModalNameInput) {
+			await tick();
+			createImageLinkModalNameInput.focus();
+		}
+	}
+
+	function closeCreateImageLinkModal(e) {
+		if (e !== undefined)
+			e.preventDefault();
+		createImageLinkModalOpen = false;
+		if (createImageLinkModalNameInput !== undefined)
+			createImageLinkModalNameInput.value = "";
+	}
+
+	async function deleteImageLink(link: ImageLink) {
+		if (!window.confirm(`Link "${link.name}" löschen? Das kann nicht rückgängig gemacht werden.`))
+			return;
+		const params = new URLSearchParams();
+		params.append("name", link.name);
+		const resp = await fetch("/api/admin/imageLink?" + params.toString(), { method: "DELETE" });
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to delete link", resp);
+				error = "Link konnte nicht gelöscht werden. Hat der Account Admin-Rechte?";
+			}
+			return;
+		}
+		loadImageLinks();
+	}
+
 	async function loadUsers() {
-		users = await (await fetch("/api/admin/user/list")).json();
+	const resp = await fetch("/api/admin/user/list");
+		if (!resp.ok) {
+			// Unauthorized
+			if (resp.status == 401) {
+				goto("/login?redirect=" + encodeURIComponent(window.location.pathname));
+			} else {
+				console.error("Failed to fetch users", resp);
+				error = "Admin Seite laden fehlgeschlagen (" + (await resp.text()) + ")";
+			}
+			deleteIsLoading = false;
+			return;
+		}
+		users = await resp.json();
 	}
 
 	async function resetPassword(user) {
@@ -172,7 +266,10 @@
 		}
 	}
 
-	onMount(loadUsers);
+	onMount(() => {
+		loadImageLinks();
+		loadUsers();
+	});
 </script>
 
 <svelte:document onkeydown={documentKeyDown} />
@@ -254,14 +351,53 @@
 </div>
 </div>
 
-{#if users !== undefined}
+<h2 class="title is-2">Bilder</h2>
+
+<p class="buttons">
+	<button
+		class="button"
+		class:is-loading={createImageLinkIsLoading}
+		onclick={openCreateImageLinkModal}>
+		<span class="icon">
+			<Icon name={mdiPlus} />
+		</span>
+		<span>
+			Neuen Link erstellen
+		</span>
+	</button>
+</p>
+
 <div class="content">
+<ul>
+	{#each imageLinks as link}
+		<li>
+			<a href={link.url}>
+				{link.name}:
+			</a>
+			<a
+				class="has-text-danger"
+				role="button"
+				tabindex="0"
+				onclick={() => deleteImageLink(link)}
+				onkeydown={(e) => {
+					if (e.key === "Enter") deleteImageLink(link);
+				}}
+			>
+				Link löschen
+			</a>
+		</li>
+	{/each}
+</ul>
+</div>
+
+{#if users !== undefined}
 <h2 class="title is-2">Administratoren</h2>
 
+<div class="content">
 <ul>
 	{#each users as u}
 		<li>
-			{u}
+			{u}:
 			<!-- svelte-ignore a11y_missing_attribute -->
 			<a
 				role="button"
@@ -286,6 +422,11 @@
 			}}
 		>
 			Neuen Administrator hinzufügen
+		</a>
+	</li>
+	<li>
+		<a href="/api/oauth2/provider" rel="external">
+			Eigenes Passwort ändern
 		</a>
 	</li>
 </ul>
@@ -315,6 +456,30 @@
       <div class="buttons">
         <button class="button is-danger" type="submit" class:is-loading={deleteIsLoading}>Daten löschen</button>
         <button class="button" onclick={closeDeleteModal}>Abbrechen</button>
+      </div>
+    </footer>
+  </form>
+</div>
+
+<div class="modal" class:is-active={createImageLinkModalOpen}>
+  <div class="modal-background" onclick={closeCreateImageLinkModal}></div>
+  <form class="modal-card" onsubmit={createImageLink}>
+    <header class="modal-card-head">
+      <p class="modal-card-title">Link für Bilder erstellen</p>
+      <button type="button" class="delete" aria-label="close" onclick={closeCreateImageLinkModal}></button>
+    </header>
+    <section class="modal-card-body">
+    	<div class="content">
+    		<div>
+		    	Name (z.B. „Bilder2026“ oder „BilderBetreuer2026“):
+		    	<input type="text" bind:this={createImageLinkModalNameInput} />
+    		</div>
+	    </div>
+    </section>
+    <footer class="modal-card-foot">
+      <div class="buttons">
+        <button class="button is-primary" type="submit" class:is-loading={createImageLinkIsLoading}>Link erstellen</button>
+        <button class="button" onclick={closeCreateImageLinkModal}>Abbrechen</button>
       </div>
     </footer>
   </form>

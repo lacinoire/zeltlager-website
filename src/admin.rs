@@ -1,4 +1,6 @@
-use std::mem;
+use std::io::ErrorKind;
+use std::sync::Arc;
+use std::{fs, mem};
 
 use anyhow::{Error, Result, bail};
 use axum::extract::Query;
@@ -7,11 +9,12 @@ use axum::response::{IntoResponse, Response};
 use axum::{Json, extract};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
-use crate::db::models::{FullSupervisor, FullTeilnehmer};
-use crate::{ExtractState, State, WebResult, db, mail};
+use crate::db::models::{FullSupervisor, FullTeilnehmer, User};
+use crate::{ExtractState, State, WebResult, auth, db, mail, thumbs};
 use time::OffsetDateTime;
 
 type DbResult<T> = anyhow::Result<T>;
@@ -67,6 +70,18 @@ pub struct KanidmCreateUserAttrs {
 #[derive(Clone, Debug, Deserialize)]
 pub struct UserData {
 	user: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ImageLinkData {
+	name: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ImageLinkEntry {
+	name: String,
+	user: String,
+	url: String,
 }
 
 fn err<T>(error: Error, msg: &'static str) -> WebResult<T> {
@@ -394,7 +409,7 @@ pub async fn reset_password(
 	}
 }
 
-pub async fn create_user_intern(state: &State, user: &str) -> Result<()> {
+async fn create_user_intern(state: &State, user: &str) -> Result<()> {
 	let client = reqwest::Client::new();
 	client
 		.post(format!("{}/v1/person", state.get_kanidm_base_url()?))
@@ -423,7 +438,169 @@ pub async fn create_user(
 	extract::State(state): ExtractState, Query(user): Query<UserData>,
 ) -> WebResult<()> {
 	match create_user_intern(&state, &user.user).await {
-		Err(error) => err(error, "Failed to reset password"),
+		Err(error) => err(error, "Failed to create user"),
 		Ok(()) => Ok(()),
+	}
+}
+
+async fn create_image_link_intern(state: &Arc<State>, name: &str) -> Result<()> {
+	// Check name
+	if !name.starts_with("Bilder") {
+		bail!("Name muss mit 'Bilder' beginnen");
+	}
+	if !name.chars().all(|c| c.is_ascii_alphanumeric()) {
+		bail!("Name darf nur Buchstaben und Zahlen beinhalten");
+	}
+
+	// 1. Create user if it does not exist
+	let count: i64 = db::schema::users::dsl::users
+		.filter(db::schema::users::username.eq(&name))
+		.count()
+		.get_result(&mut state.db.get().await?)
+		.await?;
+	if count == 0 {
+		// Create without password
+		let user = User { username: name.into(), password: String::new() };
+		diesel::insert_into(db::schema::users::table)
+			.values(&user)
+			.execute(&mut state.db.get().await?)
+			.await?;
+	}
+
+	// Get user id
+	let user = db::schema::users::dsl::users
+		.filter(db::schema::users::username.eq(name))
+		.select(db::schema::users::id)
+		.first::<i32>(&mut state.db.get().await?)
+		.await?;
+
+	let mut created_dir = false;
+	if count == 0 {
+		// Add role for new user
+		let role = db::models::Role {
+			user_id: user,
+			role: format!("Images{}", name.strip_prefix("Bilder").unwrap()),
+		};
+		diesel::insert_into(db::schema::roles::table)
+			.values(&role)
+			.execute(&mut state.db.get().await?)
+			.await?;
+
+		// Create folder if it does not exist
+		match fs::create_dir(name) {
+			Err(e) if e.kind() == ErrorKind::AlreadyExists => {}
+			Err(e) => return Err(e.into()),
+			Ok(()) => {
+				// Folder was created
+				// Start thumbnail watcher
+				let state2 = state.clone();
+				let name2 = name.into();
+				std::thread::spawn(move || thumbs::watch_thumbs(&state2, name2));
+				created_dir = true;
+			}
+		}
+	}
+
+	// Ensure the user has exactly one role and it is for images (to forbid token logins for admins)
+	let roles = db::schema::roles::dsl::roles
+		.filter(db::schema::roles::dsl::user_id.eq(user))
+		.get_results::<db::models::Role>(&mut state.db.get().await?)
+		.await?;
+	if roles.len() != 1 {
+		// TODO Improve user-facing errors
+		bail!("Refuse to create auth token, user has not one role but {}", roles.len());
+	}
+	let role: auth::Roles = roles[0].role.parse()?;
+	if !matches!(role, auth::Roles::Images(_)) {
+		bail!("Refuse to create auth token, user role is not images but {:?}", role);
+	}
+
+	// Ensure that the user has no auth token set yet
+	let existing_token = db::schema::users::dsl::users
+		.filter(db::schema::users::id.eq(user))
+		.select(db::schema::users::token)
+		.first::<Option<String>>(&mut state.db.get().await?)
+		.await?;
+	if existing_token.is_some() {
+		bail!("Refuse to create auth token, user {} already has an auth token set", name);
+	}
+
+	// Create and set auth token
+	let token = {
+		let mut rng = rand::thread_rng();
+		(0..24).map(|_| rng.sample(rand::distributions::Alphanumeric) as char).collect::<String>()
+	};
+	diesel::update(db::schema::users::table)
+		.filter(db::schema::users::dsl::id.eq(user))
+		.set(db::schema::users::dsl::token.eq(Some(&token)))
+		.execute(&mut state.db.get().await?)
+		.await?;
+
+	if created_dir {
+		// Restart webserver
+		state.recreate_webserver.send(()).await?;
+	}
+
+	Ok(())
+}
+
+async fn delete_image_link_intern(state: &State, name: &str) -> Result<()> {
+	// Delete auth token
+	let count = diesel::update(db::schema::users::table)
+		.filter(db::schema::users::dsl::username.eq(name))
+		.set(db::schema::users::dsl::token.eq(None::<String>))
+		.execute(&mut state.db.get().await?)
+		.await?;
+
+	if count != 1 {
+		bail!("Failed to remove auth token for user {name}");
+	}
+
+	Ok(())
+}
+
+async fn list_image_links_intern(state: &State) -> Result<Vec<ImageLinkEntry>> {
+	// List users
+	let users = db::schema::users::table
+		.filter(db::schema::users::dsl::token.is_not_null())
+		.get_results::<db::models::UserQueryResult>(&mut state.db.get().await?)
+		.await?;
+
+	let mut links = Vec::new();
+	for u in users {
+		links.push(ImageLinkEntry {
+			name: u.username.clone(),
+			user: u.username.clone(),
+			url: format!("/{}/?login_token={}", u.username, u.token.unwrap()),
+		})
+	}
+
+	Ok(links)
+}
+
+pub async fn create_image_link(
+	extract::State(state): ExtractState, Query(link): Query<ImageLinkData>,
+) -> WebResult<()> {
+	match create_image_link_intern(&state, &link.name).await {
+		Err(error) => err(error, "Failed to create image link"),
+		Ok(()) => Ok(()),
+	}
+}
+
+pub async fn delete_image_link(
+	extract::State(state): ExtractState, Query(link): Query<ImageLinkData>,
+) -> WebResult<()> {
+	match delete_image_link_intern(&state, &link.name).await {
+		Err(error) => err(error, "Failed to delete image link"),
+		Ok(()) => Ok(()),
+	}
+}
+
+pub async fn list_image_links(
+	extract::State(state): ExtractState,
+) -> WebResult<Json<Vec<ImageLinkEntry>>> {
+	match list_image_links_intern(&state).await {
+		Err(error) => err(error, "Failed to list image links"),
+		Ok(r) => Ok(Json(r)),
 	}
 }

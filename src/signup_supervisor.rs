@@ -219,10 +219,10 @@ pub async fn get_data(
 
 		let mut connection = state.db.get().await?;
 
-		let now = OffsetDateTime::now_utc() - Duration::days(1);
-		let now_primitive = PrimitiveDateTime::new(now.date(), now.time());
+		let since = OffsetDateTime::now_utc() - Duration::days(1);
+		let since_primitive = PrimitiveDateTime::new(since.date(), since.time());
 		let supervisor = match betreuer::table
-			.filter(signup_token.eq(token).and(signup_token_time.gt(now_primitive)))
+			.filter(signup_token.eq(token).and(signup_token_time.gt(since_primitive)))
 			.first::<models::FullSupervisor>(&mut connection)
 			.await
 		{

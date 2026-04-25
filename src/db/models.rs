@@ -20,6 +20,7 @@ use super::FormError;
 use super::schema::betreuer;
 use super::schema::erwischt_member;
 use super::schema::rate_limiting;
+use super::schema::roles;
 use super::schema::teilnehmer;
 use super::schema::users;
 
@@ -231,11 +232,13 @@ pub struct UserQueryResult {
 	#[allow(dead_code)]
 	pub username: String,
 	pub password: String,
+	#[allow(dead_code)]
+	pub token: Option<String>,
 }
 
-#[derive(Clone, Debug, Queryable)]
+#[derive(Clone, Debug, Insertable, Queryable)]
+#[diesel(table_name = roles)]
 pub struct Role {
-	#[allow(dead_code)]
 	pub user_id: i32,
 	pub role: String,
 }

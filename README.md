@@ -72,6 +72,17 @@ Um Fehler zu finden:
 
 `env RUST_BACKTRACE=1 RUST_LOG=debug cargo run`
 
+Mit Frontend dev Server:
+
+```bash
+$ cd frontend
+$ bun run dev --no-open
+$ cd ..
+$ cargo run -- --dev
+```
+
+Im Browser http://localhost:8080 besuchen.
+
 ### Entwickler
 
 Caro, Sebi und Jessi, Betreuer aus dem Zeltlager.

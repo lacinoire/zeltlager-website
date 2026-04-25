@@ -234,7 +234,7 @@
 		const f = form.form;
 		f.vorname.value = "a";
 		f.nachname.value = "b";
-		f.geburtsdatum.value = "1.1.2010";
+		f.geburtsdatum.value = "1.1.2015";
 		f.geschlecht.value = "w";
 		f.schwimmer.value = "true";
 		f.vegetarier.value = "true";

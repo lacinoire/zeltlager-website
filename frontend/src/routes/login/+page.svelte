@@ -77,6 +77,14 @@
 	</article>
 {/if}
 
+<div class="centered">
+	<article class="message is-info">
+		<div class="message-body">
+			Wenn Sie einen Link statt einem Benutzernamen haben, verwenden Sie den Link zum Anmelden.
+		</div>
+	</article>
+</div>
+
 <div style="max-width: 20em; margin-left: auto; margin-right: auto;">
 	<form
 		method="post"
@@ -132,12 +140,21 @@
 			</div>
 		</div>
 	</form>
+</div>
 
+<div class="centered">
 	<a
 		href={"/api/oauth2/login?redirect=" + getRedirect()}
-		rel="external"
-		class="button"
-		style="width: 100%; margin-top: 2em;">
+		rel="external">
 		Admin Login
 	</a>
 </div>
+
+<style>
+	.centered {
+		margin-top: 2em;
+		margin-bottom: 2em;
+		width: 100%;
+		text-align: center;
+	}
+</style>
