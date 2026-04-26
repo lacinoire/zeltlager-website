@@ -251,6 +251,7 @@
 			return;
 		}
 
+		createUserModalInput.value = "";
 		createUserModalLoading = false;
 		createUserModalOpen = false;
 		loadUsers();
@@ -426,7 +427,7 @@
 	</li>
 	<li>
 		<a href="/api/oauth2/provider" rel="external">
-			Eigenes Passwort ändern
+			Eigenen Account verwalten
 		</a>
 	</li>
 </ul>
