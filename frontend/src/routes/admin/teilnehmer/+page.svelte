@@ -497,11 +497,11 @@
 								{#if sortType === "anwesend"}
 									<EditableProperty
 										bind:value={e.anwesend}
-										on:edit={(ev) => editEntry(e, ev)} />
+										onedit={(ev) => onedit(e, ev)} />
 								{:else}
 									<EditableProperty
 										bind:value={e.bezahlt}
-										on:edit={(ev) => editEntry(e, ev)} />
+										onedit={(ev) => onedit(e, ev)} />
 								{/if}
 							</td>
 							<td>{e.vorname}</td>

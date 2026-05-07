@@ -34,8 +34,6 @@
 	let games: GameEntry[] = $state([]);
 	let currentGameId: number | undefined = $state();
 	let currentGame: Game | undefined = $state();
-	let filteredLive: Member[] | undefined = $state();
-	let filteredCatched: Member[] | undefined = $state();
 
 	let showTarget = $state(false);
 	let insertMember = $state(false);
@@ -218,13 +216,11 @@
 	/// Show the filtered members
 	function showMembers(filter: string, showTarget: boolean, currentGame: Game | undefined) {
 		if (currentGame === undefined) {
-			filteredLive = undefined;
-			filteredCatched = undefined;
-			return;
+			return [undefined, undefined];
 		}
 		filter = filter.toLowerCase();
 
-		filteredLive = [];
+		const filteredLive = [];
 		for (const m of currentGame) {
 			if (
 				m.catcher === null &&
@@ -235,7 +231,7 @@
 		}
 		filteredLive.sort((a, b) => a.name.localeCompare(b.name));
 
-		filteredCatched = [];
+		const filteredCatched = [];
 		for (const m of currentGame) {
 			if (
 				m.catcher !== null &&
@@ -245,9 +241,11 @@
 			}
 		}
 		filteredCatched.sort((a, b) => a.name.localeCompare(b.name));
+
+		return [filteredLive, filteredCatched];
 	}
 
-	$effect(() => showMembers(filter, showTarget, currentGame));
+	let [filteredLive: Member[] | undefined, filteredCatched: Member[] | undefined] = $derived.by(() => showMembers(filter, showTarget, currentGame));
 
 	async function newGame() {
 		let response: Response;

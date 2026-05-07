@@ -112,6 +112,9 @@ pub async fn create_game(extract::State(state): ExtractState) -> WebResult<Json<
 		}
 
 		let supervisor_member = betreuer::table
+			.filter(
+				betreuer::columns::anmeldedatum.ge(crate::admin::betreuer_signup_date_last_year()),
+			)
 			.select((betreuer::columns::vorname, betreuer::columns::nachname))
 			.get_results::<(String, String)>(&mut connection)
 			.await?;

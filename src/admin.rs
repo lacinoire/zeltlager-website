@@ -279,7 +279,7 @@ pub async fn download_mails(
 }
 
 /// The date at which betreuer need to be signed up to count towards the current or last year.
-fn betreuer_signup_date_last_year() -> OffsetDateTime {
+pub fn betreuer_signup_date_last_year() -> OffsetDateTime {
 	let mut date = crate::LAGER_START.midnight().assume_utc();
 	let now = OffsetDateTime::now_utc();
 	if date > now {
