@@ -17,10 +17,9 @@ Du hast Lust auf Lagerfeuer, coole Spiele, neue Freundschaften und zwei unverges
 
 📅 **{LAGER_START.format("DD. MMMM")} – {LAGER_START.clone().add(11, "days").format("DD. MMMM YYYY")}**  
 📍 Auf dem Gelände eines befreundeter Sportvereins im Münchner/Landsberger Umland  
-🚌 **Abfahrt:** Montag, {LAGER_START.format("DD.MM.")} um 10:00 Uhr  
-🚌 **Rückkehr:** Freitag, {LAGER_START.clone().add(11, "days").format("DD.MM.")} gegen 14:00 Uhr  
+🧭 **Abfahrt:** Montag, {LAGER_START.format("DD.MM.")} um 10:00 Uhr  
+🧭 **Rückkehr:** Freitag, {LAGER_START.clone().add(11, "days").format("DD.MM.")} gegen 14:00 Uhr  
 📍 **Treffpunkt:** Parkplatz S-Bahnhof Langwied, Bergsonstraße  
-Die An- und Abreise erfolgt mit modernen, klimatisierten Reisebussen.
 
 ## Was kostet das?
 
