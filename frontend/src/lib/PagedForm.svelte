@@ -244,89 +244,97 @@
 					</div>
 				{/if}
 
-				<div class="field is-horizontal" class:required={field.required ?? true}>
-					<div class="field-label">
-						{#if field.type !== "checkbox"}
-							<label for={field.id ?? field.name.toLowerCase()} class="label">
-								{@html field.name}{#if field.help_tooltip !== undefined}
-									<span class="helpTooltip">
-										<div class="helpTooltipContent">
-											{@html field.help_tooltip ?? ""}
-										</div>
-										<span class="helpTooltipIcon">
-											<Icon name={mdiHelpCircle} />
-										</span>
-									</span>
-								{/if}</label>
-						{/if}
-					</div>
-					<div class="field-body">
-						<div class="field">
-							<div class="control">
-								{#if field.type === undefined || field.type === "text" || field.type === "email"}
-									<input
-										id={field.id ?? field.name.toLowerCase()}
-										name={field.id ?? field.name.toLowerCase()}
-										placeholder={field.placeholder ?? field.name}
-										required={field.required ?? true}
-										class="input"
-										autocomplete={field.autocomplete ?? false}
-										value={field.defaultValue ?? ""}
-										inputmode={field.inputmode ?? ""}
-										onkeydown={field.keydown}
-										onblur={saveEntries}
-										onfocusout={field.focusout}
-										type={field.type ?? "text"} />
-								{:else if field.type === "radio"}
-									{#each field.variants ?? DEFAULT_VARIANTS as variant}
-										<label class="radio">
-											<input
-												name={field.id ?? field.name.toLowerCase()}
-												value={variant.id ?? variant.name.toLowerCase()}
-												required
-												type="radio"
-												onchange={saveEntries} />
-											{variant.name}
-										</label>
-									{/each}
-								{:else if field.type === "textarea"}
-									<textarea
-										id={field.id ?? field.name.toLowerCase()}
-										name={field.id ?? field.name.toLowerCase()}
-										onblur={saveEntries}
-										cols="40"
-										rows="1"
-										class="textarea"
-										aria-describedby={field.help !== undefined
-											? (field.id ?? field.name.toLowerCase()) + "HelpBlock"
-											: undefined}></textarea>
-								{:else if field.type === "checkbox"}
-									<label class="checkbox">
-										<input
-											name={field.id ?? field.name.toLowerCase()}
-											value="true"
-											required
-											type="checkbox"
-											onchange={saveEntries} />
-											<span class="label" style="display: inline;">
-												{@html field.name}
+				{#if field.type === "hidden"}
+					<input
+						id={field.id ?? field.name.toLowerCase()}
+						name={field.id ?? field.name.toLowerCase()}
+						value={field.defaultValue ?? ""}
+						type={field.type} />
+				{:else}
+					<div class="field is-horizontal" class:required={field.required ?? true}>
+						<div class="field-label">
+							{#if field.type !== "checkbox"}
+								<label for={field.id ?? field.name.toLowerCase()} class="label">
+									{@html field.name}{#if field.help_tooltip !== undefined}
+										<span class="helpTooltip">
+											<div class="helpTooltipContent">
+												{@html field.help_tooltip ?? ""}
+											</div>
+											<span class="helpTooltipIcon">
+												<Icon name={mdiHelpCircle} />
 											</span>
-									</label>
-								{/if}
-							</div>
-							{#if field.help !== undefined || (field.required === false && field.type === "textarea")}
-								<p
-									id={(field.id ?? field.name.toLowerCase()) + "HelpBlock"}
-									class="help">
-									{@html field.help ?? ""}
-									{#if field.required === false}
-										<span class="optional">Optional</span>
-									{/if}
-								</p>
+										</span>
+									{/if}</label>
 							{/if}
 						</div>
+						<div class="field-body">
+							<div class="field">
+								<div class="control">
+									{#if field.type === undefined || field.type === "text" || field.type === "email"}
+										<input
+											id={field.id ?? field.name.toLowerCase()}
+											name={field.id ?? field.name.toLowerCase()}
+											placeholder={field.placeholder ?? field.name}
+											required={field.required ?? true}
+											class="input"
+											autocomplete={field.autocomplete ?? false}
+											value={field.defaultValue ?? ""}
+											inputmode={field.inputmode ?? ""}
+											onkeydown={field.keydown}
+											onblur={saveEntries}
+											onfocusout={field.focusout}
+											type={field.type ?? "text"} />
+									{:else if field.type === "radio"}
+										{#each field.variants ?? DEFAULT_VARIANTS as variant}
+											<label class="radio">
+												<input
+													name={field.id ?? field.name.toLowerCase()}
+													value={variant.id ?? variant.name.toLowerCase()}
+													required
+													type="radio"
+													onchange={saveEntries} />
+												{variant.name}
+											</label>
+										{/each}
+									{:else if field.type === "textarea"}
+										<textarea
+											id={field.id ?? field.name.toLowerCase()}
+											name={field.id ?? field.name.toLowerCase()}
+											onblur={saveEntries}
+											cols="40"
+											rows="1"
+											class="textarea"
+											aria-describedby={field.help !== undefined
+												? (field.id ?? field.name.toLowerCase()) + "HelpBlock"
+												: undefined}></textarea>
+									{:else if field.type === "checkbox"}
+										<label class="checkbox">
+											<input
+												name={field.id ?? field.name.toLowerCase()}
+												value="true"
+												required
+												type="checkbox"
+												onchange={saveEntries} />
+												<span class="label" style="display: inline;">
+													{@html field.name}
+												</span>
+										</label>
+									{/if}
+								</div>
+								{#if field.help !== undefined || (field.required === false && field.type === "textarea")}
+									<p
+										id={(field.id ?? field.name.toLowerCase()) + "HelpBlock"}
+										class="help">
+										{@html field.help ?? ""}
+										{#if field.required === false}
+											<span class="optional">Optional</span>
+										{/if}
+									</p>
+								{/if}
+							</div>
+						</div>
 					</div>
-				</div>
+				{/if}
 			{/each}
 		</div>
 	{/each}
