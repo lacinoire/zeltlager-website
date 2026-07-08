@@ -32,7 +32,7 @@ Eine Brotzeit 🥪 wird nicht benötigt, es gibt am Montag Mittagessen im Zeltla
 
 Alle Kleidungsstücke, sowie die Liege und der Schlafsack deutlich mit Namen 🏷️ kennzeichnen. Wir empfehlen einen Wäschestift zur Beschriftung der Etiketten.
 
-**Zur Abfahrt bitte einen verschlossen Briefumschlag mitbringen, beschriftet mit dem Namen des Teilnehmers mit folgendem Inhalt: Krankenversicherungskarte, Handynummern der Erziehungsberechtigten, Taschengeld (maximal 15.- €, ist damit einbezahlt in die Zeltlagerbank und kann bei Bedarf von dem Teilnehmer abgehoben werden) und bei Bedarf neuere Impfdaten. Der Umschlag wird vor der Abfahrt eingesammelt.**
+**Zur Abfahrt bitte einen verschlossen Briefumschlag mitbringen, beschriftet mit dem Namen des Teilnehmers mit folgendem Inhalt: Krankenversicherungskarte, Handynummern der Erziehungsberechtigten und bei Bedarf neuere Impfdaten. Der Umschlag wird vor der Abfahrt eingesammelt.**
 **Vom Arzt verordnete Medikamente bitte ebenfalls gekennzeichnet mit Namen, Einnahmezyklus und Lagerungshinweisen getrennt zur Abfahrt mitbringen _und an uns direkt übergeben._**
 
 KEINE Wertsachen mitnehmen!

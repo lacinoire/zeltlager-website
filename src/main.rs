@@ -460,7 +460,8 @@ async fn main() -> Result<()> {
 	// Command line arguments
 	let args = config::Args::parse();
 
-	let content = fs::read_to_string("config.toml")?;
+	let content = fs::read_to_string("config.toml")
+		.unwrap_or_else(|e| panic!("Failed to read config.toml: {}", e));
 	let config: Config = toml::from_str(&content)?;
 	config.validate().unwrap();
 

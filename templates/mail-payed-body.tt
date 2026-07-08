@@ -6,11 +6,11 @@ Damit ist <# if self.member.geschlecht == Gender::Male { #>er<# } else { #>sie<#
 
 <# if !self.member.eigenanreise { #>
 Abfahrt: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> um 10:00 Uhr
-Ankunft: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> um ca. 14:00 Uhr
-Treffpunkt: Parkplatz S-Bahnhof Langwied, Bergsonstraße
+Abholung: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> um ca. 12:00 Uhr
+Treffpunkt: U/S-Bahnhof Moosach auf der Nordseite
 <# } else { #>
-Ankunft: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> bis 11:00 Uhr
-Abfahrt: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> bis 14:00 Uhr
+Ankunft: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> zwischen 09:00–10:00 Uhr
+Abholung: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> zwischen 10:00–12:00 Uhr
 vom Zeltlager. Den genauen Ort des Zeltlagers, in der Umgebung von München/Landsberg am Lech, teilen wir Ihnen vor dem Zeltlager mit.
 <# } #>
 
@@ -41,7 +41,6 @@ Alle Kleidungsstücke, sowie die Liege und der Schlafsack deutlich mit Namen �
 Zur Abfahrt bitte einen verschlossen Briefumschlag mitbringen, beschriftet mit dem Namen des Teilnehmers mit folgendem Inhalt:
 - Krankenversicherungskarte
 - Handynummern der Erziehungsberechtigten
-- Taschengeld (maximal 15.- €, ist damit einbezahlt in die Zeltlagerbank und kann bei Bedarf von dem Teilnehmer abgehoben werden)
 - bei Bedarf neuere Impfdaten.
 
 Der Umschlag wird vor der Abfahrt eingesammelt.

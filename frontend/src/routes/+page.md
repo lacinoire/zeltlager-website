@@ -17,15 +17,14 @@ Du hast Lust auf Lagerfeuer, coole Spiele, neue Freundschaften und zwei unverges
 
 📅 **{LAGER_START.format("DD. MMMM")} – {LAGER_START.clone().add(11, "days").format("DD. MMMM YYYY")}**  
 📍 Auf dem Gelände eines befreundeten Sportvereins im Münchner/Landsberger Umland  
-🧭 **Ankunft:** Montag, {LAGER_START.format("DD.MM.")} um 10:00 Uhr  
-🧭 **Rückkehr:** Freitag, {LAGER_START.clone().add(11, "days").format("DD.MM.")} gegen 14:00 Uhr  
-<!-- 📍 **Treffpunkt:** Parkplatz S-Bahnhof Langwied, Bergsonstraße  -->
+🧭 **Ankunft:** Montag, {LAGER_START.format("DD.MM.")} zwischen 09:00–10:00 Uhr  
+🧭 **Abholung:** Freitag, {LAGER_START.clone().add(11, "days").format("DD.MM.")} zwischen 10:00–12:00 Uhr  
+📍 **Treffpunkt:** Direkt am Zeltplatz, den genauen Ort teilen wir Ihnen vor dem Zeltlager mit
 
 ## Was kostet das?
 
 💶 **Teilnahmegebühr: 250 €** – alles inklusive!  
 Darin enthalten sind Unterkunft, Verpflegung, Ausflüge, Eintritte und Material für Aktionen.  
-Ein kleines Taschengeld für persönliche Wünsche reicht völlig aus.  
 Falls du keine eigene Liege oder keinen Schlafsack hast, ist das kein Problem. Für 20 € kannst du diese Sachen bei uns ausleihen.
 
 Die Teilnehmerzahl ist begrenzt – <a href="/anmeldung">**schnell anmelden lohnt sich!**</a> Die Anmeldung wird erst mit dem Zahlungseingang innerhalb von 14 Tagen verbindlich.
