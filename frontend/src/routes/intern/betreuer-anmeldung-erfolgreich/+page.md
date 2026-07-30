@@ -10,7 +10,7 @@
 <img src="/img/checkmark.png" alt="Grüner Haken" class="checkmark">
 
 <span class="text">
-Super dass du dabei bist!
+Super, dass du dabei bist!
 Wenn du noch nicht in unserer WhatsApp-Gruppe bist, schreib bitte eine Mail mit deiner Handynummer an zeltlager@ftgern.de 😄
 </span>
 

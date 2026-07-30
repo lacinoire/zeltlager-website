@@ -64,7 +64,7 @@
 				},
 				{
 					id: "fuehrungszeugnis_ausstellung",
-					name: "Austellungsdatum Erweitertes Führungszeugnis",
+					name: "Ausstellungsdatum Erweitertes Führungszeugnis",
 					placeholder: "TT.MM.JJJJ",
 					required: false,
 				},

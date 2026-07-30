@@ -10,7 +10,7 @@
 <img src="/img/checkmark.png" alt="Grüner Haken" class="checkmark">
 
 <span class="text">
-Super dass du dabei bist!
+Super, dass du dabei bist!
 Wir schreiben dich demnächst an 😊
 </span>
 
