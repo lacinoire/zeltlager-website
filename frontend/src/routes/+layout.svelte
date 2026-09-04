@@ -180,6 +180,15 @@
 
 <footer class="footer">
 	<div class="content has-text-centered">
+		<div style="margin-bottom: 1em; font-size: 1.2rem;">
+			Mit freundlicher Unterstützung von
+		</div>
+		<div style="margin-bottom: 2em;">
+			<a href="https://www.zimmereifrank.de">
+				<img src="/img/Frank_Zimmerei_Logo.svg" style="padding: 0; height: 120px;" alt="Frank Zimmerei" />
+			</a>
+		</div>
+
 		<div style="margin-bottom: 2em; font-size: 1.2rem;">
 			<a href="/datenschutz">Datenschutz</a>
 			•

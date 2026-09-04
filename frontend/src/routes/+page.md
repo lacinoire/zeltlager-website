@@ -19,7 +19,7 @@ Du hast Lust auf Lagerfeuer, coole Spiele, neue Freundschaften und zwei unverges
 📍 Auf dem Gelände eines befreundeten Sportvereins im Münchner/Landsberger Umland  
 🧭 **Ankunft:** Montag, {LAGER_START.format("DD.MM.")} zwischen 09:00–10:00 Uhr  
 🧭 **Abholung:** Freitag, {LAGER_START.clone().add(11, "days").format("DD.MM.")} zwischen 10:00–12:00 Uhr  
-📍 **Treffpunkt:** Direkt am Zeltplatz, den genauen Ort teilen wir Ihnen vor dem Zeltlager mit
+📍 **Treffpunkt:** An einem gut erreichbaren Ort in oder nahe an München, den genauen Ort teilen wir Ihnen vor dem Zeltlager mit
 
 ## Was kostet das?
 

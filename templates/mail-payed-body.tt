@@ -4,15 +4,9 @@ Sehr geehrte/r <#= self.member.eltern_name #>,
 die Teilnahmegebühr für <# if self.member.geschlecht == Gender::Male { #>Ihren Sohn<# } else { #>Ihre Tochter<# } #> <#= self.member.vorname #> ist eingegangen.
 Damit ist <# if self.member.geschlecht == Gender::Male { #>er<# } else { #>sie<# } #> verbindlich zum Zeltlager angemeldet.
 
-<# if !self.member.eigenanreise { #>
-Abfahrt: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> um 10:00 Uhr
+Abfahrt: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> zwischen 09:00–10:00 Uhr
 Abholung: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> um ca. 12:00 Uhr
-Treffpunkt: U/S-Bahnhof Moosach auf der Nordseite
-<# } else { #>
-Ankunft: Montag den <#= LAGER_START.format(GERMAN_DATE_FORMAT).unwrap() #> zwischen 09:00–10:00 Uhr
-Abholung: Freitag den <#= (*LAGER_START + time::Duration::days(11)).format(GERMAN_DATE_FORMAT).unwrap() #> zwischen 10:00–12:00 Uhr
-vom Zeltlager. Den genauen Ort des Zeltlagers, in der Umgebung von München/Landsberg am Lech, teilen wir Ihnen vor dem Zeltlager mit.
-<# } #>
+Treffpunkt: An einem gut erreichbaren Ort in oder nahe an München, den genauen Ort und die Uhrzeit teilen wir Ihnen vor dem Zeltlager mit.
 
 Ihr Kind benötigt folgende persönliche Ausrüstung:
 
