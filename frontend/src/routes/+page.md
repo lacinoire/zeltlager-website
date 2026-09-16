@@ -41,7 +41,6 @@ Die Teilnehmerzahl ist begrenzt – <a href="/anmeldung">**schnell anmelden lohn
 - Wasserschlachten & Ausflüge ins Freibad
 - Gesellschafts- & Brettspiele
 - Kreativangebote und Zeltwettbewerbe
-- Tagesausflug in eine größere Stadt
 - Und viele Überraschungen mehr!
 
 Ob wild und sportlich oder ruhig und kreativ – bei uns ist für jede*n etwas dabei!
