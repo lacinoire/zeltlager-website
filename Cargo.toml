@@ -8,7 +8,7 @@ edition = "2018"
 # For #[axum::debug_handler]
 #axum = { version = "0.8", features = ["macros"] }
 axum = "0.8"
-axum-oidc = "1.0.0-dev-1"
+axum-oidc = "=1.0.0-dev-1"
 clap = { version = "4", features = ["derive"] }
 clru = "0.6"
 anyhow = "1"
